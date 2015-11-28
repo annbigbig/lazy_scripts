@@ -1,0 +1,2 @@
+http://elinux.org/RPi_Resize_Flash_Partitions
+https://ubuntu-mate.org/raspberry-pi/
