@@ -7,6 +7,14 @@ SDCARD=/dev/sdb
 # HINT: you can run command 'sudo df -h' before and after plugging SD card into computer
 # to know what your device name of SD card extractly is.
 
+# calculating the value of the last sector on the SD card
+# no need to change it below
+OFFSET=1
+TOTAL_SECTORS=$(parted -s $SDCARD unit s print | grep [0-9]*s$ | grep $SDCARD | cut -d ' ' -f 2 |sed 's/.*：//' | sed 's/s//')
+LAST_SECTOR=$(($TOTAL_SECTORS - $OFFSET))
+
+###
+
 flash_it (){
 	echo "umount SD card\n"
 	umount $SDCARD*
@@ -45,6 +53,33 @@ flash_it (){
 	sleep 5
 	echo "done. VGA resolution changed to 1024X768 60Hz"
 
+	echo "ready to resize 2nd partition, expend it to the maximum sector.\n"
+	echo "list the partition table first.\n"
+	parted -s $SDCARD unit s print
+	echo "done.\n"
+
+	echo "delete 2nd partition on SD card.\n"
+	parted -s $SDCARD rm 2
+	echo "done.\n"
+
+	echo "re-create 2nd partition, use the maximum size until the end of this SD card\n"
+	echo "your last sector number on SD card is $LAST_SECTOR \n"
+	parted -s $SDCARD unit s mkpart primary ext4 133120 $LAST_SECTOR
+	echo "done.\n"
+
+	echo "check 2nd partition.\n"
+	e2fsck -f ${SDCARD}2
+	echo "done.\n"
+
+	echo "resize it.\n"
+	resize2fs ${SDCARD}2
+	echo "done.\n"
+
+	echo "list the partition table again.\n"
+        parted -s $SDCARD unit s print
+        echo "done.\n"
+
+	sync
 	echo "now you can boot your Raspberry Pi 2 with this SD card."
 }
 

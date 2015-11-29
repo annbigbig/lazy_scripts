@@ -1,2 +1,31 @@
 http://elinux.org/RPi_Resize_Flash_Partitions
 https://ubuntu-mate.org/raspberry-pi/
+http://unix.stackexchange.com/questions/170258/delete-labelled-partition-non-interactively-with-one-command
+http://wiki.linux-xapple.org/w/index.php/Build_Howto#Create_GPT_on_the_SD_card
+
+列出分割表 (成功)
+parted -s /dev/sdb unit s print
+
+刪掉第2個分割區 (成功)
+parted -s /dev/sdb rm 2
+
+重新建立第2個分割區到SD卡最後一個sector
+為什麼是133120，因為133119是第一個分割區結束的sector
+30703615是30703616-1，而30703616會出現在parted -s /dev/sdb unit s print的輸出
+所以你要從那個輸出，把30703616(SD卡總共有幾個sector？)再減1，算出30703615也就是最後一個sector的數字
+# parted -s /dev/sdb unit s mkpart primary ext4 133120 30703615
+
+強制檢查分割區
+ e2fsck -f /dev/sdb2
+
+調整大小
+resize2fs /dev/sdb2
+
+sync
+
+抓出總sector數量，然後減1
+parted -s /dev/sdb unit s print | grep [0-9]*s$ | grep /dev/sdb
+parted -s /dev/sdb unit s print | grep [0-9]*s$ | grep /dev/sdb | cut -d ' ' -f 2
+parted -s /dev/sdb unit s print | grep [0-9]*s$ | grep /dev/sdb | cut -d ' ' -f 2 |sed 's/.*：//'
+parted -s /dev/sdb unit s print | grep [0-9]*s$ | grep /dev/sdb | cut -d ' ' -f 2 |sed 's/.*：//' | sed 's/s//'
+

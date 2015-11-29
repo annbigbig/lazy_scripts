@@ -1,0 +1,2 @@
+http://askubuntu.com/questions/689070/network-interface-name-changes-after-update-to-15-10-udev-changes
+http://askubuntu.com/questions/689501/how-to-rename-network-interface-in-15-10
