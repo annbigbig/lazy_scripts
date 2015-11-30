@@ -1,0 +1,47 @@
+http://askubuntu.com/questions/689070/network-interface-name-changes-after-update-to-15-10-udev-changes
+http://askubuntu.com/questions/689501/how-to-rename-network-interface-in-15-10
+
+昇級到Ubuntu 15.10之後
+原來熟悉的eth0和wlan0接口都不見了
+
+解決方法
+加入一個/etc/udev/rules.d/70-network.rules檔案
+內容就兩行
+SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="b8:27:eb:xx:dd:88", NAME="eth0"
+SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="e8:4e:06:yy:zz:55", NAME="wlan0"
+
+重新開機後又橋回原先熟悉的eth0和wlan0
+root@raspberrypi2:~# ifconfig
+eth0      Link encap:Ethernet  HWaddr b8:27:eb:xx:dd:88  
+          inet addr:10.1.1.172  Bcast:10.1.1.255  Mask:255.255.255.0
+          inet6 addr: fe80::ba27:ebff:fee3:da47/64 Scope:Link
+          inet6 addr: fd7a:5cf:99b6::f35/128 Scope:Global
+          inet6 addr: fd7a:5cf:99b6:0:7847:d721:a77a:79b2/64 Scope:Global
+          inet6 addr: fd7a:5cf:99b6:0:ba27:ebff:fee3:da47/64 Scope:Global
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:557 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:591 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:48854 (48.8 KB)  TX bytes:74398 (74.3 KB)
+
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:418 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:418 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:38186 (38.1 KB)  TX bytes:38186 (38.1 KB)
+
+wlan0     Link encap:Ethernet  HWaddr e8:4e:06:yy:zz:55  
+          UP BROADCAST MULTICAST  MTU:1500  Metric:1
+          RX packets:0 errors:0 dropped:2 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
+
+root@raspberrypi2:~# 
+
+
+
+

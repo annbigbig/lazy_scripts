@@ -1,0 +1,26 @@
+關鍵字
+shell script return value
+
+參考資料
+http://stackoverflow.com/questions/8742783/returning-value-from-called-function-in-shell-script
+
+關鍵字
+git how to discard changes
+
+參考資料
+http://stackoverflow.com/questions/52704/how-do-you-discard-unstaged-changes-in-git
+
+很像了但不是 (不知道怎麼反過來，選中的應該刪掉)
+parted -s /dev/sdb unit s print | grep /dev/sdb | sed 's/[0-9].*//'
+
+可以執行的
+# parted -s /dev/sdb unit s print | grep /dev/sdb | grep -oP '\d+'
+# parted -s /dev/sdb unit s print | grep /dev/sdb | sed -r 's/^[^0-9]*([0-9]+).*/\1/'
+
+關鍵字
+sed how to pick up numbers
+sed how to match numbers
+
+參考資料
+http://stackoverflow.com/questions/9260625/sed-extracting-group-of-digits
+http://unix.stackexchange.com/questions/130968/regular-expression-find-3-or-4-numbers

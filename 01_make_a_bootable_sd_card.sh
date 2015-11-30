@@ -7,13 +7,12 @@ SDCARD=/dev/sdb
 # HINT: you can run command 'sudo df -h' before and after plugging SD card into computer
 # to know what your device name of SD card extractly is.
 
-# calculating the value of the last sector on the SD card
-# no need to change it below
-OFFSET=1
-TOTAL_SECTORS=$(parted -s $SDCARD unit s print | grep [0-9]*s$ | grep $SDCARD | cut -d ' ' -f 2 |sed 's/.*：//' | sed 's/s//')
-LAST_SECTOR=$(($TOTAL_SECTORS - $OFFSET))
-
 ###
+calculate_last_sector(){
+	OFFSET=1
+	TOTAL_SECTORS=$(parted -s $SDCARD unit s print | grep $SDCARD | sed -r 's/^[^0-9]*([0-9]+).*/\1/')
+	return $(($TOTAL_SECTORS - $OFFSET))
+}
 
 flash_it (){
 	echo "umount SD card\n"
@@ -42,15 +41,11 @@ flash_it (){
 
 	echo "change the VGA resolution to 1024X768 60Hz"
  	mkdir /mnt/boot
-	mount ${SDCARD}1 /mnt/boot
-	sleep 5
-	cd /mnt/boot
+	mount ${SDCARD}1 /mnt/boot && cd /mnt/boot
 	sed -i -- "s|#hdmi_mode=1|hdmi_mode=16|g" ./config.txt
 	sync
-	sleep 5
 	cd /mnt
-	umount /mnt/boot
-	sleep 5
+	umount /mnt/boot && sleep 1
 	echo "done. VGA resolution changed to 1024X768 60Hz"
 
 	echo "ready to resize 2nd partition, expend it to the maximum sector.\n"
@@ -87,11 +82,17 @@ say_goodbye (){
 	echo "goodbye everyone"
 }
 
+main(){
+	calculate_last_sector
+	LAST_SECTOR=$?
+	flash_it
+}
+
 echo "You are going to write Raspberry Pi 2 image file into device $SDCARD \n"
 read -p "Are you sure (y/n)?" sure
 case $sure in
 	[Yy]* )
-		flash_it;
+		main;
 		break;;
 	[Nn]* ) 
 		say_goodbye;
