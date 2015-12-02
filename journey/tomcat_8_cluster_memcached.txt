@@ -1,0 +1,3 @@
+tomcat 8 cluster memcached
+
+http://tandraschko.blogspot.tw/2013/09/session-replication-clustering-failover.html

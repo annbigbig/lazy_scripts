@@ -1,0 +1,3 @@
+raspberry pi 2 externel usb drive as rootfs
+
+http://www.circuidipity.com/run-a-raspberry-pi-2-from-external-usb-storage.html

@@ -1,0 +1,8 @@
+http://unix.stackexchange.com/questions/67898/using-the-not-equal-operator-for-string-comparison
+
+if [ "$PHONE_TYPE" != "NORTEL" ] && [ "$PHONE_TYPE" != "NEC" ] && [ "$PHONE_TYPE" != "CISCO" ]
+
+if [ "$PHONE_TYPE" == "NORTEL" ] || [ "$PHONE_TYPE" == "NEC" ] || [ "$PHONE_TYPE" == "CISCO" ]
+
+
+
