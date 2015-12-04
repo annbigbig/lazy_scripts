@@ -5,7 +5,9 @@
 # run this script on Raspberry pi 2
 # before you run this script , please specify some parameters here:
 #
-###
+LAN="10.1.1.0/24" # The local network that you allow packets come in from there
+VPN="10.8.0.0/24" # The VPN network that you allow packets come in from there
+#####################
 
 say_goodbye (){
 	echo "goodbye everyone"
@@ -15,17 +17,19 @@ fix_network_interfaces_name(){
 	ETH0_MAC_ADDRESS=$(ifconfig |grep enxb | cut -d ' ' -f 6)
 	WLAN0_MAC_ADDRESS=$(ifconfig |grep enxe | cut -d ' ' -f 6)
 	NETWORK_RULES_FILE="/etc/udev/rules.d/70-network.rules"
-	TEST_IF_RULE_ALREADY_EXIST_ETH0=$(cat $NETWORK_RULES_FILE | grep eth0)
-	TEST_IF_RULE_ALREADY_EXIST_WLAN0=$(cat $NETWORK_RULES_FILE | grep wlan0)
+	touch $NETWORK_RULES_FILE
+	HOW_MANY_TIMES_ETH0_APPEAR=$(cat $NETWORK_RULES_FILE | grep -c "eth0")
+	HOW_MANY_TIMES_WLAN0_APPEAR=$(cat $NETWORK_RULES_FILE | grep -c "wlan0")
+	ZERO=0
 
-	if [ ! -z "$ETH0_MAC_ADDRESS" -a "$ETH0_MAC_ADDRESS" != " " -a -z $TEST_IF_RULE_ALREADY_EXIST_ETH0 ]; then
+	if [ ! -z "$ETH0_MAC_ADDRESS" -a "$ETH0_MAC_ADDRESS" != " " -a $HOW_MANY_TIMES_ETH0_APPEAR -eq $ZERO ]; then
 		echo "mac address of eth0 : $ETH0_MAC_ADDRESS \n"
 		echo "SUBSYSTEM==\"net\", ACTION==\"add\", ATTR{address}==\"$ETH0_MAC_ADDRESS\", NAME=\"eth0\"" >> $NETWORK_RULES_FILE
 	else
 		echo "mac address of eth0 not found."
 	fi
 
-	if [ ! -z "$WLAN0_MAC_ADDRESS" -a "$WLAN0_MAC_ADDRESS" != " " -a -z $TEST_IF_RULE_ALREADY_EXIST_WLAN0 ]; then
+	if [ ! -z "$WLAN0_MAC_ADDRESS" -a "$WLAN0_MAC_ADDRESS" != " " -a $HOW_MANY_TIMES_WLAN0_APPEAR -eq $ZERO ]; then
 		echo "mac address of wlan0 : $WLAN0_MAC_ADDRESS \n"
 		echo "SUBSYSTEM==\"net\", ACTION==\"add\", ATTR{address}==\"$WLAN0_MAC_ADDRESS\", NAME=\"wlan0\"" >> $NETWORK_RULES_FILE
 	else
@@ -57,13 +61,15 @@ iptables=/sbin/iptables
 loopback=127.0.0.1
 local="\$(/sbin/ifconfig | grep -A 1 'eth0' | tail -1 | cut -d ':' -f 2 | cut -d ' ' -f 1)"
 #local=10.1.1.170
-lan=10.1.1.0/24
-vpn=10.8.0.0/24
+lan=$LAN
+vpn=$VPN
 # =================================================================================================
 \$iptables -t filter -F
 \$iptables -t filter -A INPUT -i lo -s \$loopback -d \$loopback -p all -j ACCEPT
 \$iptables -t filter -A INPUT -i eth0 -s \$local -d \$local -p all -j ACCEPT
 \$iptables -t filter -A INPUT -i eth0 -s \$lan -d \$local -p all -j ACCEPT
+\$iptables -t filter -A INPUT -i eth0 -s \$vpn -d \$local -p all -j ACCEPT
+\$iptables -t filter -A INPUT -p udp --dport 53 -j ACCEPT
 \$iptables -t filter -A INPUT -d \$local -p tcp --dport 36000 --syn -m state --state NEW -j ACCEPT
 \$iptables -t filter -A INPUT -s \$lan -p tcp --dport 36000 --syn -m state --state NEW -j ACCEPT
 \$iptables -t filter -A INPUT -d \$local -p tcp --dport 80 --syn -m state --state NEW -m limit --limit 160/s --limit-burst 200 -j ACCEPT
