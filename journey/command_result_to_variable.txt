@@ -1,0 +1,8 @@
+http://stackoverflow.com/questions/2314750/how-to-assign-the-output-of-a-bash-command-to-a-variable
+
+Try:
+
+pwd=`pwd`
+or
+
+pwd=$(pwd)

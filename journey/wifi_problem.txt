@@ -1,0 +1,147 @@
+Delete '/run/wpa_supplicant/wlan0' manually if it is not used anymore
+
+/var/log/syslog
+
+Dec  3 16:56:10 raspberrypi2 wpa_supplicant[619]: Failed to initialize control interface '/run/wpa_supplicant'.#012You may have another wpa_supplicant process already running or the file was#012left by an unclean termination of wpa_supplicant in which case you will need#012to manually remove this file before starting wpa_supplicant again.
+Dec  3 16:56:11 raspberrypi2 wpa_supplicant[429]: wlan0: Trying to associate with 0c:73:2d:fe:cd:23 (SSID='OpenWrt' freq=2462 MHz)
+Dec  3 16:56:11 raspberrypi2 wpa_supplicant[429]: wlan0: Association request to the driver failed
+Dec  3 16:56:11 raspberrypi2 wpa_supplicant[619]: ioctl[SIOCSIWAP]: Operation not permitted
+Dec  3 16:56:11 raspberrypi2 wpa_supplicant[429]: wlan0: Associated with 0c:73:2d:fe:cd:23
+Dec  3 16:56:11 raspberrypi2 wpa_supplicant[429]: ioctl[SIOCGIWESSID]: Operation not permitted
+Dec  3 16:56:11 raspberrypi2 wpa_supplicant[429]: wlan0: Could not read SSID from driver
+Dec  3 16:56:11 raspberrypi2 wpa_supplicant[429]: wlan0: WPA: No SSID info found (msg 1 of 4)
+Dec  3 16:56:11 raspberrypi2 wpa_supplicant[429]: wlan0: CTRL-EVENT-DISCONNECTED bssid=0c:73:2d:fe:cd:23 reason=0
+Dec  3 16:56:11 raspberrypi2 dhclient: receive_packet failed on wlan0: Network is down
+Dec  3 16:56:11 raspberrypi2 NetworkManager[438]: <error> [1449132971.452748] [supplicant-manager/nm-supplicant-interface.c:734] interface_add_cb(): (wlan0): error adding interface: GDBus.Error:fi.w1.wpa_supplicant1.UnknownError: wpa_supplicant couldn't grab this interface.
+
+
+https://www.raspberrypi.org/forums/viewtopic.php?t=26795
+http://www.howtogeek.com/167425/how-to-setup-wi-fi-on-your-raspberry-pi-via-the-command-line/
+http://crunchbang.org/forums/viewtopic.php?pid=257623
+https://www.raspberrypi.org/documentation/configuration/wireless/wireless-cli.md
+http://forum.ubuntu.org.cn/viewtopic.php?f=155&t=392106
+
+问题来了：你会发现你的网络再也无法启动，不断提示你输入密码．
+其实是，系统systemd默认启动了一项服务：net-auto-wireless.service（它会启动名为wpa_supplicant的进程，这个service与networkManger.service是冲突的）
+代码:
+[hilo@hilo ~]$ ps aux|grep -i network
+root       313  0.0  0.0 250268  6916 ?        Ssl  01:14   0:01 /usr/sbin/NetworkManager --no-daemon
+root       346  0.1  0.0  32152  1572 ?        Ss   01:14   0:00 wpa_supplicant -B -P /run/wpa_supplicant_wlan0.pid -i wlan0 -D nl80211,wext -c/run/network/wpa.wlan0/wpa.conf -W
+
+
+好吧，请关闭 net-auto-wireless.service
+代码:
+[hilo@hilo ~]$ sudo  systemctl disable net-auto-wireless.service
+[sudo] password for hilo: 
+rm '/etc/systemd/system/multi-user.target.wants/net-auto-wireless.service'
+
+這個比較像我的問題
+http://raspberrypi.stackexchange.com/questions/31663/problem-wpa-supplicant-rapsberry-pi-2
+https://www.raspberrypi.org/forums/viewtopic.php?f=28&t=44044&start=225
+
+http://askubuntu.com/questions/249944/how-can-i-completely-remove-networkmanager
+
+check if network-manager package exists ?
+dpkg --get-selections | grep network-manager
+
+移掉它
+apt-get remove --purge network-manager-gnome network-manager
+不行，因為它會連整個desktop環境都移掉 (我誤會了，不會移除桌面環境)
+
+看能不能關掉network-manager，煩死了
+https://ask.openstack.org/en/question/63848/how-to-switch-to-manual-network-management-on-ubuntu-14042-desktop/
+http://xmodulo.com/disable-network-manager-linux.html
+
+(為了要有stop指令)
+apt-get install upstart
+
+$ sudo stop network-manager
+$ echo "manual" | sudo tee /etc/init/network-manager.override
+
+不是那樣，從Ubuntu 15.04之後
+# systemctl disable network-manager
+這樣下指令關掉network-manager
+
+
+iwlist wlan0 scan
+ifdown wlan0
+ifup wlan0
+
+/var/log/syslog
+
+root@raspberrypi2:~# wpa_supplicant -Dnl80211 -iwlan0 -c/etc/wpa_supplicant/wpa_supplicant.conf
+Successfully initialized wpa_supplicant
+nl80211: Driver does not support authentication/association or connect commands
+nl80211: deinit ifname=wlan0 disabled_11b_rates=0
+wlan0: Failed to initialize driver interface
+root@raspberrypi2:~# 
+wlan0: WPA: 4-Way Handshake failed - pre-shared key may be incorrect
+
+這個人也覺得惡夢
+http://unix.stackexchange.com/questions/190754/wpa-supplicant-nightmares
+
+其實剛才也沒有關掉network-manager，重新開機它又活過來了的樣子
+而且/run/wpa_supplicant/wlan0
+一直復活，要砍好幾次才會死？？？死了之後才能
+ifup wlan0
+但是也不會拿到IP，快瘋了
+
+Ubuntu 15.04 systemd 開機時自動啟動
+http://ubuntu.flowconsult.at/linux/ubuntu-15-04-startup-shutdown-script-systemd/
+
+Ubuntu 15.04 startup & shutdown script (systemd)
+Create a custom named file:
+sudo gedit /lib/systemd/system/custom-start-shutdown.service
+Copy & paste the following code into the file. Reference the target script files via ExecStart and ExecStop:
+
+[Unit]
+Description=Custom Start and Shutdown
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/systemd/scripts/custom-start.sh
+ExecStop=/usr/lib/systemd/scripts/custom-shutdown.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+
+Enable the service:
+sudo systemctl enable custom-start-shutdown.service
+
+介紹
+Auto-starting Services with systemd
+https://www.digitalocean.com/community/tutorials/how-to-configure-a-linux-service-to-start-automatically-after-a-crash-or-reboot-part-1-practical-examples
+
+和我一樣狐疑的用戶，從14.10昇到15.04
+http://ubuntuforums.org/showthread.php?t=2275134
+
+移除network-manager並關掉服務
+apt-get remove --purge network-manager-gnome network-manager
+systemctl disable network-manager
+
+然後沒有完全弄乾淨的樣子，在/var/log/syslog裡面會報錯
+WARNING : Could not launch application 'nm-applet.desktop'
+
+http://ubuntuforums.org/showthread.php?t=2192663
+Nevermind, I've managed to solve this problem with the help of this thread. 
+
+The autostart file located here: /etx/xdg/autostart/nm-applet.desktop
+contained this certain line:
+AutostartCondition=GNOME3 unless-session gnome
+I removed it, and now nm-applet shows correctly.
+
+
+
+Dec  4 02:33:13 raspberrypi2 nm-dispatcher[596]: Error: TLP power save is disabled. Set TLP_ENABLE=1 in /etc/default/tlp.
+
+弄到這裡先打住，其實有個結論
+傳統的我喜歡的修改純文字設定檔/etc/network/interfaces
+這樣的設定網路的方式
+會和GUI介面的network-manager裡作的設定起衝突
+基本上可以完全當/etc/network/interfaces不存在
+就在GUI介面的network-manager作網路設定即可，static或是dhcp都很正常
+所以我這樣硬要把network-manager移除掉
+然後用/etc/network/interfaces設定網路
+這麼偏執的怪異想法
+既然用GUI可以正常使用就這樣用啊？你有病嗎？
+

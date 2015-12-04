@@ -1,0 +1,8 @@
+http://serverfault.com/questions/132657/where-route-to-169-254-0-0-comes-from
+
+Solution:
+
+To disable the zeroconf route during system boot, edit the /etc/sysconfig/network file and add the following NOZEROCONF value to the end of the file:
+NETWORKING=YES
+HOSTNAME=localhost.localdomain
+NOZEROCONF=yes

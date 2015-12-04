@@ -6,24 +6,21 @@
 # before you run this script , please specify some parameters here:
 #
 # network interface eth0
-ETH0_ON="yes"
-ETH0_PROTOCOL="static" # could be 'dhcp' or 'static'
+ETH0_ON="yes" # turn on eth0 if value is 'yes'
+ETH0_PROTOCOL="dhcp" # could be 'dhcp' or 'static'
 # if you choose 'dhcp' for eth0 interface , leave the bellow empty.
 ETH0_ADDRESS="10.1.1.173" # 10.1.1.173
 ETH0_NETMASK="255.255.255.0"	# 255.255.255.0
 ETH0_GATEWAY="10.1.1.1" # 10.1.1.1
 # network interface wlan0
-WLAN0_ON="no"
+WLAN0_ON="yes" # turn on wlan0 if value is 'yes'
 WLAN0_PROTOCOL="dhcp" # could be 'dhcp' or 'static'
 # if you choose 'dhcp' for wlan0 interface , leave the bellow empty.
-WLAN0_ADDRESS="" # 10.1.1.174
-WLAN0_NETMASK="" # 255.255.255.0
-WLAN0_GATEWAY="" # 10.1.1.1
-WIFI_SSID="" # my_wifi_SSID
-WIFI_PASS="" # my_wifi_PASSWORD
-###
-# the dns resolvers you preferred
-DNS_SERVERS="8.8.8.8 8.8.4.4 168.95.192.1 168.95.1.1"
+WLAN0_ADDRESS="10.1.1.175" # 10.1.1.174
+WLAN0_NETMASK="255.255.255.0" # 255.255.255.0
+WLAN0_GATEWAY="10.1.1.1" # 10.1.1.1
+WIFI_SSID="OpenWrt" # my_wifi_SSID
+WIFI_PASS="88888888" # my_wifi_PASSWORD
 ###
 
 say_goodbye (){
@@ -62,35 +59,62 @@ network_setting(){
  ### eth0
 	ETH0_CONFIG_FILE="/etc/network/interfaces.d/eth0"
 	RESOLV_TAIL_FILE="/etc/resolvconf/resolv.conf.d/tail"
+	rm -rf $ETH0_CONFIG_FILE
 	if [ "$ETH0_ON" = "yes" ]; then
 		echo "turn on eth0\n"
-		rm -rf $ETH0_CONFIG_FILE
 		echo "auto eth0" >> $ETH0_CONFIG_FILE
 		echo "allow-hotplug eth0" >> $ETH0_CONFIG_FILE
 		case $ETH0_PROTOCOL in
 			"dhcp")
+				truncate -s 0 $RESOLV_TAIL_FILE
 				echo "\tiface eth0 inet dhcp" >> $ETH0_CONFIG_FILE
-				echo "" >> $RESOLV_TAIL_FILE
-				
 			;;
 			"static")
 				echo "iface eth0 inet static" >> $ETH0_CONFIG_FILE
 				echo "\taddress $ETH0_ADDRESS" >> $ETH0_CONFIG_FILE
 				echo "\tnetmask $ETH0_NETMASK" >> $ETH0_CONFIG_FILE
 				echo "\tgateway $ETH0_GATEWAY" >> $ETH0_CONFIG_FILE
-				echo "nameserver 8.8.8.8" >> $RESOLV_TAIL_FILE
-				echo "nameserver 8.8.4.4" >> $RESOLV_TAIL_FILE
+				if [ ! -s $RESOLV_TAIL_FILE ]; then
+					echo "nameserver 8.8.8.8" >> $RESOLV_TAIL_FILE
+					echo "nameserver 8.8.4.4" >> $RESOLV_TAIL_FILE
+				fi
 			;;
-
 			*)
-				echo "The value of ETH_PROTOCOL must be 'dhcp' or 'static'."
+				echo "The value of ETH0_PROTOCOL must be 'dhcp' or 'static'."
 			;;
 		esac
-	else
-		rm -rf $ETH0_CONFIG_FILE
 	fi
 
  ### wlan0
+	WLAN0_CONFIG_FILE="/etc/network/interfaces.d/wlan0"
+	WIFI_PSK=$(wpa_passphrase "$WIFI_SSID" "$WIFI_PASS" | grep psk=[a-f,0-9] | cut -d '=' -f 2)
+	rm -rf $WLAN0_CONFIG_FILE
+	if [ "$WLAN0_ON" = "yes" ]; then
+		echo "turn on wlan0\n"
+		echo "auto wlan0" >> $WLAN0_CONFIG_FILE
+		echo "allow-hotplug wlan0" >> $WLAN0_CONFIG_FILE
+		case $WLAN0_PROTOCOL in
+			"dhcp")
+				truncate -s 0 $RESOLV_TAIL_FILE
+				echo "iface wlan0 inet dhcp" >> $WLAN0_CONFIG_FILE
+			;;
+			"static")
+				echo "iface wlan0 inet static" >> $WLAN0_CONFIG_FILE
+				echo "\taddress $WLAN0_ADDRESS" >> $WLAN0_CONFIG_FILE
+				echo "\tnetmask $WLAN0_NETMASK" >> $WLAN0_CONFIG_FILE
+				echo "\tgateway $WLAN0_GATEWAY" >> $WLAN0_CONFIG_FILE
+				if [ ! -s $RESOLV_TAIL_FILE ] && [ $ETH0_ON != "yes" ]; then
+					echo "nameserver 8.8.8.8" >> $RESOLV_TAIL_FILE
+					echo "nameserver 8.8.4.4" >> $RESOLV_TAIL_FILE
+				fi
+			;;
+			*)
+				echo "The value of WLAN0_PROTOCOL must be 'dhcp' or 'static'."
+			;;
+		esac
+		echo "wpa-ssid $WIFI_SSID" >> $WLAN0_CONFIG_FILE
+		echo "wpa-psk $WIFI_PSK" >> $WLAN0_CONFIG_FILE
+	fi
 
 }
 
