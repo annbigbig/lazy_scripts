@@ -15,15 +15,17 @@ fix_network_interfaces_name(){
 	ETH0_MAC_ADDRESS=$(ifconfig |grep enxb | cut -d ' ' -f 6)
 	WLAN0_MAC_ADDRESS=$(ifconfig |grep enxe | cut -d ' ' -f 6)
 	NETWORK_RULES_FILE="/etc/udev/rules.d/70-network.rules"
+	TEST_IF_RULE_ALREADY_EXIST_ETH0=$(cat $NETWORK_RULES_FILE | grep eth0)
+	TEST_IF_RULE_ALREADY_EXIST_WLAN0=$(cat $NETWORK_RULES_FILE | grep wlan0)
 
-	if [ ! -z "$ETH0_MAC_ADDRESS" -a "$ETH0_MAC_ADDRESS" != " " -a ! -f $NETWORK_RULES_FILE ]; then
+	if [ ! -z "$ETH0_MAC_ADDRESS" -a "$ETH0_MAC_ADDRESS" != " " -a -z $TEST_IF_RULE_ALREADY_EXIST_ETH0 ]; then
 		echo "mac address of eth0 : $ETH0_MAC_ADDRESS \n"
 		echo "SUBSYSTEM==\"net\", ACTION==\"add\", ATTR{address}==\"$ETH0_MAC_ADDRESS\", NAME=\"eth0\"" >> $NETWORK_RULES_FILE
 	else
 		echo "mac address of eth0 not found."
 	fi
 
-	if [ ! -z "$WLAN0_MAC_ADDRESS" -a "$WLAN0_MAC_ADDRESS" != " " -a ! -f $NETWORK_RULES_FILE ]; then
+	if [ ! -z "$WLAN0_MAC_ADDRESS" -a "$WLAN0_MAC_ADDRESS" != " " -a -z $TEST_IF_RULE_ALREADY_EXIST_WLAN0 ]; then
 		echo "mac address of wlan0 : $WLAN0_MAC_ADDRESS \n"
 		echo "SUBSYSTEM==\"net\", ACTION==\"add\", ATTR{address}==\"$WLAN0_MAC_ADDRESS\", NAME=\"wlan0\"" >> $NETWORK_RULES_FILE
 	else
@@ -40,12 +42,12 @@ fix_network_interfaces_name(){
 
 turn_on_tlp_power_save(){
 	echo "Turn on TLP power save.\n"
-	sed -i -- "s}TLP_ENABLE=1|TLP_ENABLE=0|g" /etc/default/tlp
+	sed -i -- "s|TLP_ENABLE=0|TLP_ENABLE=1|g" /etc/default/tlp
 	echo "done.\n"
 }
 
 firewall_setting(){
-        FIREWALL_RULE_FILE="/tmp/test.firewall"
+        FIREWALL_RULE_FILE="/etc/network/if-up.d/firewall"
         if [ ! -f $FIREWALL_RULE_FILE ]; then
                 echo "writing local firewall rule to $FIREWALL_RULE_FILE \n"
                 cat >> $FIREWALL_RULE_FILE << EOF
@@ -85,6 +87,8 @@ main(){
 	fix_network_interfaces_name
 	turn_on_tlp_power_save
 	firewall_setting
+	echo "now you should reboot your Raspberry Pi for configurations take affect.\n"
+	echo "RUN 'reboot' in your prompt # symbol\n"
 }
 
 echo "This script will do the following tasks for your Raspberry Pi 2, including: \n"
