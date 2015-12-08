@@ -89,10 +89,90 @@ EOF
         fi
 }
 
+delete_route_to_169_254_0_0(){
+	echo "delete route to 169.254.0.0/16 \n"
+        FILE1="/etc/network/if-up.d/avahi-autoipd"
+	sed -i -- "s|/bin/ip route|#/bin/ip route|g" $FILE1
+	sed -i -- "s|/sbin/route|#/sbin/route|g" $FILE1
+	echo "done.\n"
+}
+
+add_swap_space(){
+        SWAP_CONFIG_ALREADY_IN_FSTAB="$(cat /etc/fstab | grep swap)"
+        if [ -z $SWAP_CONFIG_ALREADY_IN_FSTAB ] && [ ! -f /swapfile ]; then
+                echo "swap config not in /etc/fstab && /swapfile not exists\n"
+                echo "populate a empty file of 512MB size with /dev/zero\n"
+                dd if=/dev/zero of=/swapfile bs=1M count=512
+                sync
+                chmod 600 /swapfile
+                mkswap /swapfile
+                swapon -s
+		echo "before swapon\n"
+                swapon /swapfile
+		echo "after swapon\n"
+                swapon -s
+                echo "/swapfile  none          swap    sw          0       0" >> /etc/fstab
+		echo "swap configuration already write to /etc/fstab\n"
+        fi
+}
+
+install_softwares(){
+        apt-get update
+
+        BUILD_ESSENTIALS_INSTALLED="$(dpkg --get-selections | grep build-essential)"
+        if  [ -z "$BUILD_ESSENTIALS_INSTALLED" ]; then
+                echo "build-essential not installed, install now...\n"
+                apt-get install -y build-essential
+                echo "done.\n"
+        else
+                echo "build-essential has been installed.\n"
+        fi
+
+        GIT_INSTALLED="$(dpkg --get-selections | grep git)"
+        if [ -z "$GIT_INSTALLED" ]; then
+                echo "git not installed, install now...\n"
+                apt-get install -y git
+                echo "done.\n"
+        else
+                echo "git has been installed.\n"
+        fi
+
+        SVN_INSTALLED="$(dpkg --get-selections | grep subversion)"
+        if [ -z "$SVN_INSTALLED" ]; then
+                echo "svn not installed, install now...\n"
+                apt-get install -y subversion
+                echo "done.\n"
+        else
+                echo "svn has been installed.\n"
+        fi
+
+        HTOP_INSTALLED="$(dpkg --get-selections | grep htop)"
+        if [ -z "$HTOP_INSTALLED" ]; then
+                echo "htop not installed, install now...\n"
+                apt-get install -y htop
+                echo "done.\n"
+        else
+                echo "htop has been installed.\n"
+        fi
+
+        MEM_TESTER_INSTALLED="$(dpkg --get-selections | grep memtester)"
+        if [ -z "$MEM_TESTER_INSTALLED" ]; then
+                echo "memtester not installed, install now...\n"
+                apt-get install -y memtester
+                echo "done.\n"
+        else
+                echo "memtester has been installed.\n"
+        fi
+
+}
+
 main(){
-	fix_network_interfaces_name
-	turn_on_tlp_power_save
-	firewall_setting
+	#fix_network_interfaces_name
+	#turn_on_tlp_power_save
+	#firewall_setting
+	#delete_route_to_169_254_0_0
+	#add_swap_space
+	install_softwares
 	echo "now you should reboot your Raspberry Pi for configurations take affect.\n"
 	echo "RUN 'reboot' in your prompt # symbol\n"
 }

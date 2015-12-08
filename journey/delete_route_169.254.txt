@@ -1,0 +1,41 @@
+http://www.ubuntu-tw.org/modules/newbb/viewtopic.php?topic_id=36306
+
+本論壇 網友常問 網路效率問題
+請他們提供 route -n 核心路由表
+經常 發現有 169.254.0.0 路由
+Destination Gateway Genmask.... Flags Metric Ref Use Iface
+169.254.0.0 0.0.0.0 255.255.0.0 U.... 1000 0.. 0.. eth0
+網路上 看到許多人 形容它是惡魔 (169.254.0.0 路由的套件是 avahi-autoipd） 並且形容它就像 四月一日 愚人節 的惡魔
+也有人說 沒什麼影響 可以不理它 #3 #4
+
+但是 在網路上 還沒找到一個方法 成功 移除 套件 avahi-autoipd 而沒有後遺症的
+
+今天 偶然看到 一個方法 可以移除 169.254.0.0 路由 而尚未發現後遺症：
+從 終端機 
+sudo route del -net 169.254.0.0 netmask 255.255.0.0 eth0 
+# eth0 要視前面的 route -n 而得
+再一次 檢查
+route -n
+發現 169.254.0.0 路由 果然不見了
+
+如果 你希望一開機就自動執行 把 169.254.0.0 路由 刪除
+sudo gedit /etc/rc.local
+把
+sudo route del -net 169.254.0.0 netmask 255.255.0.0 eth0
+放在
+exit 0
+前面即可
+
+至於 169.254.0.0 路由 爲何會自動產生呢 ？
+這是 ubuntu 預裝的 套件 avahi-autoipd
+它是 Zeroconf 規格的具體實現
+讓你安裝好 ubuntu 還沒設定 網路 還沒獲得 IPv4 以前
+就自動 獲得一個 網址 及 路由
+這個路由名稱叫 link-local 記錄 在 /etc/networks 檔案
+sudo cat /etc/networks
+link-local 169.254.0.0
+用於 區網 的 檔案分享 與 印表機分享 ...等等用途
+但是它對 其它的網路的穩定及速度卻有很多影響
+有興趣 再進一步討論
+
+2011/2/27 21:35

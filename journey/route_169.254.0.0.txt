@@ -6,3 +6,20 @@ To disable the zeroconf route during system boot, edit the /etc/sysconfig/networ
 NETWORKING=YES
 HOSTNAME=localhost.localdomain
 NOZEROCONF=yes
+
+http://www.ubuntu-tw.org/modules/newbb/viewtopic.php?topic_id=36306
+
+sudo route del -net 169.254.0.0 netmask 255.255.0.0 eth0 
+沒屁用，重新開機之後照樣有169.254.0.0的路由
+
+
+http://askubuntu.com/questions/440443/installing-xubuntu-desktop-breaks-cloud-init-routing-to-169-254-169-254
+
+在/etc/network/if-up.d/avahi-autoipd
+
+裡面有
+/bin/ip route add 169.254.0.0/16 dev $IFACE metric 1000 scope link
+/sbin/route add -net 169.254.0.0 netmask 255.255.0.0 dev $IFACE metric 1000
+這兩行，把它們注解掉
+
+重新開機之後169.254.0.0/16的鬼路由會消失

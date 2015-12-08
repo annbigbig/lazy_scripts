@@ -1,0 +1,57 @@
+/var/log/syslog
+
+Dec  8 10:59:12 raspberrypi2 NetworkManager[415]: <warn>  (wlan0): IPv6 MTU (0) smaller than 1280, adjusting
+Dec  8 10:59:12 raspberrypi2 NetworkManager[415]: <warn>  (wlan0): Raising device MTU (0) to match IPv6 MTU (1280)
+Dec  8 10:59:12 raspberrypi2 NetworkManager[415]: <error> [1449543552.024529] [platform/nm-linux-platform.c:2440] sysctl_set(): platform-linux: sysctl: failed to set '/proc/sys/net/ipv6/conf/wlan0/mtu' to '1500': (22) Invalid argument
+Dec  8 11:00:07 raspberrypi2 anacron[417]: Job `cron.daily' started
+Dec  8 11:00:07 raspberrypi2 rsyslogd-2007: action 'action 10' suspended, next retry is Tue Dec  8 11:00:37 2015 [v8.12.0 try http://www.rsyslog.com/e/2007 ]
+Dec  8 11:00:07 raspberrypi2 anacron[1387]: Updated timestamp for job `cron.daily' to 2015-12-08
+Dec  8 11:05:21 raspberrypi2 NetworkManager[415]: <warn>  (wlan0): Lowering IPv6 MTU (1500) to match device MTU (0)
+Dec  8 11:05:21 raspberrypi2 NetworkManager[415]: <warn>  (wlan0): IPv6 MTU (0) smaller than 1280, adjusting
+Dec  8 11:05:21 raspberrypi2 NetworkManager[415]: <warn>  (wlan0): Raising device MTU (0) to match IPv6 MTU (1280)
+Dec  8 11:05:21 raspberrypi2 rsyslogd-2007: action 'action 10' suspended, next retry is Tue Dec  8 11:05:51 2015 [v8.12.0 try http://www.rsyslog.com/e/2007 ]
+Dec  8 11:06:19 raspberrypi2 wpa_supplicant[533]: wlan0: WPA: Group rekeying completed with 0c:72:2c:ff:ef:84 [GTK=CCMP]
+Dec  8 11:06:19 raspberrypi2 rsyslogd-2007: action 'action 10' suspended, next retry is Tue Dec  8 11:06:49 2015 [v8.12.0 try http://www.rsyslog.com/e/2007 ]
+Dec  8 11:09:27 raspberrypi2 NetworkManager[415]: <warn>  (wlan0): Lowering IPv6 MTU (1500) to match device MTU (0)
+Dec  8 11:09:27 raspberrypi2 NetworkManager[415]: <warn>  (wlan0): IPv6 MTU (0) smaller than 1280, adjusting
+Dec  8 11:09:27 raspberrypi2 NetworkManager[415]: <warn>  (wlan0): Raising device MTU (0) to match IPv6 MTU (1280)
+Dec  8 11:09:27 raspberrypi2 rsyslogd-2007: action 'action 10' suspended, next retry is Tue Dec  8 11:09:57 2015 [v8.12.0 try http://www.rsyslog.com/e/2007 ]
+Dec  8 11:10:21 raspberrypi2 systemd[1]: Starting Cleanup of Temporary Directories...
+Dec  8 11:10:21 raspberrypi2 rsyslogd-2007: action 'action 10' suspended, next retry is Tue Dec  8 11:10:51 2015 [v8.12.0 try http://www.rsyslog.com/e/2007 ]
+Dec  8 11:10:21 raspberrypi2 systemd-tmpfiles[1474]: [/usr/lib/tmpfiles.d/var.conf:14] Duplicate line for path "/var/log", ignoring.
+Dec  8 11:10:21 raspberrypi2 systemd[1]: Started Cleanup of Temporary Directories.
+Dec  8 11:16:20 raspberrypi2 wpa_supplicant[533]: wlan0: WPA: Group rekeying completed with 0c:72:2c:ff:ef:84 [GTK=CCMP]
+Dec  8 11:16:20 raspberrypi2 rsyslogd-2007: action 'action 10' suspended, next retry is Tue Dec  8 11:16:50 2015 [v8.12.0 try http://www.rsyslog.com/e/2007 ]
+Dec  8 11:17:01 raspberrypi2 rsyslogd-2007: action 'action 10' suspended, next retry is Tue Dec  8 11:18:01 2015 [v8.12.0 try http://www.rsyslog.com/e/2007 ]
+Dec  8 11:17:01 raspberrypi2 CRON[1523]: (root) CMD (   cd / && run-parts --report /etc/cron.hourly)
+Dec  8 11:19:10 raspberrypi2 NetworkManager[415]: <warn>  (wlan0): Lowering IPv6 MTU (1500) to match device MTU (0)
+Dec  8 11:19:10 raspberrypi2 rsyslogd-2007: action 'action 10' suspended, next retry is Tue Dec  8 11:20:10 2015 [v8.12.0 try http://www.rsyslog.com/e/2007 ]
+Dec  8 11:19:10 raspberrypi2 NetworkManager[415]: <warn>  (wlan0): IPv6 MTU (0) smaller than 1280, adjusting
+Dec  8 11:19:10 raspberrypi2 NetworkManager[415]: <warn>  (wlan0): Raising device MTU (0) to match IPv6 MTU (1280)
+
+參考資料
+https://bbs.archlinux.org/viewtopic.php?id=201006
+
+原因
+贈送的USB WiFi無線網路卡似乎只有MTU 1280 (不是都1500嗎？)
+錯誤訊息的這一行
+Dec  8 10:59:12 raspberrypi2 NetworkManager[415]: <error> [1449543552.024529] [platform/nm-linux-platform.c:2440] sysctl_set(): platform-linux: sysctl: failed to set '/proc/sys/net/ipv6/conf/wlan0/mtu' to '1500': (22) Invalid argument
+指出無法設定'/proc/sys/net/ipv6/conf/wlan0/mtu' to '1500'
+
+稍後的log訊息裡面似乎指出了NetworkManager自動為你調整MTU大小，由1500降到1280
+Dec  8 11:19:10 raspberrypi2 NetworkManager[415]: <warn>  (wlan0): Lowering IPv6 MTU (1500) to match device MTU (0)
+Dec  8 11:19:10 raspberrypi2 rsyslogd-2007: action 'action 10' suspended, next retry is Tue Dec  8 11:20:10 2015 [v8.12.0 try http://www.rsyslog.com/e/2007 ]
+Dec  8 11:19:10 raspberrypi2 NetworkManager[415]: <warn>  (wlan0): IPv6 MTU (0) smaller than 1280, adjusting
+Dec  8 11:19:10 raspberrypi2 NetworkManager[415]: <warn>  (wlan0): Raising device MTU (0) to match IPv6 MTU (1280)
+
+所有的無線網卡MTU最大都是1280嗎？下面ip link的輸出是指我的無線網卡wlan0的MTU最大只有1280嗎？
+root@raspberrypi2:/var/log# ip link
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default 
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP mode DEFAULT group default qlen 1000
+    link/ether b8:27:eb:e3:da:47 brd ff:ff:ff:ff:ff:ff
+3: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1280 qdisc mq state UP mode DORMANT group default qlen 1000
+    link/ether e8:4e:06:32:28:00 brd ff:ff:ff:ff:ff:ff
+
+搜尋關鍵字 
+Wireless MTU 1280
