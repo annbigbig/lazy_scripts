@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # This script will perform lots of work for fine tune Ubuntu 15.10 you have just flashed into micro-SD card
 # plug micro-SD card into Raspberry pi 2 and turn the power on
 # after first booting Raspberry pi 2 and finished username and locale settings,
@@ -90,97 +90,67 @@ EOF
 }
 
 delete_route_to_169_254_0_0(){
-	echo "delete route to 169.254.0.0/16 \n"
+	echo -e "delete route to 169.254.0.0/16 \n"
         FILE1="/etc/network/if-up.d/avahi-autoipd"
 	sed -i -- "s|/bin/ip route|#/bin/ip route|g" $FILE1
 	sed -i -- "s|/sbin/route|#/sbin/route|g" $FILE1
-	echo "done.\n"
+	echo -e "done.\n"
 }
 
 add_swap_space(){
         SWAP_CONFIG_ALREADY_IN_FSTAB="$(cat /etc/fstab | grep swap)"
         if [ -z $SWAP_CONFIG_ALREADY_IN_FSTAB ] && [ ! -f /swapfile ]; then
-                echo "swap config not in /etc/fstab && /swapfile not exists\n"
-                echo "populate a empty file of 512MB size with /dev/zero\n"
+                echo -e "swap config not in /etc/fstab && /swapfile not exists\n"
+                echo -e "populate a empty file of 512MB size with /dev/zero\n"
                 dd if=/dev/zero of=/swapfile bs=1M count=512
                 sync
                 chmod 600 /swapfile
                 mkswap /swapfile
                 swapon -s
-		echo "before swapon\n"
+		echo -e "before swapon\n"
                 swapon /swapfile
-		echo "after swapon\n"
+		echo -e "after swapon\n"
                 swapon -s
                 echo "/swapfile  none          swap    sw          0       0" >> /etc/fstab
-		echo "swap configuration already write to /etc/fstab\n"
+		echo -e "swap configuration already write to /etc/fstab\n"
         fi
 }
 
 install_softwares(){
         apt-get update
-
-        BUILD_ESSENTIALS_INSTALLED="$(dpkg --get-selections | grep build-essential)"
-        if  [ -z "$BUILD_ESSENTIALS_INSTALLED" ]; then
-                echo "build-essential not installed, install now...\n"
-                apt-get install -y build-essential
-                echo "done.\n"
-        else
-                echo "build-essential has been installed.\n"
-        fi
-
-        GIT_INSTALLED="$(dpkg --get-selections | grep git)"
-        if [ -z "$GIT_INSTALLED" ]; then
-                echo "git not installed, install now...\n"
-                apt-get install -y git
-                echo "done.\n"
-        else
-                echo "git has been installed.\n"
-        fi
-
-        SVN_INSTALLED="$(dpkg --get-selections | grep subversion)"
-        if [ -z "$SVN_INSTALLED" ]; then
-                echo "svn not installed, install now...\n"
-                apt-get install -y subversion
-                echo "done.\n"
-        else
-                echo "svn has been installed.\n"
-        fi
-
-        HTOP_INSTALLED="$(dpkg --get-selections | grep htop)"
-        if [ -z "$HTOP_INSTALLED" ]; then
-                echo "htop not installed, install now...\n"
-                apt-get install -y htop
-                echo "done.\n"
-        else
-                echo "htop has been installed.\n"
-        fi
-
-        MEM_TESTER_INSTALLED="$(dpkg --get-selections | grep memtester)"
-        if [ -z "$MEM_TESTER_INSTALLED" ]; then
-                echo "memtester not installed, install now...\n"
-                apt-get install -y memtester
-                echo "done.\n"
-        else
-                echo "memtester has been installed.\n"
-        fi
-
+	string="build-essential:git:htop:memtester:vim:subversion"
+	IFS=':' read -r -a array <<< "$string"
+	for index in "${!array[@]}"
+	do
+           PACKAGE_COUNT=$((index+1))
+           PACKAGE_NAME=${array[index]}
+           #if [ -z "$(dpkg --get-selections | grep $PACKAGE_NAME)" ]; then
+              #echo "$PACKAGE_NAME was not installed on your system, install now ... "
+              apt-get install -y $PACKAGE_NAME
+           #else
+              #echo "$PACKAGE_NAME has been installed on your system."
+           #fi
+	done
 }
 
 main(){
-	#fix_network_interfaces_name
-	#turn_on_tlp_power_save
-	#firewall_setting
-	#delete_route_to_169_254_0_0
-	#add_swap_space
+	fix_network_interfaces_name
+	turn_on_tlp_power_save
+	firewall_setting
+	delete_route_to_169_254_0_0
+	add_swap_space
 	install_softwares
-	echo "now you should reboot your Raspberry Pi for configurations take affect.\n"
-	echo "RUN 'reboot' in your prompt # symbol\n"
+	echo -e "now you should reboot your Raspberry Pi for configurations take affect.\n"
+	echo -e "RUN 'reboot' in your prompt # symbol\n"
 }
 
-echo "This script will do the following tasks for your Raspberry Pi 2, including: \n"
-echo "1.Fix network interfaces name (To conventional 'eth0' and 'wlan0' \n"
-echo "2.Turn on tlp power save (Set TLP_ENABLE=1 in /etc/default/tlp) \n"
-echo "3.Firewall rule setting (Write firewall rules in /etc/network/if-up.d/firewall\n"
+echo -e "This script will do the following tasks for your Raspberry Pi 2, including: \n"
+echo -e "  1.Fix network interfaces name (To conventional 'eth0' and 'wlan0') \n"
+echo -e "  2.Turn on tlp power save (Set TLP_ENABLE=1 in /etc/default/tlp) \n"
+echo -e "  3.Firewall rule setting (Write firewall rules in /etc/network/if-up.d/firewall)\n"
+echo -e "  4.delete route to 169.254.0.0\n"
+echo -e "  5.add swap space with 512MB\n"
+echo -e "  6.install softwares you need\n"
 
 read -p "Are you sure (y/n)?" sure
 case $sure in

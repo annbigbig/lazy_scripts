@@ -1,0 +1,33 @@
+
+關鍵字
+ubuntu 15 x11vnc
+
+參考資料
+http://c-nergy.be/blog/?p=8361
+
+# apt-get install x11vnc
+# x11vnc –storepasswd /etc/x11vnc.pass
+# touch /lib/systemd/system/x11vnc.service
+# vi /lib/systemd/system/x11vnc.service
+
+內容是
+[Unit]
+Description=Start x11vnc at startup.
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/x11vnc -auth guess -forever -loop -noxdamage -repeat -rfbauth /etc/x11vnc.pass -rfbport 5900 -shared
+
+[Install]
+WantedBy=multi-user.target
+
+
+再回到指令列
+# systemctl daemon-reload
+# systemctl enable x11vnc.service
+
+重開機
+# reboot
+
+然後可以發現tcp port 5900有在listening了

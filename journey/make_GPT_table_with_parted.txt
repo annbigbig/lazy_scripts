@@ -1,0 +1,20 @@
+# parted
+
+(parted) mklabel GPT
+(parted) unit s
+(parted) print
+(parted) mkpart primary ext4 2048 5%
+(parted) mkpart primary ext4 第一個partition結束的數字+1 100%
+(parted) quit
+
+# mkfs.ext4 /dev/sda1
+# mkfs.ext4 /dev/sda2
+
+關鍵字
+parted how to make gpt table
+parted how to create new partition
+
+參考資料
+http://www.systutorials.com/46294/making-gpt-partition-table-and-creating-partitions-with-parted-on-linux/
+http://rainbow.chard.org/2013/01/30/how-to-align-partitions-for-best-performance-using-parted/
+http://www.thegeekstuff.com/2011/09/parted-command-examples/

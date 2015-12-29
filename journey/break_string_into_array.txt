@@ -1,0 +1,14 @@
+http://stackoverflow.com/questions/10130280/split-string-into-array-shellscript
+
+http://stackoverflow.com/questions/10586153/split-string-into-an-array-in-bash
+
+http://stackoverflow.com/questions/8967902/why-do-you-need-to-put-bin-bash-at-the-beginning-of-a-script-file
+
+#!/bin/bash
+string="a,b,c,d,ee,f"
+IFS=',' read -r -a array <<< "$string"
+for index in "${!array[@]}"
+do
+    echo "$index ${array[index]}"
+done
+
