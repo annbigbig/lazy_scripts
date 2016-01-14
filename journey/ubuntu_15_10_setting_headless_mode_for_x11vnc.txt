@@ -1,0 +1,9 @@
+http://blog.tonywall.co/2013/07/setting-up-raspberry-pi-for-headless-mode-with-x11vnc/
+
+Edit the Raspberry Pi boot configuration to set HDMI as the standard output and set the default resolution, used when no physical display is detected. If you do not do this the default is the analogue output which is an extremely low resolution.[code]sudo nano /boot/config.txt[/code]
+Set the following line to force HDMI to be the only detected connection, i.e. disable the analogue video default:[code]hdmi_force_hotplug=1[/code]
+Set the HDMI “group” and “mode” number to select the default resolution. You can find these codes on Wikipedia or internet searches. To start with, a couple of useful modes:
+SVGA 1024×768@60Hz:[code]hdmi_group=2
+hdmi_mode=16[/code]
+Full HD 1920×1080@60Hz:[code]hdmi_group=2
+hdmi_mode=82[/code]

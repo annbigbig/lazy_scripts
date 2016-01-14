@@ -1,0 +1,12 @@
+https://www.maketecheasier.com/convert-files-from-linux-format-windows/
+
+http://stackoverflow.com/questions/7068179/convert-line-endlings-for-whole-directory-tree-git
+
+http://stackoverflow.com/questions/11929461/how-can-i-run-dos2unix-on-an-entire-directory
+
+$ find . -type f -exec dos2unix {} \;
+
+這樣可以看是不是帶有Windows系統的CRLF
+$ file /path/to/filename
+
+http://stackoverflow.com/questions/3569997/view-line-endings-in-a-text-file

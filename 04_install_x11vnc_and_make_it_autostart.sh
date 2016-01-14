@@ -1,11 +1,19 @@
 #!/bin/bash
 # This script will install x11vnc and make it autostart as system service
 # please specify your vnc password here
-YOUR_VNC_PASSWORD=vnc
+YOUR_VNC_PASSWORD="vnc"
 #####################
 
 say_goodbye (){
 	echo "goodbye everyone"
+}
+
+headless_mode_setting(){
+      # set hdmi_mode=82 and hdmi_group=2
+      echo -e "set hdmi_group=2 and hdmi_mode=82 in /boot/config.txt\n"
+      sed -i -- "s|#hdmi_group=1|hdmi_group=2|g" /boot/config.txt
+      sed -i -- "s|hdmi_mode=16|hdmi_mode=82|g" /boot/config.txt
+      echo -e "done.\n"
 }
 
 install_x11vnc(){
@@ -36,6 +44,7 @@ EOF
 }
 
 main(){
+        headless_mode_setting
         install_x11vnc
 	echo -e "now you can connect to your x11vnc service on raspberry pi 2.\n"
 	echo -e "HINT: you can use VNC client tool such as Vinagre\n"
