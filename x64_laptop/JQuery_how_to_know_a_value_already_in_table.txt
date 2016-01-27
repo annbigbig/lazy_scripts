@@ -1,0 +1,27 @@
+http://stackoverflow.com/questions/10570554/compare-values-of-cells-in-different-rows-in-table-using-jquery
+
+var rows = $("#changeSubjectKatedra tr");
+for(var i = 0; i <= rows.length - 2; i++) {
+  if ($(rows[i]).find("input").val() ==
+      $(rows[i+1]).find("input").val()) {
+    $(rows[i]).remove();   
+  }
+}
+
+
+https://forum.jquery.com/topic/how-to-get-value-from-a-cell-of-a-table-with-jquery
+
+
+$('table tr td').each(function(){
+      var texto = $(this).text();
+});
+
+
+
+var texto = $('table tr:nth-child(1) td:nth-child(2)').text()
+
+
+http://stackoverflow.com/questions/4349952/html-table-data-into-arrays-via-jquery
+
+
+https://learn.jquery.com/using-jquery-core/iterating/

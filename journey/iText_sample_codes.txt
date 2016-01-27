@@ -1,0 +1,92 @@
+http://www.rgagnon.com/javadetails/java-image-to-pdf-using-itext.html
+
+這個超完整
+http://developers.itextpdf.com/examples/itext-action-second-edition/chapter-1
+
+pom.xml
+
+<dependency>
+  <groupId>com.itextpdf</groupId>
+  <artifactId>itextpdf</artifactId>
+  <version>5.5.8</version>
+</dependency>
+
+<dependency>
+  <groupId>com.itextpdf</groupId>
+  <artifactId>itext-pdfa</artifactId>
+  <version>5.5.8</version>
+</dependency>
+
+<dependency>
+  <groupId>com.itextpdf</groupId>
+  <artifactId>itext-xtra</artifactId>
+  <version>5.5.8</version>
+</dependency>
+
+<dependency>
+  <groupId>com.itextpdf.tool</groupId>
+  <artifactId>xmlworker</artifactId>
+  <version>5.5.8</version>
+</dependency>
+
+多了這些.jar檔
+itextpdf-5.5.8.jar
+itext-pdfa-5.5.8.jar
+itext-xtra-5.5.8.jar
+commons-imaging-1.0-SNAPSHOT.jar
+commons-io-2.4.jar
+xmlworker-5.5.8.jar
+
+這裡也有一些教程
+http://tutorials.jenkov.com/java-itext/image.html
+
+中文問題
+http://www.andowson.com/posts/list/483.page
+
+http://stackoverflow.com/questions/29237980/itext-pdf-not-displaying-chinese-characters-when-using-noto-fonts-or-source-hans
+
+public static final String FONT = "resources/fonts/NotoSansCJKsc-Regular.otf";
+public static final String TEXT = "These are the protagonists in 'Hero', a movie by Zhang Yimou:\n"
+    + "\u7121\u540d (Nameless), \u6b98\u528d (Broken Sword), "
+    + "\u98db\u96ea (Flying Snow), \u5982\u6708 (Moon), "
+    + "\u79e6\u738b (the King), and \u9577\u7a7a (Sky).";
+public static final String CHINESE = "\u5341\u950a\u57cb\u4f0f";
+public static final String JAPANESE = "\u8ab0\u3082\u77e5\u3089\u306a\u3044";
+public static final String KOREAN = "\ube48\uc9d1";
+
+public void createPdf(String dest) throws IOException, DocumentException {
+    Document document = new Document();
+    PdfWriter.getInstance(document, new FileOutputStream(DEST));
+    document.open();
+    Font font = FontFactory.getFont(FONT, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+    Paragraph p = new Paragraph(TEXT, font);
+    document.add(p);
+    document.add(new Paragraph(CHINESE, font));
+    document.add(new Paragraph(JAPANESE, font));
+    document.add(new Paragraph(KOREAN, font));
+    document.close();
+}
+
+
+取得那該死的BaseFont
+
+http://stackoverflow.com/questions/11366354/itext-whats-going-on-with-font-basefont-and-createfont
+
+Font font = FontFactory.getFont("/fonts/Sansation_Regular.ttf",
+    BaseFont.IDENTITY_H, BaseFont.EMBEDDED, 0.8f, Font.NORMAL, BaseColor.BLACK);
+BaseFont baseFont = font.getBaseFont();
+
+
+java.awt.Font用法 (搜尋java.awt.Font example)
+
+http://stackoverflow.com/questions/16761630/font-createfont-set-color-and-size-java-awt-font
+
+JTextArea txt = new JTextArea();
+Font font = new Font("Verdana", Font.BOLD, 12);
+txt.setFont(font);
+txt.setForeground(Color.BLUE);
+
+
+這樣子可以指定字型ttf檔的絕對路徑
+Font font = Font.createFont(Font.TRUETYPE_FONT, new File("A.ttf"));
+ return font.deriveFont(12f);

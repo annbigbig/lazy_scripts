@@ -58,6 +58,10 @@ install_tomcat(){
    rm -rf ./apache-tomcat-7.0.67.tar.gz
    rm -rf ./apache-tomcat-8.0.30.tar.gz
    echo -e "done.\n"
+
+   chmod a+r /usr/local/apache-tomcat-6.0.44/conf/*
+   chmod a+r /usr/local/apache-tomcat-7.0.67/conf/*
+   chmod a+r /usr/local/apache-tomcat-8.0.30/conf/*
 }
 
 setting_environments_var(){

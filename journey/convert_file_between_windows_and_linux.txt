@@ -10,3 +10,13 @@ $ find . -type f -exec dos2unix {} \;
 $ file /path/to/filename
 
 http://stackoverflow.com/questions/3569997/view-line-endings-in-a-text-file
+
+檔案裡面的行結尾有沒有CRLF？
+You could try to grep for CRLF code, octal:
+
+grep -U $'\015' myfile.txt
+or hex:
+
+grep -U $'\x0D' myfile.txt
+
+http://unix.stackexchange.com/questions/79702/how-to-test-whether-a-file-uses-crlf-or-lf-without-modifying-it
