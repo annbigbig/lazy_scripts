@@ -1,0 +1,116 @@
+http://superuser.com/questions/187779/too-many-authentication-failures-for-username
+
+http://serverfault.com/questions/580753/ssh-aborts-with-too-many-authentication-failures
+
+這樣連可以
+ssh -o PubkeyAuthentication=no pi@10.1.1.175
+
+http://makandracards.com/makandra/512-how-to-fix-too-many-authentic-authentication-failures-with-ssh-and-or-capistrano
+
+清除
+ssh-add -D
+
+列出
+ssh-add -l
+
+你的/home/labasky/.ssh/config
+裡面的設定都是舊的/home/anntony/.ssh/labasky@10.1.1.175
+請換成正確的路徑/home/labasky/.ssh/labasky@10.1.1.175
+
+還有關掉那該死的gnome keyring
+在「系統」>「控制中心」>「啟動應用程式」找到SSH金鑰代理程式GNOME鑰匙圈
+關掉它
+http://askubuntu.com/questions/3045/how-to-disable-gnome-keyring
+
+
+執行
+ssh-add -D
+ssh-add -l
+發現一堆ssh私鑰還是被快取著
+
+這裡有一個快速修正方法
+https://bugs.launchpad.net/ubuntu/+source/openssh/+bug/505278
+
+For those that are winding up at this bug report from searches looking to resolve the problem - regardless of platform, here's a quick "fix":
+
+  * Move the keys out of ~/.ssh
+  * gnome-keyring-daemon -r -d
+
+It's certainly not an actual fix, but will at least resolve the immediate annoyance.
+
+More info here:
+
+https://wiki.archlinux.org/index.php/GNOME_Keyring
+
+
+幹我快瘋了，搜尋關鍵字
+Too many authentication failures gnome keyring manager
+或
+gnome keyring cause too many authentication failures
+
+
+http://ubuntuforums.org/showthread.php?t=796410&page=2
+
+這篇不錯，教你直接砍掉gnome-keyring-daemon的pid
+https://www.chrisnewland.com/solved-ubuntu-ssh-too-many-authentication-failures-106
+
+這一篇教你把gnome-keyring-daemon弄殘廢
+http://askubuntu.com/questions/3045/how-to-disable-gnome-keyring
+
+sudo chmod -x /usr/bin/gnome-keyring-daemon
+把gnome-keyring-daemon弄殘廢之後一切就正常了 
+
+反正原因就是北七的gnome-keyring-daemon
+自動載入了你的家目錄下
+/home/labasky/.ssh/目錄下面所有的ssh私鑰
+
+再搜尋
+ssh connections take a long time
+
+http://unix.stackexchange.com/questions/65068/why-ssh-takes-a-long-time-to-connect
+
+
+26
+down vote
+accepted
+I had this same problem just this morning...
+
+Edit your /etc/ssh/sshd_config to set GSSAPIAuthentication no
+
+Often this happened to me when DNS was not correctly configured, but SSH is trying to do a reverse lookup on every connect, so it might be waiting for some high timeouts. Try doing this in /etc/ssh/sshd_config:
+
+UseDNS no
+And then restart the SSH daemon. This will make it not use reverse lookups anymore.
+
+Hope that helps.
+
+在連線的時候指定-vvv
+ssh pi@10.1.1.175 -vvv
+
+出現了很多重複的這一行
+debug2: client_check_window_change: changed
+
+找到這篇
+https://nowhere.dk/articles/natty-narwhal-problems-connecting-to-servers-behind-cisco-firewalls-using-ssh
+
+再搜
+ubuntu 15 ssh login takes a long time
+
+這個可能有希望
+http://askubuntu.com/questions/11538/long-wait-time-on-login
+
+
+Found solution myself finally:
+
+sudo apt-get remove landscape-client landscape-common
+comment line session optional pam_motd.so in /etc/pam.d/login and /etc/pam.d/sshd
+Now login is INSTANT!
+
+解決方法
+修改/etc/pam.d/login還有/etc/pam.d/sshd
+把所有的motd模組都關掉
+#session    optional     pam_motd.so  motd=/run/motd.dynamic
+#session    optional     pam_motd.so noupdate
+再移除
+apt-get remove landscape-client landscape-common
+

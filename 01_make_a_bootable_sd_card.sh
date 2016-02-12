@@ -39,14 +39,15 @@ flash_it (){
 	sync
 	echo "done. completed at ";date; echo "\n"
 
-	echo "change the VGA resolution to 1024X768 60Hz"
+	echo "change the display resolution to 1080p 60Hz"
  	mkdir /mnt/boot
 	mount ${SDCARD}1 /mnt/boot && cd /mnt/boot
-	sed -i -- "s|#hdmi_mode=1|hdmi_mode=16|g" ./config.txt
+	sed -i -- "s|#hdmi_group=1|hdmi_group=2|g" ./config.txt
+	sed -i -- "s|#hdmi_mode=1|hdmi_mode=82|g" ./config.txt
 	sync
 	cd /mnt
 	umount /mnt/boot && sleep 1
-	echo "done. VGA resolution changed to 1024X768 60Hz"
+	echo "done. display resolution changed to 1080p 60Hz"
 
 	echo "ready to resize 2nd partition, expend it to the maximum sector.\n"
 	echo "list the partition table first.\n"
