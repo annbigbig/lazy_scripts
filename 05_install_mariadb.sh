@@ -51,7 +51,7 @@ add_essential_user_and_group() {
 install_mariadb() {
 	echo "install mariadb ..."
 	cd /usr/local/src
-	#wget https://downloads.mariadb.org/interstitial/mariadb-10.1.11/source/mariadb-10.1.11.tar.gz
+	wget https://downloads.mariadb.org/interstitial/mariadb-10.1.11/source/mariadb-10.1.11.tar.gz
 	tar -zxvf ./mariadb-10.1.11.tar.gz
 	chown -R root:root ./mariadb-10.1.11
 	cd ./mariadb-10.1.11
@@ -111,9 +111,11 @@ net_buffer_length = 16K
 myisam_sort_buffer_size = 8M
 
 # utf8 settings
-collation-server = utf8_unicode_ci
+collation-server=utf8_unicode_ci
+init_connect='SET collation_connection = utf8_unicode_ci'
 init-connect='SET NAMES utf8'
-character-set-server = utf8
+character-set-server=utf8
+skip-character-set-client-handshake
 
 # Don't listen on a TCP/IP port at all.
 #skip-networking
@@ -216,15 +218,24 @@ EOF
 export PATH=/usr/local/mariadb/bin:/usr/local/mariadb/sbin:$PATH
 EOF
 
+	echo "fix problem for everytime reboot '/var/run/mysqld' is gone."
+	cat >> /etc/tmpfiles.d/mysql.conf << "EOF"
+# https://bugs.launchpad.net/ubuntu/+source/mysql-5.6/+bug/1435823
+# systemd tmpfile settings for mysql
+# See tmpfiles.d(5) for details
+d /var/run/mysqld 0755 mysql mysql -
+EOF
+
 	mysql_secure_installation
+
 }
 
 main() {
 	echo "main() was called"
-	#install_prerequisite
-	#install_cmake
-	#remove_mysql
-	#add_essential_user_and_group
+	install_prerequisite
+	install_cmake
+	remove_mysql
+	add_essential_user_and_group
 	install_mariadb
 	generate_config_file
 	post_installation
