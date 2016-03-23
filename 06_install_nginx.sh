@@ -55,6 +55,90 @@ install_nginx() {
 	echo "done."
 }
 
+generate_config_file() {
+	echo "generating config file at /usr/local/nginx/conf/nginx.conf"
+	rm -rf /usr/local/nginx/conf/nginx.conf
+	cat >> /usr/local/nginx/conf/nginx.conf << "EOF"
+user www-data;
+worker_processes 4;
+pid logs/nginx.pid;
+
+events {
+        worker_connections 768;
+        # multi_accept on;
+}
+
+http {
+
+    ##
+    # Basic Settings
+    ##
+
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
+    types_hash_max_size 2048;
+    # server_tokens off;
+
+    # server_names_hash_bucket_size 64;
+    # server_name_in_redirect off;
+
+    include mime.types;
+    default_type application/octet-stream;
+
+    ##
+    # Logging Settings
+    ##
+
+    access_log logs/access.log;
+    error_log logs/error.log;
+
+    ##
+    # Gzip Settings
+    ##
+
+    gzip on;
+    gzip_disable "msie6";
+
+    include /usr/local/nginx/conf.d/http.*.conf;
+}
+
+EOF
+
+	mkdir /usr/local/nginx/conf.d
+	cat >> /usr/local/nginx/conf.d/http.localhost.conf << "EOF"
+server {
+        listen 80 default_server;
+        #listen 127.0.0.1:80 default_server;
+        #listen [::]:80 default_server ipv6only=on;
+
+        access_log logs/localhost.access.log;
+        error_log logs/localhost.error.log;
+
+        root /usr/local/nginx/html;
+        index index.html index.htm;
+
+        # Make site accessible from http://localhost/
+        server_name localhost;
+
+        location / {
+                # First attempt to serve request as file, then
+                # as directory, then fall back to displaying a 404.
+                try_files $uri $uri/ /index.html;
+                # Uncomment to enable naxsi on this location
+                # include /etc/nginx/naxsi.rules
+        }
+}
+
+EOF
+	/usr/local/nginx/sbin/nginx -t -c /usr/local/nginx/conf/nginx.conf
+        systemctl stop nginx.service
+	sleep 3
+	systemctl start nginx.service
+	systemctl status nginx.service
+}
+
 post_installation() {
 	echo "generating /lib/systemd/system/nginx.service"
 cat >> /lib/systemd/system/nginx.service << "EOF"
@@ -88,7 +172,7 @@ main() {
 	install_prerequisite
 	remove_apache
 	install_nginx
-	#generate_config_file
+	generate_config_file
 	post_installation
 }
 
