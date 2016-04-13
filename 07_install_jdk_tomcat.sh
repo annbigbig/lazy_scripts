@@ -25,13 +25,14 @@ install_jdk() {
 
 install_tomcat() {
 	echo -e "ready to install tomcat \n"
+	apt-get install -y build-essential
 	cd /usr/local
-	wget http://apache.stu.edu.tw/tomcat/tomcat-8/v8.0.32/bin/apache-tomcat-8.0.32.tar.gz
-	tar -zxvf ./apache-tomcat-8.0.32.tar.gz
-	chown -R root:root ./apache-tomcat-8.0.32
-	chmod -R a+r ./apache-tomcat-8.0.32/conf
-	ln -s /usr/local/apache-tomcat-8.0.32 /usr/local/tomcat
-	rm -rf ./apache-tomcat-8.0.32.tar.gz
+	wget http://apache.stu.edu.tw/tomcat/tomcat-8/v8.0.33/bin/apache-tomcat-8.0.33.tar.gz
+	tar -zxvf ./apache-tomcat-8.0.33.tar.gz
+	chown -R root:root ./apache-tomcat-8.0.33
+	chmod -R a+r ./apache-tomcat-8.0.33/conf
+	ln -s /usr/local/apache-tomcat-8.0.33 /usr/local/tomcat
+	rm -rf ./apache-tomcat-8.0.33.tar.gz
 
 	echo -e "build jsvc\n"
 	cd /usr/local/tomcat/bin
@@ -76,7 +77,7 @@ post_installation() {
 	id tomcat
 
 	echo -e "change owner and group for \$CATALINA_HOME\n"
-	chown -R tomcat:tomcat /usr/local/apache-tomcat-8.0.32
+	chown -R tomcat:tomcat /usr/local/apache-tomcat-8.0.33
 
 	echo -e "create a systemd service\n"
 	cat >> /lib/systemd/system/tomcat.service << "EOF"

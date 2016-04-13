@@ -1,0 +1,79 @@
+# http://forums.fedoraforum.org/showthread.php?t=299446
+
+# try to open tcp port 5900 first
+# list all zones
+firewall-cmd --get-zones
+
+# tell me all of services
+firewall-cmd --get-services
+
+# open it
+firewall-cmd --permanent --zone=public --add-service vnc-server
+
+# maybe reload is better
+firewall-cmd --reload
+
+# make sure settings take effect
+firewall-cmd --zone=public --list-services
+
+# install x11vnc
+yum install x11vnc
+
+# create this file
+touch /etc/systemd/system/x11vnc.service
+
+# the contents
+[Unit]
+Description=VNC Server for X11
+Requires=display-manager.service
+After=display-manager.service
+
+[Service]
+Type=forking
+ExecStart=/usr/bin/x11vnc -norc -forever -shared -bg -rfbauth /etc/x11vnc.pass -allow 10.1.1. -autoport 5900 -o /var/log/x11vnc.log -auth /var/run/lightdm/root/:0
+
+[Install]
+WantedBy=multi-user.target
+
+# create this file
+touch /etc/systemd/system/graphical.target
+
+# the contents
+#  This file is part of systemd.
+#
+#  systemd is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU Lesser General Public License as published by
+#  the Free Software Foundation; either version 2.1 of the License, or
+#  (at your option) any later version.
+
+[Unit]
+Description=Graphical Interface
+Documentation=man:systemd.special(7)
+Requires=multi-user.target
+After=multi-user.target
+Conflicts=rescue.target
+Wants=display-manager.service
+Wants=x11vnc.service
+AllowIsolate=yes
+
+[Install]
+Alias=default.target
+
+
+
+# This command will delete default.target file. That is OK
+systemctl disable graphical.target
+
+# The command will rebuilt default.target
+systemctl enable graphical.target
+
+# Perform the following command to register the x11vnc daemon
+systemctl daemon-reload
+systemctl enable x11vnc.service
+
+# vnc passwd file generation
+x11vnc -storepasswd /etc/x11vnc.pass
+
+# start the service and watch status
+systemctl start x11vnc.service
+systemctl status x11vnc.service
