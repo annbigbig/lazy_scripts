@@ -1,0 +1,37 @@
+在HOST機器上，刷入Image，假設SD卡的裝置代號是/dev/sdb，執行
+$ sudo -i
+# date; dd if=./Armbian_5.04_Cubietruck_Ubuntu_trusty_4.4.3.raw of=/dev/sdb bs=1M; sync; date
+
+刷完之後抽出HOST機，抽進Cubietruck開機
+預設的root密碼是1234
+第一次開機會要求你變更root密碼，還有設定一個管理權限的用戶（和密碼）
+
+然後更新套件源
+# apt-get update
+
+安裝vim
+# apt-get install vim
+
+然後我已經把06_install_nginx.sh從HOST機複製到cubietruck的/root目錄內
+(HOST機)# scp ./06_install_nginx.sh labasky@10.1.1.160:/tmp
+# mv /tmp/06_install_nginx.sh /root
+# cd /root
+
+安裝nginx並讓它變成開機後自動啟動的服務
+# ./06_install_nginx.sh
+
+分割SATA硬碟
+# fdisk /dev/sda
+n [enter]
+p [enter]
+w [enter]
+
+格式化
+# mkfs.ext4 /dev/sda1
+
+執行nand-sata-install
+這是Igor先生的快樂腳本，幫你把rootfs移到/dev/sda1
+# nand-sata-install
+
+
+

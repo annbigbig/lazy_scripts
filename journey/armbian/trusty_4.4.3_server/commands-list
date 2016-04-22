@@ -1,0 +1,65 @@
+在HOST機器上，刷入Image，假設SD卡的裝置代號是/dev/sdb，執行
+$ sudo -i
+# date; dd if=./Armbian_5.04_Cubietruck_Ubuntu_trusty_4.4.3.raw of=/dev/sdb bs=1M; sync; date
+
+刷完之後抽出HOST機，抽進Cubietruck開機
+預設的root密碼是1234
+第一次開機會要求你變更root密碼，還有設定一個管理權限的用戶（和密碼）
+
+然後更新套件源
+# apt-get update
+
+安裝桌面環境(至少半小時，要耐心等候)
+# apt-get install --no-install-recommends ubuntu-desktop
+
+重新開機
+# reboot
+
+沒用，沒有圖形介面
+我手動執行startx也沒有用，它報一個基巴錯叫我去看/var/log/Xorg.0.log
+看了之後
+發現有一行錯誤
+[    48.778] (EE) open /dev/dri/card0: No such file or directory
+
+以此為線索搜尋，得
+http://ubuntuforums.org/showthread.php?t=2180550
+(覺得是說什麼模組沒有載入）
+
+另一個
+http://www.linuxquestions.org/questions/ubuntu-63/%5Bstartx-problem%5D-startx-goes-to-black-grey-screen-and-comes-back-to-command-prompt-853802/
+（說需要apt-get install xinit）
+
+/var/log/Xorg.0.log裡還有一個值得留意的錯誤是
+(EE) FBDEV(0): FBIOBLANK: Invalid argument
+
+也有人說是沒有/etc/X11/xorg.conf
+
+忘了那裡看來的，想要產生這個設定檔，執行
+X -configure
+然後在/var/log/Xorg.0.log又覆寫了新的錯誤記錄
+
+(EE) ERROR: Did not find any matching device section in configuration file
+
+我試著從Armbian另一個desktop的Image那裡
+複製一個/etc/X11/xorg.conf
+內容如下
+
+Section "Device"
+                Identifier              "Allwinner A10/A13 FBDEV"
+                Driver                  "fbturbo"
+                Option                  "fbdev" "/dev/fb0"
+                Option                  "HWCursor" "false"
+                Option                  "SwapbuffersWait" "true"
+EndSection
+Section "Monitor"
+        Identifier      "Monitor0"
+        Option          "DPMS" "false"
+EndSection
+Section "ServerFlags"
+                Option                  "BlankTime" "0"
+                Option                  "StandbyTime" "0"
+                Option                  "SuspendTime" "0"
+                Option                  "OffTime" "0"
+EndSection
+
+

@@ -1,0 +1,118 @@
+刷上Image
+
+# date; dd if=./BPI_Ubuntu15-04_beta_V2.img of=/dev/sdc bs=1M; sync; date
+
+用SD卡給bananapi-M1開機
+更新套件源
+# apt-get update
+
+安裝vim
+# apt-get install vim
+
+安裝openssh server
+# apt-get install openssh-server
+
+安裝x11vnc
+# apt-get install x11vnc
+
+產生連線密碼
+# x11vnc –storepasswd vnc /etc/x11vnc.pass
+
+找出MIT-MAGIC-COOKIE
+# ps wwwwaux | grep auth
+
+在這裡
+/var/run/lightdm/root/:0
+
+單次啟動x11vnc
+# x11vnc -auth /var/run/lightdm/root/:0 -forever -loop -noxdamage -repeat -rfbauth /etc/x11vnc.pass -rfbport 5900 -shared
+# x11vnc -auth /var/run/lightdm/root/:0 -forever -loop -noxdamage -repeat -rfbauth /etc/x11vnc.pass -rfbport 5900 -shared -logfile /var/log/x11vnc.log
+
+產生systemd unit file
+# touch /lib/systemd/system/x11vnc.service
+# vi /lib/systemd/system/x11vnc.service
+
+內容如下
+[Unit]
+Description=Start x11vnc at startup.
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/x11vnc -auth /var/run/lightdm/root/:0 -forever -loop -noxdamage -repeat -rfbauth /etc/x11vnc.pass -rfbport 5900 -shared -logfile /var/log/x11vnc.log
+
+[Install]
+WantedBy=multi-user.target
+
+執行這四行
+systemctl daemon-reload
+systemctl enable x11vnc.service
+systemctl start x11vnc.service
+systemctl status x11vnc.service
+
+重新開機
+reboot
+
+查看x11vnc有無正常運行？
+# netstat -anp | grep 5900
+
+
+關掉led閃來閃去很煩
+拔出SD卡，插到宿主機
+$ sudo -i
+# cd /media/labasky/PI_BOOT/
+# cp ./script.bin ./script.bin.default
+# bin2fex ./script.bin ./script.fex
+# vi ./script.fex 
+找到這一行
+leds_used = 1
+改成
+leds_used = 0
+
+還有這一行
+leds_trigger_1 = "heartbeat"
+改成
+leds_trigger_1 = "default-on"
+
+把fex檔再轉換成bin檔
+# fex2bin ./script.fex ./script.bin
+
+然後我想到要把SD卡的第2個partition擴展到最大
+首先幹掉第2個分割區
+# cd /root
+# umount /dev/sdc*
+# fdisk /dev/sdc
+p [Enter]
+d [Enter]
+2 [Enter]
+p [Enter]
+w [Enter]
+
+再把它重建回來
+# fdisk /dev/sdc
+p
+n
+ [Enter]
+ [Enter]
+335872 [Enter] (從第一個分割區的最後一個sector+1)
+ [Enter]
+p
+w
+
+強制檢查後擴展它
+# e2fsck -f /dev/sdc2
+# resize2fs /dev/sdc2
+
+把SD卡插到bananapi M1重新開機
+在HOST機執行
+$ scp ./07_install_jdk_tomcat.sh pi@10.1.1.175:/tmp
+
+在bananapi M1執行
+$ sudo -i
+# chown root:root /tmp/07_install_jdk_tomcat.sh
+
+執行它，它會幫你安裝JDK8和Tomcat8
+# cd /tmp
+# ./07_install_jdk_tomcat.sh
+
+

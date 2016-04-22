@@ -1,0 +1,33 @@
+刷上Image之後，把SD卡插到筆記型電腦裡
+筆電已經安裝了fex2bin / bin2fex
+先把LED燈關掉
+
+$ sudo -i
+# mkdir -p /mnt/sdb1
+# mount /dev/sdb1 /mnt/sdb1
+# cd /mnt/sdb1
+# bin2fex ./script.bin ./script.fex
+# mv ./script.bin ./script.bin.default
+# vi ./script.fex
+找到這一行
+leds_used = 1
+改成
+leds_used = 0
+# fex2bin ./script.fex ./script.bin
+# cd /root
+# sync
+# umount /dev/sdb*
+
+把SD卡插入Cubietruck開機
+在筆記型電腦ssh登入Cubietruck
+執行
+$ ssh linaro@10.1.1.160
+帳號linaro密碼linaro
+
+更新套件
+$ sudo -i
+# apt-get update
+
+安裝桌面環境
+# apt-get install gnome-shell
+

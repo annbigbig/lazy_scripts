@@ -1,0 +1,76 @@
+把下載的Image刷進SD卡
+# date; dd if=./Armbian_5.04_Cubietruck_Ubuntu_trusty_3.4.110_desktop.raw of=/dev/sdb bs=1M; sync; date
+
+插入SD卡把cubietruck開機
+預設的root密碼是1234
+第一次開機會要求變更root密碼
+還有新增一個管理權限的用戶
+並且重開機
+
+更新套件
+sudo -i
+apt-get update
+apt-get upgrade
+
+變更時區
+dpkg-reconfigure tzdata
+選Asia/Taipei
+
+安裝vim
+apt-get install vim
+
+安裝x11vnc
+apt-get install x11vnc
+
+產生vnc服務的密碼
+x11vnc -storepasswd /etc/x11vnc.pass
+
+執行
+ps wwwwaux | grep auth
+找不到:0的那個檔案在那個地方？
+
+這樣可以連
+x11vnc -display :0 -forever -shared -o /var/log/x11vnc.log -rfbauth /etc/x11vnc.pass -bg -allow 10.1.1.
+
+參考資料
+http://wiki.ozanh.com/doku.php?id=linux:debian:vnc_server_setup
+
+讓x11vnc變成開機後自動啟動的服務
+touch /etc/init/x11vnc.conf
+vi /etc/init/x11vnc.conf
+
+內容如下
+start on login-session-start
+script
+/usr/bin/x11vnc -xkb -noxrecord -noxfixes -noxdamage -display :0 -forever -shared -o /var/log/x11vnc.log -rfbauth /etc/x11vnc.pass -bg -allow 10.1.1.
+end script
+
+
+重新開機後x11vnc服務會自動啟動(屁啦）
+reboot
+netstat -anp|grep 5900
+
+參考資料
+https://prismsoul.wordpress.com/2014/06/11/installing-and-configuring-x11vnc-on-ubuntu-14-04/
+
+
+換一下/etc/init/x11vnc.conf的內容好了
+參考資料
+http://tecadmin.net/setup-x11vnc-server-on-ubuntu-linuxmint/
+
+編輯/etc/init/x11vnc.conf
+內容如下
+
+# description "Start x11vnc on system boot"
+
+description "x11vnc"
+
+start on runlevel [2345]
+stop on runlevel [^2345]
+
+console log
+
+respawn
+respawn limit 20 5
+
+exec /usr/bin/x11vnc -xkb -noxrecord -noxfixes -noxdamage -display :0 -forever -shared -o /var/log/x11vnc.log -rfbauth /etc/x11vnc.pass -bg -allow 10.1.1.
