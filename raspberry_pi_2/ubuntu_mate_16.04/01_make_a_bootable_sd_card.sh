@@ -51,6 +51,7 @@ config_tunning() {
 	sed -i -- "s|#hdmi_mode=1|hdmi_mode=82|g" ./config.txt
 	sed -i -- "s|#disable_overscan=1|disable_overscan=1|g" ./config.txt
 	sed -i -- "s|#hdmi_ignore_edid_audio=1|hdmi_ignore_edid_audio=1|g" ./config.txt
+	sed -i -- "s|#hdmi_force_hotplug=1|hdmi_force_hotplug=1|g" ./config.txt
 	sync
 	cd /mnt
 	umount /mnt/boot && sleep 1
