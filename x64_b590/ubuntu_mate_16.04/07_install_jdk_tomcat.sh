@@ -14,12 +14,13 @@ install_jdk() {
         # uncomment this if you want install jdk on x64 platform
 	wget --no-check-certificate \
              --no-cookies --header "Cookie: oraclelicense=accept-securebackup-cookie" \
-             http://download.oracle.com/otn-pub/java/jdk/8u91-b14/jdk-8u91-linux-x64.tar.gz
+             http://download.oracle.com/otn-pub/java/jdk/8u92-b14/jdk-8u92-linux-x64.tar.gz
 
-	tar -zxvf ./jdk-8u91-linux-x64.tar.gz
-	chown -R root:root ./jdk1.8.0_91
-	ln -s /usr/local/jdk1.8.0_91 /usr/local/jdk
-	rm -rf ./jdk-8u91-linux-x64.tar.gz
+	tar -zxvf ./jdk-8u92-linux-x64.tar.gz
+	chown -R root:root ./jdk1.8.0_92
+	rm -rf /usr/local/jdk
+	ln -s /usr/local/jdk1.8.0_92 /usr/local/jdk
+	rm -rf ./jdk-8u92-linux-x64.tar.gz
 
 	echo -e "done."
 }
@@ -39,12 +40,13 @@ install_tomcat() {
 	echo -e "ready to install tomcat \n"
 	apt-get install -y build-essential
 	cd /usr/local
-	wget http://apache.stu.edu.tw/tomcat/tomcat-8/v8.0.35/bin/apache-tomcat-8.0.35.tar.gz
-	tar -zxvf ./apache-tomcat-8.0.35.tar.gz
-	chown -R root:root ./apache-tomcat-8.0.35
-	chmod -R a+r ./apache-tomcat-8.0.35/conf
-	ln -s /usr/local/apache-tomcat-8.0.35 /usr/local/tomcat
-	rm -rf ./apache-tomcat-8.0.35.tar.gz
+	wget http://apache.stu.edu.tw/tomcat/tomcat-8/v8.0.36/bin/apache-tomcat-8.0.36.tar.gz
+	tar -zxvf ./apache-tomcat-8.0.36.tar.gz
+	chown -R root:root ./apache-tomcat-8.0.36
+	chmod -R a+r ./apache-tomcat-8.0.36/conf
+	rm -rf /usr/local/tomcat
+	ln -s /usr/local/apache-tomcat-8.0.36 /usr/local/tomcat
+	rm -rf ./apache-tomcat-8.0.36.tar.gz
 
 	echo -e "build jsvc\n"
 	cd /usr/local/tomcat/bin
@@ -69,42 +71,59 @@ install_maven() {
 	wget http://ftp.tc.edu.tw/pub/Apache/maven/maven-3/3.3.9/binaries/apache-maven-3.3.9-bin.tar.gz
 	tar -zxvf ./apache-maven-3.3.9-bin.tar.gz
 	chown -R root:root ./apache-maven-3.3.9
+	rm -rf /usr/local/maven3
 	ln -s /usr/local/apache-maven-3.3.9 /usr/local/maven3
 	rm -rf ./apache-maven-3.3.9-bin.tar.gz
+}
+
+install_gradle() {
+	echo -e "ready to install gradle\n"
+	cd /usr/local
+	wget https://services.gradle.org/distributions/gradle-2.14-all.zip
+	unzip ./gradle-2.14-all.zip
+	chown -R root:root ./gradle-2.14
+	rm -rf /usr/local/gradle
+	ln -s /usr/local/gradle-2.14 /usr/local/gradle
+	rm -rf ./gradle-2.14-all.zip
 }
 
 install_spring_boot_cli() {
 	echo -e "ready to install spring boot cli\n"
 	cd /usr/local
-        wget http://repo.spring.io/release/org/springframework/boot/spring-boot-cli/1.3.5.RELEASE/spring-boot-cli-1.3.5.RELEASE-bin.tar.gz
-        tar -zxvf ./spring-boot-cli-1.3.5.RELEASE-bin.tar.gz
-	chown -R root:root ./spring-1.3.5.RELEASE
-	ln -s /usr/local/spring-1.3.5.RELEASE /usr/local/spring-boot-cli
-	rm -rf ./spring-boot-cli-1.3.5.RELEASE-bin.tar.gz
+        wget http://repo.spring.io/release/org/springframework/boot/spring-boot-cli/1.3.6.RELEASE/spring-boot-cli-1.3.6.RELEASE-bin.tar.gz
+        tar -zxvf ./spring-boot-cli-1.3.6.RELEASE-bin.tar.gz
+	chown -R root:root ./spring-1.3.6.RELEASE
+	rm -rf /usr/local/spring-boot-cli
+	ln -s /usr/local/spring-1.3.6.RELEASE /usr/local/spring-boot-cli
+	rm -rf ./spring-boot-cli-1.3.6.RELEASE-bin.tar.gz
 }
 
 install_eclipse_ee() {
 	echo -e "ready to install Eclipse EE\n"
 	cd /usr/local
-	wget https://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/neon/M6/eclipse-jee-neon-M6-linux-gtk-x86_64.tar.gz\&r=1 -O eclipse-jee-neon-M6-linux-gtk-x86_64.tar.gz
-	tar -zxvf ./eclipse-jee-neon-M6-linux-gtk-x86_64.tar.gz
+	rm -rf ./eclipse
+	wget https://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/neon/R/eclipse-jee-neon-R-linux-gtk-x86_64.tar.gz\&r=1 -O eclipse-jee-neon-R-linux-gtk-x86_64.tar.gz
+	tar -zxvf ./eclipse-jee-neon-R-linux-gtk-x86_64.tar.gz
 	chown -R root:root ./eclipse
+	rm -rf /home/$YOUR_USERNAME/桌面/eclipse-EE-neon
 	ln -s /usr/local/eclipse/eclipse /home/$YOUR_USERNAME/桌面/eclipse-EE-neon
-	rm -rf ./eclipse-jee-neon-M6-linux-gtk-x86_64.tar.gz
+	rm -rf ./eclipse-jee-neon-R-linux-gtk-x86_64.tar.gz
 }
 
 set_environments_variables() {
 	echo -e "setting environments variables\n"
 	ENVIRONMENTS_FILE=/etc/profile.d/jdk_environments.sh
+	rm -rf $ENVIRONMENTS_FILE
 	touch $ENVIRONMENTS_FILE
 	cat >> $ENVIRONMENTS_FILE << EOF
 export JAVA_HOME=/usr/local/jdk
 export JRE_HOME=\$JAVA_HOME/jre
 export CATALINA_HOME=/usr/local/tomcat
 export M2_HOME=/usr/local/maven3
+export GRADLE_HOME=/usr/local/gradle
 export SPRING_HOME=/usr/local/spring-boot-cli
 export CLASSPATH=.:\$JAVA_HOME/lib:\$JRE_HOME/lib:\$CATALINA_HOME/lib
-export PATH=\$JAVA_HOME/bin:\$JRE_HOME/bin:\$CATALINA_HOME/bin:\$M2_HOME/bin:\$SPRING_HOME/bin:\$PATH
+export PATH=\$JAVA_HOME/bin:\$JRE_HOME/bin:\$CATALINA_HOME/bin:\$M2_HOME/bin:\$GRADLE_HOME/bin:\$SPRING_HOME/bin:\$PATH
 EOF
 	source /etc/profile
 	which java
@@ -113,6 +132,8 @@ EOF
 	javac -version
 	which mvn
 	mvn -v
+	which gradle
+	gradle -v
 	which spring
 	spring --version
 	echo -e "done."
@@ -125,9 +146,10 @@ post_installation() {
 	id tomcat
 
 	echo -e "change owner and group for \$CATALINA_HOME\n"
-	chown -R tomcat:tomcat /usr/local/apache-tomcat-8.0.35
+	chown -R tomcat:tomcat /usr/local/apache-tomcat-8.0.36
 
 	echo -e "create a systemd service\n"
+	rm -rf /lib/systemd/system/tomcat.service
 	cat >> /lib/systemd/system/tomcat.service << "EOF"
 [Unit]
 Description=Apache Tomcat Web Application Container
@@ -176,6 +198,7 @@ main() {
 	set_jdk_priority
 	install_tomcat
 	install_maven
+	install_gradle
 	install_spring_boot_cli
 	install_eclipse_ee
 	set_environments_variables
