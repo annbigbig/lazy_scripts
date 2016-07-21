@@ -47,16 +47,17 @@ firewall_setting(){
 # ============ Set your network parameters here ===================================================
 iptables=/sbin/iptables
 loopback=127.0.0.1
-local="\$(/sbin/ifconfig | grep -A 1 'eth0' | tail -1 | cut -d ':' -f 2 | cut -d ' ' -f 1)"
+local="\$(/sbin/ifconfig | grep -A 1 'wlan0' | tail -1 | cut -d ':' -f 2 | cut -d ' ' -f 1)"
+#local="\$(/sbin/ifconfig | grep -A 1 'eth0' | tail -1 | cut -d ':' -f 2 | cut -d ' ' -f 1)"
 #local=10.1.1.170
 lan=$LAN
 vpn=$VPN
 # =================================================================================================
 \$iptables -t filter -F
 \$iptables -t filter -A INPUT -i lo -s \$loopback -d \$loopback -p all -j ACCEPT
-\$iptables -t filter -A INPUT -i eth0 -s \$local -d \$local -p all -j ACCEPT
-\$iptables -t filter -A INPUT -i eth0 -s \$lan -d \$local -p all -j ACCEPT
-\$iptables -t filter -A INPUT -i eth0 -s \$vpn -d \$local -p all -j ACCEPT
+\$iptables -t filter -A INPUT -i wlan0 -s \$local -d \$local -p all -j ACCEPT
+\$iptables -t filter -A INPUT -i wlan0 -s \$lan -d \$local -p all -j ACCEPT
+\$iptables -t filter -A INPUT -i wlan0 -s \$vpn -d \$local -p all -j ACCEPT
 \$iptables -t filter -A INPUT -p udp --dport 53 -j ACCEPT
 \$iptables -t filter -A INPUT -d \$local -p tcp --dport 36000 --syn -m state --state NEW -j ACCEPT
 \$iptables -t filter -A INPUT -s \$lan -p tcp --dport 36000 --syn -m state --state NEW -j ACCEPT

@@ -11,16 +11,15 @@ install_jdk() {
 	echo -e "ready to install jdk \n"
 	cd /usr/local/
 
-        # uncomment this if you want install jdk on x64 platform
 	wget --no-check-certificate \
              --no-cookies --header "Cookie: oraclelicense=accept-securebackup-cookie" \
-             http://download.oracle.com/otn-pub/java/jdk/8u92-b14/jdk-8u92-linux-x64.tar.gz
+             http://download.oracle.com/otn-pub/java/jdk/8u101-b13/jdk-8u101-linux-arm32-vfp-hflt.tar.gz
 
-	tar -zxvf ./jdk-8u92-linux-x64.tar.gz
-	chown -R root:root ./jdk1.8.0_92
+	tar -zxvf ./jdk-8u101-linux-arm32-vfp-hflt.tar.gz
+	chown -R root:root ./jdk1.8.0_101
 	rm -rf /usr/local/jdk
-	ln -s /usr/local/jdk1.8.0_92 /usr/local/jdk
-	rm -rf ./jdk-8u92-linux-x64.tar.gz
+	ln -s /usr/local/jdk1.8.0_101 /usr/local/jdk
+	rm -rf ./jdk-8u101-linux-arm32-vfp-hflt.tar.gz
 
 	echo -e "done."
 }
@@ -47,7 +46,9 @@ install_tomcat() {
 	rm -rf /usr/local/tomcat
 	ln -s /usr/local/apache-tomcat-8.0.36 /usr/local/tomcat
 	rm -rf ./apache-tomcat-8.0.36.tar.gz
-
+	echo -e "make symbolic links for jni_md.h and jawt_md.h\n"
+	ln -s /usr/local/jdk1.8.0_101/include/linux/jni_md.h /usr/local/jdk1.8.0_101/include/jni_md.h
+	ln -s /usr/local/jdk1.8.0_101/include/linux/jawt_md.h /usr/local/jdk1.8.0_101/include/jawt_md.h
 	echo -e "build jsvc\n"
 	cd /usr/local/tomcat/bin
 	tar -zxvf ./commons-daemon-native.tar.gz
@@ -57,11 +58,9 @@ install_tomcat() {
 	cp jsvc ../..
 	cd /usr/local/tomcat/bin
 	ls -al|grep jsvc
-
 	echo -e "set default admin user in tomcat-user.xml\n"
 	cd /usr/local/tomcat/conf
 	sed -i -- 's/.*<\/tomcat-users>.*/<user username="admin" password="admin" roles="manager-gui,manager-status"\/>\n&/' ./tomcat-users.xml
-
 	echo -e "done."
 }
 
@@ -79,12 +78,12 @@ install_maven() {
 install_gradle() {
 	echo -e "ready to install gradle\n"
 	cd /usr/local
-	wget https://services.gradle.org/distributions/gradle-2.14-all.zip
-	unzip ./gradle-2.14-all.zip
-	chown -R root:root ./gradle-2.14
+	wget https://services.gradle.org/distributions/gradle-2.14.1-all.zip
+	unzip ./gradle-2.14.1-all.zip
+	chown -R root:root ./gradle-2.14.1
 	rm -rf /usr/local/gradle
-	ln -s /usr/local/gradle-2.14 /usr/local/gradle
-	rm -rf ./gradle-2.14-all.zip
+	ln -s /usr/local/gradle-2.14.1 /usr/local/gradle
+	rm -rf ./gradle-2.14.1-all.zip
 }
 
 install_spring_boot_cli() {
@@ -98,45 +97,33 @@ install_spring_boot_cli() {
 	rm -rf ./spring-boot-cli-1.3.6.RELEASE-bin.tar.gz
 }
 
-install_eclipse_ee() {
-	echo -e "ready to install Eclipse EE\n"
-	cd /usr/local
-	rm -rf ./eclipse
-	wget https://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/neon/R/eclipse-jee-neon-R-linux-gtk-x86_64.tar.gz\&r=1 -O eclipse-jee-neon-R-linux-gtk-x86_64.tar.gz
-	tar -zxvf ./eclipse-jee-neon-R-linux-gtk-x86_64.tar.gz
-	chown -R root:root ./eclipse
-	rm -rf /home/$YOUR_USERNAME/桌面/eclipse-EE-neon
-	ln -s /usr/local/eclipse/eclipse /home/$YOUR_USERNAME/桌面/eclipse-EE-neon
-	rm -rf ./eclipse-jee-neon-R-linux-gtk-x86_64.tar.gz
-}
-
 install_cassandra_v2() {
-	cd /usr/local
+        cd /usr/local
         echo -e "download cassandra 2.2x and extract it to /usr/local/\n"
         curl -L http://apache.stu.edu.tw/cassandra/2.2.7/apache-cassandra-2.2.7-bin.tar.gz | tar xz
         rm -rf ./cassandra
         ln -s apache-cassandra-2.2.7 cassandra
-        echo -e "create cassandra user\n"
+	echo -e "create cassandra user\n"
         groupadd -g 700 cassandra
         useradd -u 700 -g cassandra -s /sbin/nologin cassandra
         id cassandra
-        echo -e "delete data directory if it has existed\n"
-        rm -rf /usr/local/cassandra/data
-        echo -e "editing config file for cassandra seed node in cluster\n"
-        cp /usr/local/cassandra/conf/cassandra.yaml /usr/local/cassandra/conf/cassandra.yaml.default
+	echo -e "delete data directory if it has existed\n"
+	rm -rf /usr/local/cassandra/data
+	echo -e "editing config file for cassandra non-seed node in cluster\n"
+	cp /usr/local/cassandra/conf/cassandra.yaml /usr/local/cassandra/conf/cassandra.yaml.default
 	sed -i -- "s|cluster_name: 'Test Cluster'|cluster_name: 'AnnCluster'|g" /usr/local/cassandra/conf/cassandra.yaml
-        sed -i -- "s|num_tokens: 256|num_tokens: 256|g" /usr/local/cassandra/conf/cassandra.yaml
-        sed -i -- "s|seeds: \"127.0.0.1\"|seeds: \"10.1.1.91\"|g" /usr/local/cassandra/conf/cassandra.yaml
-        sed -i -- "s|listen_address: localhost|listen_address: |g" /usr/local/cassandra/conf/cassandra.yaml
-        sed -i -- "s|# listen_interface: eth0|listen_interface: wlan0|g" /usr/local/cassandra/conf/cassandra.yaml
-        sed -i -- "s|# listen_interface_prefer_ipv6: false|listen_interface_prefer_ipv6: false|g" /usr/local/cassandra/conf/cassandra.yaml
-        sed -i -- "s|rpc_address: localhost|rpc_address: |g" /usr/local/cassandra/conf/cassandra.yaml
-        sed -i -- "s|# rpc_interface: eth1|rpc_interface: wlan0|g" /usr/local/cassandra/conf/cassandra.yaml
-        sed -i -- "s|# rpc_interface_prefer_ipv6: false|rpc_interface_prefer_ipv6: false|g" /usr/local/cassandra/conf/cassandra.yaml
-        sed -i -- "s|endpoint_snitch: SimpleSnitch|endpoint_snitch: GossipingPropertyFileSnitch|g" /usr/local/cassandra/conf/cassandra.yaml
-        sed -i '$a auto_bootstrap: false' /usr/local/cassandra/conf/cassandra.yaml
-        sed -i -- "s|dc=dc1|dc=datacenter1|g" /usr/local/cassandra/conf/cassandra-rackdc.properties
-        sed -i -- "s|rack=rack1|rack=rack1|g" /usr/local/cassandra/conf/cassandra-rackdc.properties
+	sed -i -- "s|num_tokens: 256|num_tokens: 256|g" /usr/local/cassandra/conf/cassandra.yaml
+	sed -i -- "s|seeds: \"127.0.0.1\"|seeds: \"10.1.1.91\"|g" /usr/local/cassandra/conf/cassandra.yaml
+	sed -i -- "s|listen_address: localhost|listen_address: |g" /usr/local/cassandra/conf/cassandra.yaml
+	sed -i -- "s|# listen_interface: eth0|listen_interface: eth0|g" /usr/local/cassandra/conf/cassandra.yaml
+	sed -i -- "s|# listen_interface_prefer_ipv6: false|listen_interface_prefer_ipv6: false|g" /usr/local/cassandra/conf/cassandra.yaml
+	sed -i -- "s|rpc_address: localhost|rpc_address: |g" /usr/local/cassandra/conf/cassandra.yaml
+	sed -i -- "s|# rpc_interface: eth1|rpc_interface: eth0|g" /usr/local/cassandra/conf/cassandra.yaml
+	sed -i -- "s|# rpc_interface_prefer_ipv6: false|rpc_interface_prefer_ipv6: false|g" /usr/local/cassandra/conf/cassandra.yaml
+	sed -i -- "s|endpoint_snitch: SimpleSnitch|endpoint_snitch: GossipingPropertyFileSnitch|g" /usr/local/cassandra/conf/cassandra.yaml
+	sed -i '$a auto_bootstrap: false' /usr/local/cassandra/conf/cassandra.yaml
+	sed -i -- "s|dc=dc1|dc=datacenter1|g" /usr/local/cassandra/conf/cassandra-rackdc.properties
+	sed -i -- "s|rack=rack1|rack=rack1|g" /usr/local/cassandra/conf/cassandra-rackdc.properties
         echo -e "change owner and group for \$CASSANDRA_HOME\n"
         chown -R cassandra:cassandra /usr/local/apache-cassandra-2.2.7
 }
@@ -289,7 +276,6 @@ main() {
 	install_maven
 	install_gradle
 	install_spring_boot_cli
-	install_eclipse_ee
 	install_cassandra_v2
 	#install_cassandra_v3
 	set_environments_variables
