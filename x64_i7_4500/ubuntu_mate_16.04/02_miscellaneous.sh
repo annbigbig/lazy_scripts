@@ -61,9 +61,12 @@ vpn=$VPN
 # =================================================================================================
 \$iptables -t filter -F
 \$iptables -t filter -A INPUT -i lo -s \$loopback -d \$loopback -p all -j ACCEPT
-\$iptables -t filter -A INPUT -i eth0 -s \$local -d \$local -p all -j ACCEPT
-\$iptables -t filter -A INPUT -i eth0 -s \$lan -d \$local -p all -j ACCEPT
-\$iptables -t filter -A INPUT -i eth0 -s \$vpn -d \$local -p all -j ACCEPT
+#\$iptables -t filter -A INPUT -i eth0 -s \$local -d \$local -p all -j ACCEPT
+#\$iptables -t filter -A INPUT -i eth0 -s \$lan -d \$local -p all -j ACCEPT
+#\$iptables -t filter -A INPUT -i eth0 -s \$vpn -d \$local -p all -j ACCEPT
+\$iptables -t filter -A INPUT -s \$local -d \$local -p all -j ACCEPT
+\$iptables -t filter -A INPUT -s \$lan -d \$local -p all -j ACCEPT
+\$iptables -t filter -A INPUT -s \$vpn -d \$local -p all -j ACCEPT
 \$iptables -t filter -A INPUT -p udp --dport 53 -j ACCEPT
 \$iptables -t filter -A INPUT -d \$local -p tcp --dport 36000 --syn -m state --state NEW -j ACCEPT
 \$iptables -t filter -A INPUT -s \$lan -p tcp --dport 36000 --syn -m state --state NEW -j ACCEPT

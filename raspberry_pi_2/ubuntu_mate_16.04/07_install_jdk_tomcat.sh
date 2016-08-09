@@ -126,6 +126,10 @@ install_cassandra_v2() {
 	sed -i -- "s|rack=rack1|rack=rack1|g" /usr/local/cassandra/conf/cassandra-rackdc.properties
         echo -e "change owner and group for \$CASSANDRA_HOME\n"
         chown -R cassandra:cassandra /usr/local/apache-cassandra-2.2.7
+
+	# install latest python casssandra-driver
+	apt-get -y install python-pip python-dev
+        pip install cassandra-driver
 }
 
 install_cassandra_v3() {
@@ -168,6 +172,7 @@ export M2_HOME=/usr/local/maven3
 export GRADLE_HOME=/usr/local/gradle
 export SPRING_HOME=/usr/local/spring-boot-cli
 export CASSANDRA_HOME=/usr/local/cassandra
+export CQLSH_NO_BUNDLED=true # https://issues.apache.org/jira/browse/CASSANDRA-11850
 export CLASSPATH=.:\$JAVA_HOME/lib:\$JRE_HOME/lib:\$CATALINA_HOME/lib
 export PATH=\$JAVA_HOME/bin:\$JRE_HOME/bin:\$CATALINA_HOME/bin:\$M2_HOME/bin:\$GRADLE_HOME/bin:\$SPRING_HOME/bin:\$CASSANDRA_HOME/bin:\$PATH
 EOF
