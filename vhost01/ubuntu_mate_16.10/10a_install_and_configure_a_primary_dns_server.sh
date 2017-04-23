@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# This script will configure a Bind9 server (master) on Ubuntu mate 16.10
-#
+# This script will configure a Bind9 server as primary DNS server
+# tested on Ubuntu mate 16.10
 #####################
 
 say_goodbye() {
@@ -13,16 +13,15 @@ install_bind_server() {
         if [ "$BIND9_INSTALL" == "un" ]; then
                 echo -e "install bind9 server ... \n"
                 apt-get update
-                apt-get install -y bind9 bind9utils
+                apt-get install -y bind9 bind9utils bind9-doc
 		apt autoremove
                 echo -e "done"
         fi
-        #systemctl status bind9.service
 }
 
 edit_config_file() {
         # ipv4 mode
-	sed -i -- 's/OPTIONS=\"-u bind\"/OPTIONS=\"-4 -u bind\"/g' /etc/default/bind9
+	sed -i -- 's/-u bind/-4 -u bind/g' /lib/systemd/system/bind9.service
 
 	# options
 	mv /etc/bind/named.conf.options /etc/bind/named.conf.options.default
@@ -46,7 +45,7 @@ options {
 
         dnssec-validation auto;
         auth-nxdomain no;    # conform to RFC1035
-        listen-on-v6 { any; };
+        listen-on-v6 { none; };
 };
 EOF
 
@@ -62,7 +61,7 @@ zone "dq5rocks.com" {
 zone "2.2.10.in-addr.arpa" {
     type master;
     file "/etc/bind/zones/db.10.2.2";         # 10.2.2.0/24 subnet
-    allow-transfer { 10.2.22.132; };          # ns2 private IP address - secondary
+    allow-transfer { 10.2.2.132; };           # ns2 private IP address - secondary
 };
 EOF
         # create directory for placing zone files
@@ -114,11 +113,17 @@ EOF
         # set zone file permissions
         chown -R bind:bind /etc/bind/zones
 
+        # check if there are syntax error in config files / zone files or not
+        named-checkconf
+        named-checkzone dq5rocks.com /etc/bind/zones/db.dq5rocks.com
+        named-checkzone 2.2.10.in-addr.arpa /etc/bind/zones/db.10.2.2
 }
 
 start_bind_service() {
-	systemctl start bind9.service
-	systemctl status bind9.service
+        systemctl daemon-reload
+        systemctl enable bind9.service
+        systemctl restart bind9.service
+        systemctl status bind9.service
 }
 
 main() {
@@ -127,7 +132,7 @@ main() {
 	start_bind_service
 }
 
-echo -e "This script will install Bind9 server on this host \n"
+echo -e "This script will install Bind9 server (primary) on this host \n"
 read -p "Are you sure (y/n)?" sure
 case $sure in
 	[Yy]*)
