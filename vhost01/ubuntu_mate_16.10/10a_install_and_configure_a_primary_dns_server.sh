@@ -19,6 +19,15 @@ install_bind_server() {
         fi
 }
 
+sync_system_time() {
+	NTPDATE_INSTALL="$(dpkg --get-selections | grep ntpdate)"
+	if [ -z "$NTPDATE_INSTALL" ]; then
+		apt-get update
+		apt-get install -y ntpdate
+	fi
+	ntpdate -v pool.ntp.org
+}
+
 edit_config_file() {
         # ipv4 mode
 	sed -i -- 's/-u bind/-4 -u bind/g' /lib/systemd/system/bind9.service
@@ -128,6 +137,7 @@ start_bind_service() {
 
 main() {
 	install_bind_server
+	sync_system_time
 	edit_config_file
 	start_bind_service
 }

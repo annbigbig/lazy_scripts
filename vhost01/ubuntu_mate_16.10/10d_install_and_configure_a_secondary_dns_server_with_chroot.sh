@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# This script will configure a Bind9 server as primary DNS server with chroot environment
+# This script will configure a Bind9 server as secondary DNS server with chroot environment
 # (tested on Ubuntu mate 16.10/17.04)
 #
 # All of the commands used here were inspired by this article : 
@@ -144,7 +144,7 @@ options {
         recursion yes;                      # enables resursive queries
         allow-recursion { trusted; };       # allows recursive queries from "trusted" clients
         listen-on { localnets; };           # ns1 private IP address - listen on private network only
-        allow-transfer { trusted; };        # allow zone transfers only in trusted intranet
+        allow-transfer { none; };           # slave server doesnt allow zone transfers
 
         forwarders {
 	                8.8.8.8;
@@ -182,16 +182,16 @@ zone "255.in-addr.arpa" {
 };
 
 zone "dq5rocks.com" {
-        type master;
-        file "pz/db.dq5rocks.com";                # zone file path
-        allow-transfer { 10.2.2.132; };           # ns2 private IP address - secondary
+        type slave;
+        file "slave/db.dq5rocks.com";
+        masters { 10.2.2.131; };           # ns1 private IP address
 };
 
 zone "2.2.10.in-addr.arpa" {
-        type master;
-        file "pz/db.10.2.2";                      # 10.2.2.0/24 subnet
-        allow-transfer { 10.2.2.132; };           # ns2 private IP address - secondary
-};	
+        type slave;
+        file "slave/db.10.2.2";
+        masters { 10.2.2.131; };           # ns1 private IP address
+};
 
     // Bind 9 now logs by default through syslog (except debug).
     // These are the default logging rules.
@@ -340,56 +340,11 @@ $TTL	604800
 @	IN	NS	localhost.
 EOF
 
-        # db.dq5rocks.com (forward zone)
-        cat > /srv/named/etc/namedb/pz/db.dq5rocks.com << "EOF"
-$TTL    604800
-@       IN      SOA     ns1.dq5rocks.com. admin.dq5rocks.com. (
-                  3     ; Serial
-             604800     ; Refresh
-              86400     ; Retry
-            2419200     ; Expire
-             604800 )   ; Negative Cache TTL
-;
-; name servers - NS records
-     IN      NS      ns1.dq5rocks.com.
-     IN      NS      ns2.dq5rocks.com.
-
-; name servers - A records
-ns1.dq5rocks.com.          IN      A       10.2.2.131
-ns2.dq5rocks.com.          IN      A       10.2.2.132
-
-; 10.2.2.0/24 - A records
-laptop.dq5rocks.com.       IN      A      10.2.2.90
-desktop.dq5rocks.com.      IN      A      10.2.2.110
-EOF
-
-        # db.10.2.2 (reverse zone) 
-        cat > /srv/named/etc/namedb/pz/db.10.2.2 << "EOF"
-$TTL    604800
-@       IN      SOA     dq5rocks.com. admin.dq5rocks.com. (
-                              3         ; Serial
-                         604800         ; Refresh
-                          86400         ; Retry
-                        2419200         ; Expire
-                         604800 )       ; Negative Cache TTL
-; name servers
-      IN      NS      ns1.dq5rocks.com.
-      IN      NS      ns2.dq5rocks.com.
-
-; PTR Records
-131   IN      PTR     ns1.dq5rocks.com.        ; 10.2.2.131
-132   IN      PTR     ns2.dq5rocks.com.        ; 10.2.2.132
-90    IN      PTR     laptop.dq5rocks.com.     ; 10.2.2.90
-110   IN      PTR     desktop.dq5rocks.com.    ; 10.2.2.110
-EOF
-
         # set directory permissions
         chown -R named:named /srv/named
 
         # check if there are syntax error in config files / zone files or not
 	named-checkconf -t /srv/named
-	named-checkzone dq5rocks.com /srv/named/etc/namedb/pz/db.dq5rocks.com
-	named-checkzone 2.2.10.in-addr.arpa /srv/named/etc/namedb/pz/db.10.2.2
 }
 
 start_bind_service() {
@@ -411,7 +366,7 @@ main() {
 	start_bind_service
 }
 
-echo -e "This script will install Bind9 server (primary) on this host \n"
+echo -e "This script will install Bind9 server (secondary) on this host \n"
 read -p "Are you sure (y/n)?" sure
 case $sure in
 	[Yy]*)

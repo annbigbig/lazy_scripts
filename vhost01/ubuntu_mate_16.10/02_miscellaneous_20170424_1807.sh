@@ -28,6 +28,34 @@ fix_network_interfaces_name(){
         fi
 }
 
+disable_ipv6_entirely() {
+	echo 'net.ipv6.conf.all.disable_ipv6 = 1' >> /etc/sysctl.conf
+	echo 'net.ipv6.conf.default.disable_ipv6 = 1' >> /etc/sysctl.conf
+	echo 'net.ipv6.conf.lo.disable_ipv6 = 1' >> /etc/sysctl.conf
+	sysctl -p
+}
+
+disable_dnssec() {
+	# you need these commands if your Ubuntu version is 17.04
+	echo 'DNSSEC=off' >> /etc/systemd/resolved.conf
+	systemctl restart systemd-resolved.service
+}
+
+sync_system_time() {
+        NTPDATE_INSTALL="$(dpkg --get-selections | grep ntpdate)"
+        if [ -z "$NTPDATE_INSTALL" ]; then
+                apt-get update
+                apt-get install -y ntpdate
+		cat > /etc/cron.daily/ntpdate << "EOF"
+#!/bin/sh
+ntpdate -v pool.ntp.org
+EOF
+                chmod +x /etc/cron.daily/ntpdate
+        fi
+        ntpdate -v pool.ntp.org
+}
+
+
 fix_too_many_authentication_failures() {
         sed -e '/pam_motd/ s/^#*/#/' -i /etc/pam.d/login
         apt-get purge landscape-client landscape-common
@@ -135,6 +163,9 @@ remove_ugly_fonts() {
 
 main(){
 	fix_network_interfaces_name
+	disable_ipv6_entirely
+	disable_dnssec
+	sync_system_time
 	fix_too_many_authentication_failures
 	firewall_setting
 	delete_route_to_169_254_0_0
@@ -148,13 +179,16 @@ main(){
 
 echo -e "This script will do the following tasks for your x64 machine, including: \n"
 echo -e "  1.Fix network interfaces name (To conventional 'eth0' and 'wlan0') \n"
-echo -e "  2.fix too many authentication failures problem \n"
-echo -e "  3.Firewall rule setting (Write firewall rules in /etc/network/if-up.d/firewall) \n"
-echo -e "  4.delete route to 169.254.0.0 \n"
-echo -e "  5.add swap space with 4096MB \n"
-echo -e "  6.install softwares you need \n"
-echo -e "  7.install chrome browser \n"
-echo -e "  8.remove ugly fonts \n"
+echo -e "  2.disable ipv6 entirely \n"
+echo -e "  3.disable DNSSEC for systemd-resolved.service \n"
+echo -e "  4.install ntpdate and sync system time \n"
+echo -e "  5.fix too many authentication failures problem \n"
+echo -e "  6.Firewall rule setting (Write firewall rules in /etc/network/if-up.d/firewall) \n"
+echo -e "  7.delete route to 169.254.0.0 \n"
+echo -e "  8.add swap space with 4096MB \n"
+echo -e "  9.install softwares you need \n"
+echo -e "  10.install chrome browser \n"
+echo -e "  11.remove ugly fonts \n"
 
 read -p "Are you sure (y/n)?" sure
 case $sure in

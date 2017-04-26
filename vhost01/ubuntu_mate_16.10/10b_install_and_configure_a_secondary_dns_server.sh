@@ -20,6 +20,15 @@ install_bind_server() {
         fi
 }
 
+sync_system_time() {
+        NTPDATE_INSTALL="$(dpkg --get-selections | grep ntpdate)"
+        if [ -z "$NTPDATE_INSTALL" ]; then
+                apt-get update
+                apt-get install -y ntpdate
+        fi
+        ntpdate -v pool.ntp.org
+}
+
 edit_config_file() {
         # ipv4 mode
 	sed -i -- 's/-u bind/-4 -u bind/g' /lib/systemd/system/bind9.service
@@ -55,13 +64,13 @@ EOF
         cat > /etc/bind/named.conf.local << "EOF"
 zone "dq5rocks.com" {
     type slave;
-    file "slaves/db.dq5rocks.com";
+    file "/var/cache/bind/db.dq5rocks.com";
     masters { 10.2.2.131; };           # ns1 private IP address
 };
 
 zone "2.2.10.in-addr.arpa" {
     type slave;
-    file "slaves/db.10.2.2";
+    file "/var/cache/bind/db.10.2.2";
     masters { 10.2.2.131; };           # ns1 private IP address
 };
 EOF
@@ -79,6 +88,7 @@ start_bind_service() {
 
 main() {
 	install_bind_server
+	sync_system_time
 	edit_config_file
 	start_bind_service
 }
