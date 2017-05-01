@@ -8,11 +8,47 @@ say_goodbye() {
 	echo "goodbye everyone"
 }
 
+sync_system_time() {
+        NTPDATE_INSTALL="$(dpkg --get-selections | grep ntpdate)"
+        if [ -z "$NTPDATE_INSTALL" ]; then
+                apt-get update
+                apt-get install -y ntpdate
+        fi
+                ntpdate -v pool.ntp.org
+}
+
+unlock_apt_bala_bala(){
+        #
+        # This function is only needed if you ever seen error messages below
+        # E: Could not get lock /var/lib/dpkg/lock - open (11 Resource temporarily unavailable)
+        # E: Unable to lock the administration directory (/var/lib/dpkg/) is another process using it?
+        #
+        rm -rf /var/lib/apt/lists/lock
+        rm -rf /var/cache/apt/archives/lock
+        rm -rf /var/lib/dpkg/lock
+        dpkg --configure -a
+}
+
+remove_mysql_if_it_exists() {
+	MYSQL_SERVER_INSTALLED="$(dpkg --get-selections | grep mysql-server)"
+	MYSQL_CLIENT_INSTALLED="$(dpkg --get-selections | grep mysql-client)"
+	MYSQL_COMMON_INSTALLED="$(dpkg --get-selections | grep mysql-common)"
+	if [ -n "$MYSQL_SERVER_INSTALLED" ] || [ -n "$MYSQL_CLIENT_INSTALLED" ] || [ -n "$MYSQL_COMMON_INSTALLED" ]; then
+		systemctl stop mysql > /dev/null 2>&1
+		systemctl disable mysql > /dev/null 2>&1
+		apt-get remove --purge -y mysql-server mysql-client mysql-common
+		apt-get autoremove
+		apt-get autoclean
+		rm -rf /var/lib/mysql/
+		rm -rf /etc/mysql/
+        fi
+}
+
 install_mariadb_server() {
-	MARIADB_SERVER_HAS_BEEN_INSTALL=$(dpkg --get-selections | grep mariadb-server)
+	MARIADB_SERVER_HAS_BEEN_INSTALL="$(dpkg --get-selections | grep mariadb-server)"
 	if [ -z $MARIADB_SERVER_HAS_BEEN_INSTALL ] ; then
 		echo -e "install mariadb-server ... \n"
-		apt-get install software-properties-common
+		apt-get install -y software-properties-common
 		apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
 		add-apt-repository 'deb [arch=amd64] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.1/ubuntu yakkety main'
 		cat >> /etc/apt/sources.list.d/mariadb.list << EOF
@@ -22,7 +58,7 @@ deb [arch=amd64] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.1/ubuntu yakket
 deb-src http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.1/ubuntu yakkety main
 EOF
 		apt update
-		apt install mariadb-server
+		apt install -y mariadb-server
                 echo -e "done"
 	fi
 	#systemctl status mariadb.service
@@ -133,6 +169,7 @@ EOF
 }
 
 restart_maraidb_service() {
+	systemctl enable mariadb.service
 	systemctl restart mariadb.service
 	systemctl status mariadb.service
 }
@@ -158,6 +195,9 @@ EOF
 }
 
 main() {
+	sync_system_time
+	#unlock_apt_bala_bala
+	remove_mysql_if_it_exists
 	install_mariadb_server
 	generate_config_file
 	restart_maraidb_service
