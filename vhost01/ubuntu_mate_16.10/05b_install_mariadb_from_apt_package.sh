@@ -1,20 +1,11 @@
 #!/bin/bash
 #
-# This script will install MariaDB server 10.1.x on Ubuntu mate 16.10
+# This script will install MariaDB server 10.1.x on Ubuntu mate 16.10/17.04
 #
 #####################
 
 say_goodbye() {
 	echo "goodbye everyone"
-}
-
-sync_system_time() {
-        NTPDATE_INSTALL="$(dpkg --get-selections | grep ntpdate)"
-        if [ -z "$NTPDATE_INSTALL" ]; then
-                apt-get update
-                apt-get install -y ntpdate
-        fi
-                ntpdate -v pool.ntp.org
 }
 
 unlock_apt_bala_bala(){
@@ -27,6 +18,26 @@ unlock_apt_bala_bala(){
         rm -rf /var/cache/apt/archives/lock
         rm -rf /var/lib/dpkg/lock
         dpkg --configure -a
+}
+
+update_system() {
+        # this problem maybe occur
+        # https://bugs.launchpad.net/ubuntu/+source/aptitude/+bug/1543280
+        # before install/upgrade package, change directory permission number to 777 for it
+        chmod 777 /var/lib/update-notifier/package-data-downloads/partial
+        apt-get update
+        apt-get dist-upgrade -y
+        apt autoremove -y
+        # after installation , change it back to its original value 755
+        chmod 755 /var/lib/update-notifier/package-data-downloads/partial
+}
+
+sync_system_time() {
+        NTPDATE_INSTALL="$(dpkg --get-selections | grep ntpdate)"
+        if [ -z "$NTPDATE_INSTALL" ]; then
+                apt-get install -y ntpdate
+        fi
+                ntpdate -v pool.ntp.org
 }
 
 remove_mysql_if_it_exists() {
@@ -195,8 +206,9 @@ EOF
 }
 
 main() {
+	unlock_apt_bala_bala
+	update_system
 	sync_system_time
-	#unlock_apt_bala_bala
 	remove_mysql_if_it_exists
 	install_mariadb_server
 	generate_config_file
