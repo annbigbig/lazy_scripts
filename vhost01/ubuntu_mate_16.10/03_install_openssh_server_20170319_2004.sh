@@ -39,7 +39,8 @@ change_sshd_settings() {
 
 	if [ $SSHD_LISTENING_PORT -gt 1024 ] && [ $SSHD_LISTENING_PORT -lt 65535 ] ; then
 		echo -e "modify $CONFIG_FILE_PATH \n replace 'Port 22' with 'Port $SSHD_LISTENING_PORT' \n"
-		sed -i -- "s|#Port 22|Port $SSHD_LISTENING_PORT|g" $CONFIG_FILE_PATH
+		sed -i -- "s|#Port 22|Port 22|g" $CONFIG_FILE_PATH
+		sed -i -- "s|Port 22|Port $SSHD_LISTENING_PORT|g" $CONFIG_FILE_PATH
 		echo -e "done. \n"
 		systemctl restart ssh
 		systemctl status ssh

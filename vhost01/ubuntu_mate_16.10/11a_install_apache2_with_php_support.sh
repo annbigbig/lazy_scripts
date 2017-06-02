@@ -15,15 +15,6 @@ say_goodbye() {
 	echo "goodbye everyone"
 }
 
-sync_system_time() {
-        NTPDATE_INSTALL="$(dpkg --get-selections | grep ntpdate)"
-        if [ -z "$NTPDATE_INSTALL" ]; then
-                apt-get update
-                apt-get install -y ntpdate
-        fi
-	        ntpdate -v pool.ntp.org
-}
-
 unlock_apt_bala_bala(){
         #
         # This function is only needed if you ever seen error messages below
@@ -34,6 +25,73 @@ unlock_apt_bala_bala(){
         rm -rf /var/cache/apt/archives/lock
         rm -rf /var/lib/dpkg/lock
         dpkg --configure -a
+}
+
+update_system() {
+        # this problem maybe occur
+        # https://bugs.launchpad.net/ubuntu/+source/aptitude/+bug/1543280
+        # before install/upgrade package, change directory permission number to 777 for it
+        chmod 777 /var/lib/update-notifier/package-data-downloads/partial
+        apt-get update
+        apt-get dist-upgrade -y
+        apt autoremove -y
+        # after installation , change it back to its original value 755
+        chmod 755 /var/lib/update-notifier/package-data-downloads/partial
+}
+
+sync_system_time() {
+        NTPDATE_INSTALL="$(dpkg --get-selections | grep ntpdate)"
+        if [ -z "$NTPDATE_INSTALL" ]; then
+                apt-get install -y ntpdate
+        fi
+                ntpdate -v pool.ntp.org
+}
+
+remove_previous_install() {
+        # remove nginx if it seems like been installed
+        if [ -f /lib/systemd/system/nginx.service ]; then
+             # stop/disable service
+             systemctl disable nginx.service
+             systemctl stop nginx.service
+             # try to remove binary package
+             apt-get purge -y nginx* libnginx* fcgiwrap
+             apt autoremove -y
+             # try to remove source installation
+             rm -rf /usr/local/nginx*
+        fi
+
+        # remove apache2 if it seems like been installed
+        if [ -d /lib/systemd/system/apache2.service.d ]; then
+             # stop/disable service
+             systemctl disable apache2.service
+             systemctl stop apache2.service
+             # try to remove binary package
+             apt-get purge -y apache2 apache2-bin apache2-data apache2-utils libaprutil1-dbd-sqlite3 libaprutil1-ldap liblua5.1-0
+             apt-get purge -y libapache2-mod-php libapache2-mod-php7.0 libmcrypt4 php php-common php-mcrypt php-mysql php7.0
+             apt-get purge -y php7.0-cli php7.0-common php7.0-json php7.0-mbstring php7.0-mcrypt php7.0-mysql php7.0-opcache php7.0-readline
+             apt autoremove -y
+             rm -rf /var/lib/apache2/
+             rm -rf /var/lib/php/
+             # try to remove source installation
+             rm -rf /usr/local/apache2
+             rm -rf /usr/local/apache-2*
+        fi
+
+        # remove php-fpm if it seems like been installed
+        if [ -f /lib/systemd/system/php7.0-fpm.service ]; then
+             # stop/disable service
+             systemctl disable php7.0-fpm.service
+             systemctl stop php7.0-fpm.service
+             # try to remove binary package
+             apt-get purge -y php-common php7.0-cli php7.0-common php7.0-fpm php7.0-json php7.0-opcache php7.0-readline
+             apt-get purge -y php-pear php-mysql php7.0-mysql
+             apt autoremove -y
+             rm -rf /etc/php/
+             rm -rf /var/lib/php/
+             # try to remove source installation
+             rm -rf /usr/local/php
+             rm -rf /usr/local/php-*
+        fi
 }
 
 install_apache2_and_php() {
@@ -115,14 +173,14 @@ EOF
 install_phpmyadmin() {
         [ -d "/var/www/dq5rocks.com/phpmyadmin/" ] && echo "seems like phpmyadmin already installed." && exit 1 || echo "ready to install phpmyadmin."
         cd /var/www/dq5rocks.com/
-        wget https://files.phpmyadmin.net/phpMyAdmin/4.7.0/phpMyAdmin-4.7.0-all-languages.tar.gz.sha256
-        wget https://files.phpmyadmin.net/phpMyAdmin/4.7.0/phpMyAdmin-4.7.0-all-languages.tar.gz
-        SHA256SUM_IN_FILE="$(cat ./phpMyAdmin-4.7.0-all-languages.tar.gz.sha256 | cut -d " " -f 1)"
-        SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./phpMyAdmin-4.7.0-all-languages.tar.gz | cut -d " " -f 1)"
+        wget https://files.phpmyadmin.net/phpMyAdmin/4.7.1/phpMyAdmin-4.7.1-all-languages.tar.gz.sha256
+        wget https://files.phpmyadmin.net/phpMyAdmin/4.7.1/phpMyAdmin-4.7.1-all-languages.tar.gz
+        SHA256SUM_IN_FILE="$(cat ./phpMyAdmin-4.7.1-all-languages.tar.gz.sha256 | cut -d " " -f 1)"
+        SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./phpMyAdmin-4.7.1-all-languages.tar.gz | cut -d " " -f 1)"
         [ "$SHA256SUM_IN_FILE" != "$SHA256SUM_COMPUTED" ] && echo "oops...sha256 checksum doesnt match." && exit 2 || echo "sha256 checksum matched."
-        tar zxvf ./phpMyAdmin-4.7.0-all-languages.tar.gz
-        rm -rf ./phpMyAdmin-4.7.0-all-languages.tar.gz*
-	mv phpMyAdmin-4.7.0-all-languages phpmyadmin
+        tar zxvf ./phpMyAdmin-4.7.1-all-languages.tar.gz
+        rm -rf ./phpMyAdmin-4.7.1-all-languages.tar.gz*
+	mv phpMyAdmin-4.7.1-all-languages phpmyadmin
         cd ./phpmyadmin/
         cat > /var/www/dq5rocks.com/phpmyadmin/config.inc.php << "EOF"
 <?php
@@ -156,13 +214,13 @@ EOF
 install_wordpress() {
         [ -d "/var/www/dq5rocks.com/wordpress/" ] && echo "seems like wordpress already installed." && exit 1 || echo "ready to install wordpress."
         cd /var/www/dq5rocks.com/
-        wget https://wordpress.org/wordpress-4.7.4.tar.gz.md5
-        wget https://wordpress.org/wordpress-4.7.4.tar.gz
-        MD5SUM_IN_FILE="$(cat ./wordpress-4.7.4.tar.gz.md5)"
-        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./wordpress-4.7.4.tar.gz | cut -d " " -f 1)"
+        wget https://wordpress.org/wordpress-4.7.5.tar.gz.md5
+        wget https://wordpress.org/wordpress-4.7.5.tar.gz
+        MD5SUM_IN_FILE="$(cat ./wordpress-4.7.5.tar.gz.md5)"
+        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./wordpress-4.7.5.tar.gz | cut -d " " -f 1)"
         [ "$MD5SUM_IN_FILE" != "$MD5SUM_COMPUTED" ] && echo "oops...md5 checksum doesnt match." && exit 2 || echo "md5 checksum matched."
-        tar zxvf ./wordpress-4.7.4.tar.gz
-        rm -rf ./wordpress-4.7.4.tar.gz*
+        tar zxvf ./wordpress-4.7.5.tar.gz
+        rm -rf ./wordpress-4.7.5.tar.gz*
         cd ./wordpress
         cat > wp-config.php << "EOF"
 <?php
@@ -206,8 +264,10 @@ restart_apache2_service() {
 }
 
 main() {
-	sync_system_time
-	#unlock_apt_bala_bala
+        unlock_apt_bala_bala
+        update_system
+        sync_system_time
+        remove_previous_install
 	install_apache2_and_php
 	edit_config_file
         install_phpmyadmin

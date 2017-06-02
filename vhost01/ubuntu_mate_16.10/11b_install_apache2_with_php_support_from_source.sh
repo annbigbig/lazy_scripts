@@ -19,15 +19,6 @@ say_goodbye() {
 	echo "goodbye everyone"
 }
 
-sync_system_time() {
-        NTPDATE_INSTALL="$(dpkg --get-selections | grep ntpdate)"
-        if [ -z "$NTPDATE_INSTALL" ]; then
-                apt-get update
-                apt-get install -y ntpdate
-        fi
-	        ntpdate -v pool.ntp.org
-}
-
 unlock_apt_bala_bala(){
         #
         # This function is only needed if you ever seen error messages below
@@ -40,12 +31,76 @@ unlock_apt_bala_bala(){
         dpkg --configure -a
 }
 
-remove_binary_package() {
-        # remove binary packages installed by command 'apt-get install' if you alreadly have apache2 installed on your system
-        systemctl disable apache2
-        systemctl stop apache2
-        apt-get purge -y apache2 php*
-        apt-get autoremove -y       
+update_system() {
+        # this problem maybe occur
+        # https://bugs.launchpad.net/ubuntu/+source/aptitude/+bug/1543280
+        # before install/upgrade package, change directory permission number to 777 for it
+        chmod 777 /var/lib/update-notifier/package-data-downloads/partial
+        apt-get update
+        apt-get dist-upgrade -y
+        apt autoremove -y
+        # after installation , change it back to its original value 755
+        chmod 755 /var/lib/update-notifier/package-data-downloads/partial
+}
+
+sync_system_time() {
+        NTPDATE_INSTALL="$(dpkg --get-selections | grep ntpdate)"
+        if [ -z "$NTPDATE_INSTALL" ]; then
+                apt-get install -y ntpdate
+        fi
+                ntpdate -v pool.ntp.org
+}
+
+# The commands inside this function will stop/disable HTTPD service
+# and remove all related installed packages no matter it was installed from apt-get or from source
+# so if you are so sure that you are upgrading APACHE2 HTTPD from previously source installation
+# and you want to upgrade APACHE2 HTTPD seamlessly without any server downtime
+# DO NOT RUN COMMANDS INSIDE THIS FUNCTION
+remove_previous_install() {
+        # remove nginx if it seems like been installed
+        if [ -f /lib/systemd/system/nginx.service ]; then
+             # stop/disable service
+             systemctl disable nginx.service
+             systemctl stop nginx.service
+             # try to remove binary package
+             apt-get purge -y nginx* libnginx* fcgiwrap
+             apt autoremove -y
+             # try to remove source installation
+             rm -rf /usr/local/nginx*
+        fi
+
+        # remove apache2 if it seems like been installed
+        if [ -d /lib/systemd/system/apache2.service.d ]; then
+             # stop/disable service
+             systemctl disable apache2.service
+             systemctl stop apache2.service
+             # try to remove binary package
+             apt-get purge -y apache2 apache2-bin apache2-data apache2-utils libaprutil1-dbd-sqlite3 libaprutil1-ldap liblua5.1-0
+             apt-get purge -y libapache2-mod-php libapache2-mod-php7.0 libmcrypt4 php php-common php-mcrypt php-mysql php7.0
+             apt-get purge -y php7.0-cli php7.0-common php7.0-json php7.0-mbstring php7.0-mcrypt php7.0-mysql php7.0-opcache php7.0-readline
+             apt autoremove -y
+             rm -rf /var/lib/apache2/
+             rm -rf /var/lib/php/
+             # try to remove source installation
+             rm -rf /usr/local/apache2
+             rm -rf /usr/local/apache-2*
+        fi
+
+        # remove php-fpm if it seems like been installed
+        if [ -f /lib/systemd/system/php7.0-fpm.service ]; then
+             # stop/disable service
+             systemctl disable php7.0-fpm.service
+             systemctl stop php7.0-fpm.service
+             # try to remove binary package
+             apt-get purge -y php-common php7.0-cli php7.0-common php7.0-fpm php7.0-json php7.0-opcache php7.0-readline
+             apt-get purge -y php-pear php-mysql php7.0-mysql
+             apt autoremove -y
+             rm -rf /etc/php/
+             rm -rf /var/lib/php/
+             # try to remove source installation
+             rm -rf /usr/local/php
+             rm -rf /usr/local/php-*
+        fi
 }
 
 install_prerequisite() {
@@ -58,10 +113,8 @@ install_prerequisite() {
         apt-get install -y libcurl3 libcurl3-gnutls libcurl4-openssl-dev pkg-config libssl-dev libgdbm-dev libpng-dev libmcrypt-dev
 	#apt-get install -y libmariadb-dev* libdb-dev libdb4.8
 
-        # need to to this on ubuntu 17.04
-        VER="$(lsb_release -c | cut -d ':' -f 2 | tr -d " \t")"
-        if [ "$VER" == "zesty" ]; then
-               echo "yes, version number of Ubuntu is zesty (17.04)"
+        # need to do this on ubuntu 17.04
+        if [ ! -e "/usr/include/curl" ] && [ -e "/usr/include/x86_64-linux-gnu/curl" ]; then
                ln -s /usr/include/x86_64-linux-gnu/curl /usr/include/curl
         fi
 }
@@ -111,7 +164,6 @@ install_apache2() {
         make
         make install
         chown -R apache:apache /usr/local/apache-2.4.25
-        ln -s /usr/local/apache-2.4.25 /usr/local/apache
 
         # configuration setting
         sed -i -- "s|ServerAdmin you@example.com|ServerAdmin admin@dq5rocks.com|g" /usr/local/apache-2.4.25/conf/httpd.conf
@@ -137,7 +189,7 @@ install_apache2() {
         echo '</FilesMatch>' >> /usr/local/apache-2.4.25/conf/httpd.conf
 
         # config test
-        /usr/local/apache/bin/apachectl configtest
+        /usr/local/apache-2.4.25/bin/apachectl configtest
 
         # leave a info.php and index.html at root directory of website
         cat > /var/www/html/info.php << "EOF"
@@ -160,7 +212,7 @@ EOF
 
         # setup logrotate
 cat > /etc/logrotate.d/apache2 << EOF
-/usr/local/apache/logs/*_log {
+/usr/local/apache2/logs/*_log {
         weekly
         rotate 12
         compress
@@ -182,9 +234,9 @@ After=network.target remote-fs.target nss-lookup.target
 [Service]
 Type=forking
 Environment=APACHE_STARTED_BY_SYSTEMD=true
-ExecStart=/usr/local/apache/bin/apachectl start
-ExecStop=/usr/local/apache/bin/apachectl stop
-ExecReload=/usr/local/apache/bin/apachectl graceful
+ExecStart=/usr/local/apache2/bin/apachectl start
+ExecStop=/usr/local/apache2/bin/apachectl stop
+ExecReload=/usr/local/apache2/bin/apachectl graceful
 PrivateTmp=true
 Restart=on-abort
 
@@ -198,15 +250,15 @@ install_phpfpm() {
 
         # download the source tar.gz, extract it then configure it
         cd /usr/local/src
-        wget -O php-7.1.4.tar.gz http://tw2.php.net/get/php-7.1.4.tar.gz/from/this/mirror
-        MD5SUM_SHOULD_BE="47e7d116553a879ff957ef2684987c23"
-        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./php-7.1.4.tar.gz | cut -d " " -f 1)"
+        wget -O php-7.1.5.tar.gz http://tw2.php.net/get/php-7.1.5.tar.gz/from/this/mirror
+        MD5SUM_SHOULD_BE="b2ac302120d2eefd6cd9449790c45412"
+        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./php-7.1.5.tar.gz | cut -d " " -f 1)"
         [ "$MD5SUM_SHOULD_BE" != "$MD5SUM_COMPUTED" ] && echo "oops...md5 checksum doesnt match." && exit 2 || echo "md5 checksum matched."
-        tar zxvf ./php-7.1.4.tar.gz
-        chown -R root:root ./php-7.1.4
-        rm -rf ./php-7.1.4.tar.gz
-        cd ./php-7.1.4
-        ./configure --prefix=/usr/local/php-7.1.4     \
+        tar zxvf ./php-7.1.5.tar.gz
+        chown -R root:root ./php-7.1.5
+        rm -rf ./php-7.1.5.tar.gz
+        cd ./php-7.1.5
+        ./configure --prefix=/usr/local/php-7.1.5     \
                     --enable-fpm                      \
                     --enable-opcache                  \
                     --with-fpm-user=apache            \
@@ -246,35 +298,34 @@ install_phpfpm() {
         make
         #make test
         make install
-        ln -s /usr/local/php-7.1.4 /usr/local/php
-        cp /usr/local/src/php-7.1.4/php.ini-production /usr/local/php-7.1.4/lib/php.ini
-        cp /usr/local/php-7.1.4/etc/php-fpm.conf.default /usr/local/php-7.1.4/etc/php-fpm.conf
+        cp /usr/local/src/php-7.1.5/php.ini-production /usr/local/php-7.1.5/lib/php.ini
+        cp /usr/local/php-7.1.5/etc/php-fpm.conf.default /usr/local/php-7.1.5/etc/php-fpm.conf
 
         # php.ini setting
-        sed -i -- "/\[opcache\]/a zend_extension=/usr/local/php-7.1.4/lib/php/extensions/no-debug-non-zts-20160303/opcache.so" /usr/local/php-7.1.4/lib/php.ini
-        sed -i -- "s|;opcache.enable=1|opcache.enable=1|g" /usr/local/php-7.1.4/lib/php.ini
-        sed -i -- "s|;opcache.enable_cli=1|opcache.enable_cli=1|g" /usr/local/php-7.1.4/lib/php.ini
-        sed -i -- "s|;opcache.memory_consumption=128|opcache.memory_consumption=128|g" /usr/local/php-7.1.4/lib/php.ini
-        sed -i -- "s|;opcache.interned_strings_buffer=8|opcache.interned_strings_buffer=8|g" /usr/local/php-7.1.4/lib/php.ini
-        sed -i -- "s|;opcache.max_accelerated_files=10000|opcache.max_accelerated_files=10000|g" /usr/local/php-7.1.4/lib/php.ini
-        sed -i -- "s|;opcache.use_cwd=1|opcache.use_cwd=0|g" /usr/local/php-7.1.4/lib/php.ini
-        sed -i -- "s|;opcache.validate_timestamps=1|opcache.validate_timestamps=0|g" /usr/local/php-7.1.4/lib/php.ini
-        sed -i -- "s|;opcache.save_comments=1|opcache.save_comments=0|g" /usr/local/php-7.1.4/lib/php.ini
-        sed -i -- "s|;opcache.enable_file_override=0|opcache.enable_file_override=1|g" /usr/local/php-7.1.4/lib/php.ini
+        sed -i -- "/\[opcache\]/a zend_extension=/usr/local/php-7.1.5/lib/php/extensions/no-debug-non-zts-20160303/opcache.so" /usr/local/php-7.1.5/lib/php.ini
+        sed -i -- "s|;opcache.enable=1|opcache.enable=1|g" /usr/local/php-7.1.5/lib/php.ini
+        sed -i -- "s|;opcache.enable_cli=1|opcache.enable_cli=1|g" /usr/local/php-7.1.5/lib/php.ini
+        sed -i -- "s|;opcache.memory_consumption=128|opcache.memory_consumption=128|g" /usr/local/php-7.1.5/lib/php.ini
+        sed -i -- "s|;opcache.interned_strings_buffer=8|opcache.interned_strings_buffer=8|g" /usr/local/php-7.1.5/lib/php.ini
+        sed -i -- "s|;opcache.max_accelerated_files=10000|opcache.max_accelerated_files=10000|g" /usr/local/php-7.1.5/lib/php.ini
+        sed -i -- "s|;opcache.use_cwd=1|opcache.use_cwd=0|g" /usr/local/php-7.1.5/lib/php.ini
+        sed -i -- "s|;opcache.validate_timestamps=1|opcache.validate_timestamps=0|g" /usr/local/php-7.1.5/lib/php.ini
+        sed -i -- "s|;opcache.save_comments=1|opcache.save_comments=0|g" /usr/local/php-7.1.5/lib/php.ini
+        sed -i -- "s|;opcache.enable_file_override=0|opcache.enable_file_override=1|g" /usr/local/php-7.1.5/lib/php.ini
 
         # php-fpm.conf setting
-        sed -i -- '/^include/s/include/;include/' /usr/local/php-7.1.4/etc/php-fpm.conf
-        sed -i -- 's|;pid = run/php-fpm.pid|pid = run/php-fpm.pid|g' /usr/local/php-7.1.4/etc/php-fpm.conf
-        echo "[www]" >> /usr/local/php-7.1.4/etc/php-fpm.conf
-        echo "user = apache" >> /usr/local/php-7.1.4/etc/php-fpm.conf
-        echo "group = apache" >> /usr/local/php-7.1.4/etc/php-fpm.conf
-        echo "listen = 127.0.0.1:9000" >> /usr/local/php-7.1.4/etc/php-fpm.conf
-        echo "pm = dynamic" >> /usr/local/php-7.1.4/etc/php-fpm.conf
-        echo "pm.max_children = 20" >> /usr/local/php-7.1.4/etc/php-fpm.conf
-        echo "pm.start_servers = 10" >> /usr/local/php-7.1.4/etc/php-fpm.conf
-        echo "pm.min_spare_servers = 5" >> /usr/local/php-7.1.4/etc/php-fpm.conf
-        echo "pm.max_spare_servers = 20" >> /usr/local/php-7.1.4/etc/php-fpm.conf
-        chown -R apache:apache /usr/local/php-7.1.4
+        sed -i -- '/^include/s/include/;include/' /usr/local/php-7.1.5/etc/php-fpm.conf
+        sed -i -- 's|;pid = run/php-fpm.pid|pid = run/php-fpm.pid|g' /usr/local/php-7.1.5/etc/php-fpm.conf
+        echo "[www]" >> /usr/local/php-7.1.5/etc/php-fpm.conf
+        echo "user = apache" >> /usr/local/php-7.1.5/etc/php-fpm.conf
+        echo "group = apache" >> /usr/local/php-7.1.5/etc/php-fpm.conf
+        echo "listen = 127.0.0.1:9000" >> /usr/local/php-7.1.5/etc/php-fpm.conf
+        echo "pm = dynamic" >> /usr/local/php-7.1.5/etc/php-fpm.conf
+        echo "pm.max_children = 20" >> /usr/local/php-7.1.5/etc/php-fpm.conf
+        echo "pm.start_servers = 10" >> /usr/local/php-7.1.5/etc/php-fpm.conf
+        echo "pm.min_spare_servers = 5" >> /usr/local/php-7.1.5/etc/php-fpm.conf
+        echo "pm.max_spare_servers = 20" >> /usr/local/php-7.1.5/etc/php-fpm.conf
+        chown -R apache:apache /usr/local/php-7.1.5
 
         # setup logrotate
 cat > /etc/logrotate.d/php-fpm << EOF
@@ -292,7 +343,7 @@ EOF
         chmod 644 /etc/logrotate.d/php-fpm
 
         # create systemd unit file
-        cat > /lib/systemd/system/php-fpm.service << "EOF"
+        cat > /lib/systemd/system/php7.0-fpm.service << "EOF"
 [Unit]
 Description=PHP FastCGI process manager
 After=local-fs.target network.target apache2.service
@@ -310,14 +361,14 @@ EOF
 install_phpmyadmin() {
         [ -d "/var/www/html/phpmyadmin/" ] && echo "seems like phpmyadmin already installed." && exit 1 || echo "ready to install phpmyadmin."
         cd /var/www/html/
-        wget https://files.phpmyadmin.net/phpMyAdmin/4.7.0/phpMyAdmin-4.7.0-all-languages.tar.gz.sha256
-        wget https://files.phpmyadmin.net/phpMyAdmin/4.7.0/phpMyAdmin-4.7.0-all-languages.tar.gz
-        SHA256SUM_IN_FILE="$(cat ./phpMyAdmin-4.7.0-all-languages.tar.gz.sha256 | cut -d " " -f 1)"
-        SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./phpMyAdmin-4.7.0-all-languages.tar.gz | cut -d " " -f 1)"
+        wget https://files.phpmyadmin.net/phpMyAdmin/4.7.1/phpMyAdmin-4.7.1-all-languages.tar.gz.sha256
+        wget https://files.phpmyadmin.net/phpMyAdmin/4.7.1/phpMyAdmin-4.7.1-all-languages.tar.gz
+        SHA256SUM_IN_FILE="$(cat ./phpMyAdmin-4.7.1-all-languages.tar.gz.sha256 | cut -d " " -f 1)"
+        SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./phpMyAdmin-4.7.1-all-languages.tar.gz | cut -d " " -f 1)"
         [ "$SHA256SUM_IN_FILE" != "$SHA256SUM_COMPUTED" ] && echo "oops...sha256 checksum doesnt match." && exit 2 || echo "sha256 checksum matched."
-        tar zxvf ./phpMyAdmin-4.7.0-all-languages.tar.gz
-        rm -rf ./phpMyAdmin-4.7.0-all-languages.tar.gz*
-	mv phpMyAdmin-4.7.0-all-languages phpmyadmin
+        tar zxvf ./phpMyAdmin-4.7.1-all-languages.tar.gz
+        rm -rf ./phpMyAdmin-4.7.1-all-languages.tar.gz*
+	mv phpMyAdmin-4.7.1-all-languages phpmyadmin
         cd ./phpmyadmin/
         cat > /var/www/html/phpmyadmin/config.inc.php << "EOF"
 <?php
@@ -349,13 +400,13 @@ EOF
 install_wordpress() {
         [ -d "/var/www/html/wordpress/" ] && echo "seems like wordpress already installed." && exit 1 || echo "ready to install wordpress."
         cd /var/www/html/
-        wget https://wordpress.org/wordpress-4.7.4.tar.gz.md5
-        wget https://wordpress.org/wordpress-4.7.4.tar.gz
-        MD5SUM_IN_FILE="$(cat ./wordpress-4.7.4.tar.gz.md5)"
-        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./wordpress-4.7.4.tar.gz | cut -d " " -f 1)"
+        wget https://wordpress.org/wordpress-4.7.5.tar.gz.md5
+        wget https://wordpress.org/wordpress-4.7.5.tar.gz
+        MD5SUM_IN_FILE="$(cat ./wordpress-4.7.5.tar.gz.md5)"
+        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./wordpress-4.7.5.tar.gz | cut -d " " -f 1)"
         [ "$MD5SUM_IN_FILE" != "$MD5SUM_COMPUTED" ] && echo "oops...md5 checksum doesnt match." && exit 2 || echo "md5 checksum matched."
-        tar zxvf ./wordpress-4.7.4.tar.gz
-        rm -rf ./wordpress-4.7.4.tar.gz*
+        tar zxvf ./wordpress-4.7.5.tar.gz
+        rm -rf ./wordpress-4.7.5.tar.gz*
         cd ./wordpress
         cat > wp-config.php << "EOF"
 <?php
@@ -401,20 +452,39 @@ start_apache2_service() {
         systemctl daemon-reload
 
         # start apache2.service and make it as autostart service
+        OLD_APACHE2_PROCESS_EXISTED="$(netstat -anp | grep httpd | wc -l)"
+        if [ "$OLD_APACHE2_PROCESS_EXISTED" -gt 0 ]; then
+             systemctl stop apache2.service
+        fi
+        if [ -L /usr/local/apache2 ] && [ -d /usr/local/apache2 ]; then
+             rm -rf /usr/local/apache2
+        fi
+
+        ln -s /usr/local/apache-2.4.25 /usr/local/apache2
         systemctl enable apache2.service
         systemctl start apache2.service
         systemctl status apache2.service
 
         # start php-fpm and make it as autostart service
-        systemctl enable php-fpm.service
-        systemctl start php-fpm.service
-        systemctl status php-fpm.service
+        OLD_PHPFPM_PROCESS_EXISTED="$(netstat -anp | grep php-fpm | wc -l)"
+        if [ "$OLD_PHPFPM_PROCESS_EXISTED" -gt 0 ]; then
+             systemctl stop php7.0-fpm.service
+        fi
+        if [ -L /usr/local/php ] && [ -d /usr/local/php ]; then
+             rm -rf /usr/local/php
+        fi
+
+        ln -s /usr/local/php-7.1.5 /usr/local/php
+        systemctl enable php7.0-fpm.service
+        systemctl start php7.0-fpm.service
+        systemctl status php7.0-fpm.service
 }
 
 main() {
-	sync_system_time
-	#unlock_apt_bala_bala
-	#remove_binary_package
+        unlock_apt_bala_bala
+        update_system
+        sync_system_time
+	#remove_previous_install
 	install_prerequisite
 	install_apache2
 	install_phpfpm

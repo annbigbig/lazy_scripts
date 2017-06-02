@@ -11,15 +11,6 @@ say_goodbye() {
 	echo "goodbye everyone"
 }
 
-sync_system_time() {
-        NTPDATE_INSTALL="$(dpkg --get-selections | grep ntpdate)"
-        if [ -z "$NTPDATE_INSTALL" ]; then
-                apt-get update
-                apt-get install -y ntpdate
-        fi
-	        ntpdate -v pool.ntp.org
-}
-
 unlock_apt_bala_bala(){
         #
         # This function is only needed if you ever seen error messages below
@@ -32,36 +23,89 @@ unlock_apt_bala_bala(){
         dpkg --configure -a
 }
 
+update_system() {
+        # this problem maybe occur
+        # https://bugs.launchpad.net/ubuntu/+source/aptitude/+bug/1543280
+        # before install/upgrade package, change directory permission number to 777 for it
+        chmod 777 /var/lib/update-notifier/package-data-downloads/partial
+        apt-get update
+        apt-get dist-upgrade -y
+        apt autoremove -y
+        # after installation , change it back to its original value 755
+        chmod 755 /var/lib/update-notifier/package-data-downloads/partial
+}
+
+sync_system_time() {
+        NTPDATE_INSTALL="$(dpkg --get-selections | grep ntpdate)"
+        if [ -z "$NTPDATE_INSTALL" ]; then
+                apt-get install -y ntpdate
+        fi
+                ntpdate -v pool.ntp.org
+}
+
+remove_previous_version() {
+        NAMED_IS_RUNNING="$(/bin/netstat -anp | grep named | wc -l)"
+        if [ "$NAMED_IS_RUNNING" -gt 0 ] || [ -f /lib/systemd/system/bind9.service ]; then
+              systemctl stop bind9.service
+              systemctl disable bind9.service
+        fi
+
+        # if binary package is installed , remove it
+        NAMED_BINARY_INSTALLED="$(dpkg-query -l bind9 | grep bind9 | cut -d ' ' -f 1)"
+        if [ "$NAMED_BINARY_INSTALLED" == "ii" ]; then
+              apt-get purge -y bind9 bind9utils bind9-doc
+              apt-get autoremove -y
+              rm -rf /etc/bind
+              rm -rf /var/cache/bind
+        fi
+
+        # if source installation exists , remove it
+        if [ -L /usr/local/bind9 ] && [ -d /usr/local/bind9 ]; then
+            rm -rf /usr/local/bind9
+            rm -rf /usr/local/bind-9*
+            rm -rf /usr/share/doc/bind-9*
+            rm -rf /srv/named
+        fi
+}
+
 install_dependencies() {
-	apt-get update
-	apt-get install -y libcap-dev libxml2 libkrb5-dev libssl-dev
+        apt-get install -y libcap-dev libxml2 libkrb5-dev libssl-dev
 }
 
 install_bind_server() {
-	cd /usr/local/src/
-	wget ftp://ftp.isc.org/isc/bind9/9.11.1/bind-9.11.1.tar.gz
-	MD5SUM="$(md5sum ./bind-9.11.1.tar.gz | tr -s ' ' | cut -d ' ' -f 1)"
-	if [ "$MD5SUM" != "c384ab071d902bac13487c1268e5a32f" ]; then
-		echo -e "md5 checksum of downloaded tarball is error, dangerous.\n"
-		exit 1
-	fi
-	echo -e "md5 checksum pass!"
-	tar zxvf ./bind-9.11.1.tar.gz
-	cd bind-9.11.1
-        ./configure --prefix=/usr           \
-	            --sysconfdir=/etc       \
-	            --localstatedir=/var    \
-	            --mandir=/usr/share/man \
-		    --libdir=/usr/lib/x86_64-linux-gnu \
-	            --enable-threads        \
-	            --with-libtool          \
-	            --disable-static        \
-	            --with-randomdev=/dev/urandom
-	make
-	make install
-	install -v -m755 -d /usr/share/doc/bind-9.11.1/{arm,misc}
-	install -v -m644 doc/arm/*.html /usr/share/doc/bind-9.11.1/arm
-	install -v -m644 doc/misc/{dnssec,ipv6,migrat*,options,rfc-compliance,roadmap,sdb} /usr/share/doc/bind-9.11.1/misc
+        cd /usr/local/src/
+        wget ftp://ftp.isc.org/isc/bind9/9.11.1/bind-9.11.1.tar.gz
+        MD5SUM="$(md5sum ./bind-9.11.1.tar.gz | tr -s ' ' | cut -d ' ' -f 1)"
+        if [ "$MD5SUM" != "c384ab071d902bac13487c1268e5a32f" ]; then
+                echo -e "md5 checksum of downloaded tarball is error, dangerous.\n"
+                exit 1
+        fi
+        echo -e "md5 checksum pass!"
+        tar zxvf ./bind-9.11.1.tar.gz
+        cd bind-9.11.1
+        ./configure --prefix=/usr/local/bind-9.11.1           \
+                    --sysconfdir=/etc                         \
+                    --localstatedir=/var                      \
+                    --mandir=/usr/share/man                   \
+                    --libdir=/usr/lib/x86_64-linux-gnu        \
+                    --enable-threads                          \
+                    --with-libtool                            \
+                    --disable-static                          \
+                    --with-randomdev=/dev/urandom
+        make
+        make install
+        ln -s /usr/local/bind-9.11.1 /usr/local/bind9
+        install -v -m755 -d /usr/share/doc/bind-9.11.1/{arm,misc}
+        install -v -m644 doc/arm/*.html /usr/share/doc/bind-9.11.1/arm
+        install -v -m644 doc/misc/{dnssec,ipv6,migrat*,options,rfc-compliance,roadmap,sdb} /usr/share/doc/bind-9.11.1/misc
+}
+
+export_sbin_dir_to_path() {
+        cat > /etc/profile.d/named.sh << EOF
+export NAMED_HOME=/usr/local/bind9
+export PATH=\$NAMED_HOME/bin:\$NAMED_HOME/sbin:\$PATH
+EOF
+        source /etc/profile
 }
 
 create_named_user_and_group() {
@@ -118,9 +162,9 @@ Wants=nss-lookup.target
 Before=nss-lookup.target
 
 [Service]
-ExecStart=/usr/sbin/named -f -4 -u named -t /srv/named -c /etc/named.conf
-ExecReload=/usr/sbin/rndc reload
-ExecStop=/usr/sbin/rndc stop
+ExecStart=/usr/local/bind9/sbin/named -f -4 -u named -t /srv/named -c /etc/named.conf
+ExecReload=/usr/local/bind9/sbin/rndc reload
+ExecStop=/usr/local/bind9/sbin/rndc stop
 
 [Install]
 WantedBy=multi-user.target
@@ -133,6 +177,7 @@ EOF
         # append to /srv/named/etc/named.conf
 cat >> /srv/named/etc/named.conf << "EOF"
 acl "trusted" {
+        127.0.0.0/8;    # loopback
         10.2.2.0/24;    # local subnet
         10.8.0.0/24;    # vpn subnet
 };
@@ -355,15 +400,18 @@ start_bind_service() {
 }
 
 main() {
-	sync_system_time
-	#unlock_apt_bala_bala
-	install_dependencies
-	install_bind_server
-	create_named_user_and_group
-	create_necessary_directories
-	edit_rsyslog_config_and_restart_it
-	edit_config_file
-	start_bind_service
+        unlock_apt_bala_bala
+        update_system
+        sync_system_time
+        remove_previous_version
+        install_dependencies
+        install_bind_server
+        export_sbin_dir_to_path
+        create_named_user_and_group
+        create_necessary_directories
+        edit_rsyslog_config_and_restart_it
+        edit_config_file
+        start_bind_service
 }
 
 echo -e "This script will install Bind9 server (secondary) on this host \n"

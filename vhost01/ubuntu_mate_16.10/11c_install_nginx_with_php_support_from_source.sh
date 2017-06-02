@@ -55,26 +55,56 @@ sync_system_time() {
                 ntpdate -v pool.ntp.org
 }
 
-remove_binary_package() {
-        # remove binary packages installed by command 'apt-get install'
-        # if you alreadly have apache2/nginx installed on your system
-
-        APACHE_INSTALLED="$(dpkg --get-selections | grep apache | wc -l)"
-        NGINX_INSTALLED="$(dpkg --get-selections | grep nginx | wc -l)"
-
-        if [ "$APACHE_INSTALLED" -gt 0 ]; then
-             systemctl disable apache2
-             systemctl stop apache2
-             apt-get purge -y apache2 php*
-        fi
-
-        if [ "$NGINX_INSTALLED" -gt 0 ]; then
+# The commands inside this function will stop/disable HTTPD service
+# and remove all related installed packages no matter it was installed from apt-get or from source
+# so if you are so sure that you are upgrading NGINX from previously source installation
+# and you want to upgrade NGINX seamlessly without any server downtime
+# DO NOT RUN COMMANDS INSIDE THIS FUNCTION
+remove_previous_install() {
+        # remove nginx if it seems like been installed
+        if [ -f /lib/systemd/system/nginx.service ]; then
+             # stop/disable service
              systemctl disable nginx.service
              systemctl stop nginx.service
-             apt-get purge -y nginx* fcgiwrap
+             # try to remove binary package
+             apt-get purge -y nginx* libnginx* fcgiwrap
+             apt autoremove -y
+             # try to remove source installation
+             rm -rf /usr/local/nginx*
         fi
 
-        apt-get autoremove -y       
+        # remove apache2 if it seems like been installed
+        if [ -d /lib/systemd/system/apache2.service.d ]; then
+             # stop/disable service
+             systemctl disable apache2.service
+             systemctl stop apache2.service
+             # try to remove binary package
+             apt-get purge -y apache2 apache2-bin apache2-data apache2-utils libaprutil1-dbd-sqlite3 libaprutil1-ldap liblua5.1-0
+             apt-get purge -y libapache2-mod-php libapache2-mod-php7.0 libmcrypt4 php php-common php-mcrypt php-mysql php7.0
+             apt-get purge -y php7.0-cli php7.0-common php7.0-json php7.0-mbstring php7.0-mcrypt php7.0-mysql php7.0-opcache php7.0-readline
+             apt autoremove -y
+             rm -rf /var/lib/apache2/
+             rm -rf /var/lib/php/
+             # try to remove source installation
+             rm -rf /usr/local/apache2
+             rm -rf /usr/local/apache-2*
+        fi
+
+        # remove php-fpm if it seems like been installed
+        if [ -f /lib/systemd/system/php7.0-fpm.service ]; then
+             # stop/disable service
+             systemctl disable php7.0-fpm.service
+             systemctl stop php7.0-fpm.service
+             # try to remove binary package
+             apt-get purge -y php-common php7.0-cli php7.0-common php7.0-fpm php7.0-json php7.0-opcache php7.0-readline
+             apt-get purge -y php-pear php-mysql php7.0-mysql
+             apt autoremove -y
+             rm -rf /etc/php/
+             rm -rf /var/lib/php/
+             # try to remove source installation
+             rm -rf /usr/local/php
+             rm -rf /usr/local/php-*
+        fi
 }
 
 install_prerequisite() {
@@ -104,11 +134,11 @@ install_nginx() {
 
         # download the source tar.gz then verify their integrity
         cd /usr/local/src
-        wget http://nginx.org/download/nginx-1.13.0.tar.gz
-        wget http://nginx.org/download/nginx-1.13.0.tar.gz.asc
-        PUBLIC_KEY_1="$(gpg nginx-1.13.0.tar.gz.asc 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | cut -d ' ' -f 5)"
+        wget http://nginx.org/download/nginx-1.13.1.tar.gz
+        wget http://nginx.org/download/nginx-1.13.1.tar.gz.asc
+        PUBLIC_KEY_1="$(gpg nginx-1.13.1.tar.gz.asc 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | cut -d ' ' -f 5)"
         IMPORT_KEY_RESULT_1="$(gpg --keyserver pgpkeys.mit.edu --recv-key $PUBLIC_KEY_1 2>&1 | grep 'mdounin@mdounin.ru' | wc -l)"
-        VERIFY_SIGNATURE_RESULT_1="$(gpg ./nginx-1.13.0.tar.gz.asc 2>&1 | grep 'mdounin@mdounin.ru' | wc -l)"
+        VERIFY_SIGNATURE_RESULT_1="$(gpg ./nginx-1.13.1.tar.gz.asc 2>&1 | grep 'mdounin@mdounin.ru' | wc -l)"
         [ "$IMPORT_KEY_RESULT_1" -eq 1 ] && echo "pubkey $PUBLIC_KEY_1 imported successfuly" ||  exit 2
         [ "$VERIFY_SIGNATURE_RESULT_1" -eq 1 ] && echo "verify signature successfully" || exit 2
 
@@ -135,21 +165,21 @@ install_nginx() {
         [ "$VERIFY_SIGNATURE_RESULT_3" -eq 1 ] && echo "verify signature successfully" || exit 2
 
         # extract all of tar.gz files and configure nginx
-        tar -zxvf ./nginx-1.13.0.tar.gz
+        tar -zxvf ./nginx-1.13.1.tar.gz
         tar -zxvf ./openssl-1.1.0f.tar.gz
         tar -zxvf ./pcre-8.40.tar.gz
         tar -zxvf ./zlib-1.2.11.tar.gz
         rm -rf *.tar.gz*
 
         # change directories owner and group
-        chown -R root:root ./nginx-1.13.0
+        chown -R root:root ./nginx-1.13.1
         chown -R root:root ./openssl-1.1.0f
         chown -R root:root ./pcre-8.40
         chown -R root:root ./zlib-1.2.11
 
         # configure then make then install
-        cd ./nginx-1.13.0
-	./configure --prefix=/usr/local/nginx-1.13.0 \
+        cd ./nginx-1.13.1
+	./configure --prefix=/usr/local/nginx-1.13.1 \
                     --user=nginx \
                     --group=nginx \
                     --with-http_ssl_module \
@@ -162,18 +192,18 @@ install_nginx() {
         make install
 
         # create a fine-tuned nginx.conf
-        if [ -f /usr/local/nginx-1.13.0/conf/nginx.conf.default ]; then
-           rm -rf /usr/local/nginx-1.13.0/conf/nginx.conf
+        if [ -f /usr/local/nginx-1.13.1/conf/nginx.conf.default ]; then
+           rm -rf /usr/local/nginx-1.13.1/conf/nginx.conf
         else
-           mv /usr/local/nginx-1.13.0/conf/nginx.conf /usr/local/nginx-1.13.0/conf/nginx.conf.default
+           mv /usr/local/nginx-1.13.1/conf/nginx.conf /usr/local/nginx-1.13.1/conf/nginx.conf.default
         fi
 
         # create sub-directories
-        mkdir /usr/local/nginx-1.13.0/conf.d/
-        mkdir /usr/local/nginx-1.13.0/run/
+        mkdir /usr/local/nginx-1.13.1/conf.d/
+        mkdir /usr/local/nginx-1.13.1/run/
 
         # create nginx.conf
-        cat > /usr/local/nginx-1.13.0/conf/nginx.conf << "EOF"
+        cat > /usr/local/nginx-1.13.1/conf/nginx.conf << "EOF"
 user nginx nginx;
 worker_processes 2;
 pid run/nginx.pid;
@@ -225,8 +255,8 @@ log_format gzip '$remote_addr - $remote_user [$time_local]  '
 }
 EOF
         # create fastcgi.conf
-        rm -rf /usr/local/nginx-1.13.0/conf/fastcgi.conf
-        cat > /usr/local/nginx-1.13.0/conf/fastcgi.conf << "EOF"
+        rm -rf /usr/local/nginx-1.13.1/conf/fastcgi.conf
+        cat > /usr/local/nginx-1.13.1/conf/fastcgi.conf << "EOF"
 fastcgi_param  SCRIPT_FILENAME    $document_root$fastcgi_script_name;
 fastcgi_param  QUERY_STRING       $query_string;
 fastcgi_param  REQUEST_METHOD     $request_method;
@@ -250,8 +280,8 @@ fastcgi_index  index.php;
 fastcgi_param  REDIRECT_STATUS    200;
 EOF
         # create proxy.conf
-        rm -rf /usr/local/nginx-1.13.0/conf/proxy.conf
-        cat > /usr/local/nginx-1.13.0/conf/proxy.conf << "EOF"
+        rm -rf /usr/local/nginx-1.13.1/conf/proxy.conf
+        cat > /usr/local/nginx-1.13.1/conf/proxy.conf << "EOF"
 proxy_redirect          off;
 proxy_set_header        Host            $host;
 proxy_set_header        X-Real-IP       $remote_addr;
@@ -265,7 +295,7 @@ proxy_buffers           32 4k;
 EOF
         
         # create localhost.conf for 'localhost'
-        cat > /usr/local/nginx-1.13.0/conf.d/localhost.conf << "EOF"
+        cat > /usr/local/nginx-1.13.1/conf.d/localhost.conf << "EOF"
 server {
          listen 127.0.0.1:80;
          server_name localhost;
@@ -289,7 +319,7 @@ server {
 EOF
 
         # create www.dq5rocks.com.conf for 'www.dq5rocks.com'
-        cat > /usr/local/nginx-1.13.0/conf.d/www.dq5rocks.com.conf << "EOF"
+        cat > /usr/local/nginx-1.13.1/conf.d/www.dq5rocks.com.conf << "EOF"
 server {
          listen 80;
          server_name dq5rocks.com;
@@ -347,6 +377,14 @@ PrivateTmp=true
 WantedBy=multi-user.target
 EOF
 
+        # you need this file for fixing this bug
+        # https://bugs.launchpad.net/ubuntu/+source/nginx/+bug/1581864
+        mkdir /lib/systemd/system/nginx.service.d
+        cat > /lib/systemd/system/nginx.service.d/override.conf << "EOF"
+[Service]
+ExecStartPost=/bin/sleep 0.1
+EOF
+
         # setup logrotate
 cat > /etc/logrotate.d/nginx << EOF
 /usr/local/nginx/logs/*.log {
@@ -396,7 +434,7 @@ EOF
 EOF
 
         # change files/directories onwer and group
-        chown -R nginx:nginx /usr/local/nginx-1.13.0
+        chown -R nginx:nginx /usr/local/nginx-1.13.1
         chown root:root /lib/systemd/system/nginx.service
         chown root:root /etc/logrotate.d/nginx 
         chown -R root:root /var/www
@@ -501,7 +539,7 @@ cat > /etc/logrotate.d/php-fpm << EOF
 EOF
 
         # create systemd unit file
-        cat > /lib/systemd/system/php-fpm.service << "EOF"
+        cat > /lib/systemd/system/php7.0-fpm.service << "EOF"
 [Unit]
 Description=PHP FastCGI process manager
 After=local-fs.target network.target nginx.service
@@ -518,8 +556,8 @@ EOF
         chown -R nginx:nginx /usr/local/php-7.1.5
         chown root:root /etc/logrotate.d/php-fpm
         chmod 644 /etc/logrotate.d/php-fpm
-        chown root:root /lib/systemd/system/php-fpm.service
-        chmod 644 /lib/systemd/system/php-fpm.service
+        chown root:root /lib/systemd/system/php7.0-fpm.service
+        chmod 644 /lib/systemd/system/php7.0-fpm.service
 
 }
 
@@ -613,8 +651,6 @@ start_nginx_service() {
         chown -R nginx:nginx /var/www/localhost
         chown -R nginx:nginx /var/www/www.dq5rocks.com
 
-        # dont forget this
-        # https://bugs.launchpad.net/ubuntu/+source/nginx/+bug/1581864
         systemctl daemon-reload
 
         # start nginx.service and make it as autostart service
@@ -625,7 +661,7 @@ start_nginx_service() {
         if [ -L /usr/local/nginx ] && [ -d /usr/local/nginx ]; then
              rm -rf /usr/local/nginx
         fi
-        ln -s /usr/local/nginx-1.13.0 /usr/local/nginx
+        ln -s /usr/local/nginx-1.13.1 /usr/local/nginx
         systemctl enable nginx.service
         systemctl start nginx.service
         systemctl status nginx.service
@@ -633,23 +669,23 @@ start_nginx_service() {
         # start php-fpm and make it as autostart service
         OLD_PHPFPM_PROCESS_EXISTED="$(netstat -anp | grep php-fpm | wc -l)"
         if [ "$OLD_PHPFPM_PROCESS_EXISTED" -gt 0 ]; then
-             systemctl stop php-fpm.service
+             systemctl stop php7.0-fpm.service
         fi
         if [ -L /usr/local/php ] && [ -d /usr/local/php ]; then
              rm -rf /usr/local/php
         fi
 
         ln -s /usr/local/php-7.1.5 /usr/local/php
-        systemctl enable php-fpm.service
-        systemctl start php-fpm.service
-        systemctl status php-fpm.service
+        systemctl enable php7.0-fpm.service
+        systemctl start php7.0-fpm.service
+        systemctl status php7.0-fpm.service
 }
 
 main() {
 	unlock_apt_bala_bala
 	update_system
 	sync_system_time
-	remove_binary_package
+	#remove_previous_install
 	install_prerequisite
         install_nginx
 	install_phpfpm
