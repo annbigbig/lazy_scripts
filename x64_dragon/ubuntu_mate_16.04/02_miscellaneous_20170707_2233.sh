@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script will perform lots of work for fine tune Ubuntu 16.04.02 LTS you've just installed
+# This script will perform lots of work for fine tune Ubuntu mate 16.04 you've just installed
 # before you run this script , please specify some parameters here:
 #
 LAN="10.2.2.0/24" # The local network that you allow packets come in from there
@@ -11,10 +11,12 @@ say_goodbye (){
 }
 
 fix_network_interfaces_name(){
-        ETH0_MAC_ADDRESS=$(ifconfig enp0s3 | grep -A 1 'ether' | head -1 | cut -d " " -f 10)
+        ETH0_MAC_ADDRESS=$(ifconfig ens4 | head -1 | tr -s ' ' | cut -d ' ' -f 5)
+        WLAN0_MAC_ADDRESS=$(ifconfig wls3 | head -1 | tr -s ' ' | cut -d ' ' -f 5)
         NETWORK_RULES_FILE="/etc/udev/rules.d/70-network.rules"
         touch $NETWORK_RULES_FILE
         HOW_MANY_TIMES_ETH0_APPEAR=$(cat $NETWORK_RULES_FILE | grep -c "eth0")
+        HOW_MANY_TIMES_WLAN0_APPEAR=$(cat $NETWORK_RULES_FILE | grep -c "wlan0")
         ZERO=0
         HOW_MANY_LINES_IN_NETWORK_RULES_FILE=$(wc -l $NETWORK_RULES_FILE | cut -d ' ' -f 1)
 
@@ -23,7 +25,12 @@ fix_network_interfaces_name(){
                 echo "SUBSYSTEM==\"net\", ACTION==\"add\", ATTR{address}==\"$ETH0_MAC_ADDRESS\", NAME=\"eth0\"" >> $NETWORK_RULES_FILE
         fi
 
-        if [ $HOW_MANY_LINES_IN_NETWORK_RULES_FILE -eq 1 ]; then
+        if [ ! -z "$WLAN0_MAC_ADDRESS" -a "$WLAN0_MAC_ADDRESS" != " " -a $HOW_MANY_TIMES_WLAN0_APPEAR -eq 0 ]; then
+                echo "mac address of wlan0 : $WLAN0_MAC_ADDRESS \n"
+                echo "SUBSYSTEM==\"net\", ACTION==\"add\", ATTR{address}==\"$WLAN0_MAC_ADDRESS\", NAME=\"wlan0\"" >> $NETWORK_RULES_FILE
+        fi
+
+        if [ $HOW_MANY_LINES_IN_NETWORK_RULES_FILE -eq 2 ]; then
                 echo "$NETWORK_RULES_FILE has been created successfully."
         fi
 }
@@ -41,21 +48,6 @@ disable_dnssec() {
 	systemctl restart systemd-resolved.service
 }
 
-sync_system_time() {
-        NTPDATE_INSTALL="$(dpkg --get-selections | grep ntpdate)"
-        if [ -z "$NTPDATE_INSTALL" ]; then
-                apt-get update
-                apt-get install -y ntpdate
-		cat > /etc/cron.daily/ntpdate << "EOF"
-#!/bin/sh
-ntpdate -v pool.ntp.org
-EOF
-                chmod +x /etc/cron.daily/ntpdate
-        fi
-        ntpdate -v pool.ntp.org
-}
-
-
 fix_too_many_authentication_failures() {
         sed -e '/pam_motd/ s/^#*/#/' -i /etc/pam.d/login
         apt-get purge landscape-client landscape-common
@@ -70,9 +62,9 @@ firewall_setting(){
 # ============ Set your network parameters here ===================================================
 iptables=/sbin/iptables
 loopback=127.0.0.1
-local="\$(/sbin/ifconfig eth0 | grep -A 1 'netmask' | head -1 | cut -d ' ' -f 10)"
-#local="\$(/sbin/ifconfig wlan0 | grep -A 1 'netmask' | head -1 | cut -d ' ' -f 10)"
-#local=10.1.1.170
+#local="\$(/sbin/ifconfig eth0 | grep -A 1 'inet addr' | head -1 | cut -d ':' -f 2 | cut -d ' ' -f 1)"
+local="\$(/sbin/ifconfig wlan0 | grep -A 1 'inet addr' | head -1 | cut -d ':' -f 2 | cut -d ' ' -f 1)"
+#local=10.2.2.101
 lan=$LAN
 vpn=$VPN
 # =================================================================================================
@@ -168,18 +160,17 @@ downgrade_gcc_version() {
 }
 
 main(){
-	fix_network_interfaces_name
-	disable_ipv6_entirely
-	disable_dnssec
-	sync_system_time
-	fix_too_many_authentication_failures
-	firewall_setting
-	delete_route_to_169_254_0_0
-	add_swap_space
+	#fix_network_interfaces_name
+	#disable_ipv6_entirely
+	#disable_dnssec
+	#fix_too_many_authentication_failures
+	#firewall_setting
+	#delete_route_to_169_254_0_0
+	#add_swap_space
 	install_softwares
-	install_chrome_browser
-	remove_ugly_fonts
-        downgrade_gcc_version
+	#install_chrome_browser
+	#remove_ugly_fonts
+        #downgrade_gcc_version
 	echo -e "now you should reboot your computer for configurations take affect.\n"
 	echo -e "RUN 'reboot' in your prompt # symbol\n"
 }

@@ -1,15 +1,14 @@
 #!/bin/bash
 #
 # This script will install apache2 web server with php support
-# (tested on Ubuntu mate 16.04/16.10/17.04)
+# (tested on Ubuntu mate 16.10/17.04)
 #
-# All of the commands used here were inspired by these articles : 
+# All of the commands used here were inspired by this article : 
 # https://www.digitalocean.com/community/tutorials/how-to-install-linux-apache-mysql-php-lamp-stack-on-ubuntu-16-04
-# https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl-certificate-for-apache-in-ubuntu-16-04
 #
 # specify MYSQL_ROOT_PASSWD for generating phpmyadmin db user
 #####################
-MYSQL_ROOT_PASSWD="root"
+MYSQL_ROOT_PASSWD="rootpass"
 #####################
 
 say_goodbye() {
@@ -108,28 +107,12 @@ install_apache2_and_php() {
         fi
 }
 
-create_self_signed_ssl_cert_and_key() {
-	/usr/bin/openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout /etc/ssl/private/apache-selfsigned.key -out /etc/ssl/certs/apache-selfsigned.crt
-	#
-	#-----
-	#Country Name (2 letter code) [AU]:TW
-	#State or Province Name (full name) [Some-State]:New Taipei
-	#Locality Name (eg, city) []:Tamsui
-	#Organization Name (eg, company) [Internet Widgits Pty Ltd]:Tong-Shing, Inc.
-	#Organizational Unit Name (eg, section) []:Development Department
-	#Common Name (e.g. server FQDN or YOUR name) []:www.dq5rocks.com
-	#Email Address []:annbigbig@gmail.com
-	#-----
-	/usr/bin/openssl dhparam -out /etc/ssl/certs/dhparam.pem 2048
-}
-
 edit_config_file() {
         # /etc/apache2/apache2.conf
         if [ ! -f /etc/apache2/apache2.conf.default ]; then
                cp /etc/apache2/apache2.conf /etc/apache2/apache2.conf.default
         fi
-        ###SERVER_IP="$(/sbin/ifconfig eth0 | grep -A 1 'inet' | head -1 | cut -d ' ' -f 10)"
-	SERVER_IP="$(/sbin/ip addr show eth0 | grep 'dynamic eth0' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
+        SERVER_IP="$(/sbin/ifconfig eth0 | grep -A 1 'inet' | head -1 | cut -d ' ' -f 10)"
         echo "ServerName $SERVER_IP" >> /etc/apache2/apache2.conf
         echo "#Listen 0.0.0.0:80" >> /etc/apache2/apache2.conf
         echo "Listen $SERVER_IP:80" >> /etc/apache2/apache2.conf
@@ -137,130 +120,44 @@ edit_config_file() {
         # /etc/apache2/mods-enabled/dir.conf is a symbolic link to /etc/apache2/mods-available/dir.conf
         sed -i -- 's|index.html index.cgi index.pl index.php|index.php index.html index.cgi index.pl|g' /etc/apache2/mods-available/dir.conf
 
-
-        # ssl related params
-        cat > /etc/apache2/conf-available/ssl-params.conf << "EOF"
-# from https://cipherli.st/
-# and https://raymii.org/s/tutorials/Strong_SSL_Security_On_Apache2.html
-
-SSLCipherSuite EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH
-SSLProtocol All -SSLv2 -SSLv3
-SSLHonorCipherOrder On
-# Disable preloading HSTS for now.  You can use the commented out header line that includes
-# the "preload" directive if you understand the implications.
-#Header always set Strict-Transport-Security "max-age=63072000; includeSubdomains; preload"
-Header always set Strict-Transport-Security "max-age=63072000; includeSubdomains"
-Header always set X-Frame-Options DENY
-Header always set X-Content-Type-Options nosniff
-# Requires Apache >= 2.4
-SSLCompression off 
-SSLSessionTickets Off
-SSLUseStapling off 
-#SSLStaplingCache "shmcb:logs/stapling-cache(150000)"
-
-SSLOpenSSLConfCmd DHParameters "/etc/ssl/certs/dhparam.pem"
-EOF
-
-        # redirect 80(http) to 443(https)
-        cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/000-default.conf.bak
-        cat > /etc/apache2/sites-available/000-default.conf << "EOF"
+        # virtual host config for phpmyadmin
+        cat > /etc/apache2/sites-available/dq5rocks.com.conf << "EOF"
 <VirtualHost *:80>
-   ServerName www.dq5rocks.com
-   ServerAlias dq5rocks.com
-   Redirect / https://www.dq5rocks.com/
-</VirtualHost>
-EOF
-
-        # another virtual host www.bubu.com
-       cat > /etc/apache2/sites-available/001-bubu.conf << "EOF"
-<VirtualHost *:80>
-    ServerAdmin admin@bubu.com
-    ServerName www.bubu.com
-    ServerAlias bubu.com
-    DocumentRoot /var/www/www.bubu.com
-    <Directory /var/www/www.bubu.com>
-        Options Indexes FollowSymLinks
-        AllowOverride None
-        Require all granted
+    ServerAdmin admin@dq5rocks.com
+    ServerName dq5rocks.com
+    ServerAlias www.dq5rocks.com
+    DocumentRoot /var/www/dq5rocks.com
+    <Directory /var/www/dq5rocks.com/phpmyadmin>
+     <RequireAll>
+        Require ip 127.0.0.1 10.2.2
+     </RequireAll>
     </Directory>
     ErrorLog ${APACHE_LOG_DIR}/error.log
     CustomLog ${APACHE_LOG_DIR}/access.log combined
 </VirtualHost>
-
 EOF
-
-        # Modify the Default Apache SSL Virtual Host File
-        cp /etc/apache2/sites-available/default-ssl.conf /etc/apache2/sites-available/default-ssl.conf.bak
-        cat > /etc/apache2/sites-available/default-ssl.conf << "EOF"
-<IfModule mod_ssl.c>
-        <VirtualHost _default_:443>
-                ServerAdmin admin@dq5rocks.com
-                ServerName www.dq5rocks.com
-
-                DocumentRoot /var/www/www.dq5rocks.com
-
-                ErrorLog ${APACHE_LOG_DIR}/error.log
-                CustomLog ${APACHE_LOG_DIR}/access.log combined
-
-                SSLEngine on
-
-                SSLCertificateFile      /etc/ssl/certs/apache-selfsigned.crt
-                SSLCertificateKeyFile /etc/ssl/private/apache-selfsigned.key
-
-                <FilesMatch "\.(cgi|shtml|phtml|php)$">
-                                SSLOptions +StdEnvVars
-                </FilesMatch>
-                <Directory /usr/lib/cgi-bin>
-                                SSLOptions +StdEnvVars
-                </Directory>
-
-                <Directory /var/www/www.dq5rocks.com>
-                    Options FollowSymLinks
-                    AllowOverride None
-                    Require all granted
-                </Directory>
-
-                <Directory /var/www/www.dq5rocks.com/phpmyadmin>
-                   <RequireAll>
-                      Require ip 127.0.0.1 10.2.2
-                   </RequireAll>
-                </Directory>
-
-                BrowserMatch "MSIE [2-6]" \
-                               nokeepalive ssl-unclean-shutdown \
-                               downgrade-1.0 force-response-1.0
-
-        </VirtualHost>
-</IfModule>
-EOF
-
         # create empty directories
-        mkdir -p /var/www/www.dq5rocks.com
-        mkdir -p /var/www/www.bubu.com
+        mkdir -p /var/www/dq5rocks.com
 
-        # turn on the modules
-        a2enmod ssl
-        a2enmod headers
+        # turn on virtual host dq5rocks.com
+        a2ensite dq5rocks.com.conf
 
-        # turn on config
-        a2enconf ssl-params
+        # virtual host config for wordpress
 
-        # turn on the sites
-        a2ensite 000-default
-        a2ensite 001-bubu
-        a2ensite default-ssl
+        # uncomment this line if you want disable default site
+        #a2dissite 000-default.conf
 
         # test to see if any syntax error in config file
         apache2ctl configtest
 
         # leave a info.php and index.html at root directory of website
-        cat > /var/www/www.dq5rocks.com/info.php << "EOF"
+        cat > /var/www/dq5rocks.com/info.php << "EOF"
 <?php
 phpinfo();
 ?>
 EOF
 
-        cat > /var/www/www.dq5rocks.com/index.html << "EOF"
+        cat > /var/www/dq5rocks.com/index.html << "EOF"
 <!DOCTYPE html>
 <html>
 <body>
@@ -271,34 +168,21 @@ EOF
 </body>
 </html>
 EOF
-
-        cat > /var/www/www.bubu.com/index.html << "EOF"
-<!DOCTYPE html>
-<html>
-<body>
-
-<h1>www.bubu.com</h1>
-<p>Hello World! bu</p>
-
-</body>
-</html>
-EOF
-
 }
 
 install_phpmyadmin() {
-        [ -d "/var/www/www.dq5rocks.com/phpmyadmin/" ] && echo "seems like phpmyadmin already installed." && exit 1 || echo "ready to install phpmyadmin."
-        cd /var/www/www.dq5rocks.com/
-        wget https://files.phpmyadmin.net/phpMyAdmin/4.7.4/phpMyAdmin-4.7.4-all-languages.tar.gz.sha256
-        wget https://files.phpmyadmin.net/phpMyAdmin/4.7.4/phpMyAdmin-4.7.4-all-languages.tar.gz
-        SHA256SUM_IN_FILE="$(cat ./phpMyAdmin-4.7.4-all-languages.tar.gz.sha256 | cut -d " " -f 1)"
-        SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./phpMyAdmin-4.7.4-all-languages.tar.gz | cut -d " " -f 1)"
+        [ -d "/var/www/dq5rocks.com/phpmyadmin/" ] && echo "seems like phpmyadmin already installed." && exit 1 || echo "ready to install phpmyadmin."
+        cd /var/www/dq5rocks.com/
+        wget https://files.phpmyadmin.net/phpMyAdmin/4.7.1/phpMyAdmin-4.7.1-all-languages.tar.gz.sha256
+        wget https://files.phpmyadmin.net/phpMyAdmin/4.7.1/phpMyAdmin-4.7.1-all-languages.tar.gz
+        SHA256SUM_IN_FILE="$(cat ./phpMyAdmin-4.7.1-all-languages.tar.gz.sha256 | cut -d " " -f 1)"
+        SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./phpMyAdmin-4.7.1-all-languages.tar.gz | cut -d " " -f 1)"
         [ "$SHA256SUM_IN_FILE" != "$SHA256SUM_COMPUTED" ] && echo "oops...sha256 checksum doesnt match." && exit 2 || echo "sha256 checksum matched."
-        tar zxvf ./phpMyAdmin-4.7.4-all-languages.tar.gz
-        rm -rf ./phpMyAdmin-4.7.4-all-languages.tar.gz*
-	mv phpMyAdmin-4.7.4-all-languages phpmyadmin
+        tar zxvf ./phpMyAdmin-4.7.1-all-languages.tar.gz
+        rm -rf ./phpMyAdmin-4.7.1-all-languages.tar.gz*
+	mv phpMyAdmin-4.7.1-all-languages phpmyadmin
         cd ./phpmyadmin/
-        cat > /var/www/www.dq5rocks.com/phpmyadmin/config.inc.php << "EOF"
+        cat > /var/www/dq5rocks.com/phpmyadmin/config.inc.php << "EOF"
 <?php
 // use here a value of your choice at least 32 chars long
 $cfg['blowfish_secret'] = 'HeAxpLA4i[gQ;E8CY2jN2}6M2.752x.K';
@@ -323,18 +207,20 @@ EOF
         chown root:root /tmp/create_pma_control_user.sql
         mysql -h localhost --port 3306 -u root -p$MYSQL_ROOT_PASSWD < /tmp/create_pma_control_user.sql
         rm -rf /tmp/create_pma_control_user.sql
+        chown root:root /var/www/dq5rocks.com/
+        chown -R www-data:www-data /var/www/dq5rocks.com/phpmyadmin/
 }
 
 install_wordpress() {
-        [ -d "/var/www/www.dq5rocks.com/wordpress/" ] && echo "seems like wordpress already installed." && exit 1 || echo "ready to install wordpress."
-        cd /var/www/www.dq5rocks.com/
-        wget https://wordpress.org/wordpress-4.8.1.tar.gz.md5
-        wget https://wordpress.org/wordpress-4.8.1.tar.gz
-        MD5SUM_IN_FILE="$(cat ./wordpress-4.8.1.tar.gz.md5)"
-        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./wordpress-4.8.1.tar.gz | cut -d " " -f 1)"
+        [ -d "/var/www/dq5rocks.com/wordpress/" ] && echo "seems like wordpress already installed." && exit 1 || echo "ready to install wordpress."
+        cd /var/www/dq5rocks.com/
+        wget https://wordpress.org/wordpress-4.7.5.tar.gz.md5
+        wget https://wordpress.org/wordpress-4.7.5.tar.gz
+        MD5SUM_IN_FILE="$(cat ./wordpress-4.7.5.tar.gz.md5)"
+        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./wordpress-4.7.5.tar.gz | cut -d " " -f 1)"
         [ "$MD5SUM_IN_FILE" != "$MD5SUM_COMPUTED" ] && echo "oops...md5 checksum doesnt match." && exit 2 || echo "md5 checksum matched."
-        tar zxvf ./wordpress-4.8.1.tar.gz
-        rm -rf ./wordpress-4.8.1.tar.gz*
+        tar zxvf ./wordpress-4.7.5.tar.gz
+        rm -rf ./wordpress-4.7.5.tar.gz*
         cd ./wordpress
         cat > wp-config.php << "EOF"
 <?php
@@ -368,14 +254,13 @@ flush privileges;
 EOF
         mysql -h localhost --port 3306 -u root -p$MYSQL_ROOT_PASSWD < /tmp/create_wp_db_and_user.sql
         rm -rf /tmp/create_wp_db_and_user.sql
+        chown -R www-data:www-data /var/www/dq5rocks.com/wordpress/
 }
 
 restart_apache2_service() {
-        chown -R www-data:www-data /var/www/www.dq5rocks.com/
-        chown -R www-data:www-data /var/www/www.bubu.com/
-        systemctl enable apache2.service
-        systemctl restart apache2.service
-        systemctl status apache2.service
+        systemctl enable apache2
+        systemctl restart apache2
+        systemctl status apache2
 }
 
 main() {
@@ -384,7 +269,6 @@ main() {
         sync_system_time
         remove_previous_install
 	install_apache2_and_php
-	create_self_signed_ssl_cert_and_key
 	edit_config_file
         install_phpmyadmin
 	install_wordpress

@@ -46,18 +46,18 @@ install_tomcat() {
 	echo -e "ready to install tomcat \n"
 	apt-get install -y build-essential
 	cd /usr/local
-	wget http://ftp.tc.edu.tw/pub/Apache/tomcat/tomcat-8/v8.5.16/bin/apache-tomcat-8.5.16.tar.gz
-        wget https://www.apache.org/dist/tomcat/tomcat-8/v8.5.16/bin/apache-tomcat-8.5.16.tar.gz.md5
-        MD5SUM_SHOULD_BE="$(/bin/cat ./apache-tomcat-8.5.16.tar.gz.md5 | cut -d ' ' -f 1)"
-        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./apache-tomcat-8.5.16.tar.gz | cut -d ' ' -f 1)"
+	wget http://ftp.tc.edu.tw/pub/Apache/tomcat/tomcat-8/v8.5.15/bin/apache-tomcat-8.5.15.tar.gz
+        wget https://www.apache.org/dist/tomcat/tomcat-8/v8.5.15/bin/apache-tomcat-8.5.15.tar.gz.md5
+        MD5SUM_SHOULD_BE="$(/bin/cat ./apache-tomcat-8.5.15.tar.gz.md5 | cut -d ' ' -f 1)"
+        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./apache-tomcat-8.5.15.tar.gz | cut -d ' ' -f 1)"
         [ "$MD5SUM_SHOULD_BE" == "$MD5SUM_COMPUTED" ] && echo "tomcat md5sum matched." || exit 2
 
-	tar -zxvf ./apache-tomcat-8.5.16.tar.gz
-	chown -R root:root ./apache-tomcat-8.5.16
-	chmod -R a+r ./apache-tomcat-8.5.16/conf
+	tar -zxvf ./apache-tomcat-8.5.15.tar.gz
+	chown -R root:root ./apache-tomcat-8.5.15
+	chmod -R a+r ./apache-tomcat-8.5.15/conf
 	rm -rf /usr/local/tomcat
-	ln -s /usr/local/apache-tomcat-8.5.16 /usr/local/tomcat
-	rm -rf ./apache-tomcat-8.5.16.tar.gz*
+	ln -s /usr/local/apache-tomcat-8.5.15 /usr/local/tomcat
+	rm -rf ./apache-tomcat-8.5.15.tar.gz*
 
 	echo -e "build jsvc\n"
 	cd /usr/local/tomcat/bin
@@ -95,28 +95,28 @@ install_maven() {
 install_gradle() {
 	echo -e "ready to install gradle\n"
 	cd /usr/local
-        wget https://services.gradle.org/distributions/gradle-4.0.1-all.zip
-	unzip ./gradle-4.0.1-all.zip
-	chown -R root:root ./gradle-4.0.1
+	wget https://services.gradle.org/distributions/gradle-3.5-all.zip
+	unzip ./gradle-3.5-all.zip
+	chown -R root:root ./gradle-3.5
 	rm -rf /usr/local/gradle
-	ln -s /usr/local/gradle-4.0.1 /usr/local/gradle
-	rm -rf ./gradle-4.0.1-all.zip
+	ln -s /usr/local/gradle-3.5 /usr/local/gradle
+	rm -rf ./gradle-3.5-all.zip
 }
 
 install_spring_boot_cli() {
 	echo -e "ready to install spring boot cli\n"
 	cd /usr/local
-        wget http://repo.spring.io/release/org/springframework/boot/spring-boot-cli/1.5.4.RELEASE/spring-boot-cli-1.5.4.RELEASE-bin.tar.gz
-        wget http://repo.spring.io/release/org/springframework/boot/spring-boot-cli/1.5.4.RELEASE/spring-boot-cli-1.5.4.RELEASE-bin.tar.gz.md5
-        MD5SUM_SHOULD_BE="$(/bin/cat ./spring-boot-cli-1.5.4.RELEASE-bin.tar.gz.md5 | cut -d ' ' -f 1)"
-        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./spring-boot-cli-1.5.4.RELEASE-bin.tar.gz | cut -d ' ' -f 1)"
+        wget http://repo.spring.io/release/org/springframework/boot/spring-boot-cli/1.5.3.RELEASE/spring-boot-cli-1.5.3.RELEASE-bin.tar.gz
+        wget http://repo.spring.io/release/org/springframework/boot/spring-boot-cli/1.5.3.RELEASE/spring-boot-cli-1.5.3.RELEASE-bin.tar.gz.md5
+        MD5SUM_SHOULD_BE="$(/bin/cat ./spring-boot-cli-1.5.3.RELEASE-bin.tar.gz.md5 | cut -d ' ' -f 1)"
+        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./spring-boot-cli-1.5.3.RELEASE-bin.tar.gz | cut -d ' ' -f 1)"
         [ "$MD5SUM_SHOULD_BE" == "$MD5SUM_COMPUTED" ] && echo "spring-boot-cli md5sum matched." || exit 2
 
-        tar -zxvf ./spring-boot-cli-1.5.4.RELEASE-bin.tar.gz
-	chown -R root:root ./spring-1.5.4.RELEASE
+        tar -zxvf ./spring-boot-cli-1.5.3.RELEASE-bin.tar.gz
+	chown -R root:root ./spring-1.5.3.RELEASE
 	rm -rf /usr/local/spring-boot-cli
-	ln -s /usr/local/spring-1.5.4.RELEASE /usr/local/spring-boot-cli
-	rm -rf ./spring-boot-cli-1.5.4.RELEASE-bin.tar.gz*
+	ln -s /usr/local/spring-1.5.3.RELEASE /usr/local/spring-boot-cli
+	rm -rf ./spring-boot-cli-1.5.3.RELEASE-bin.tar.gz*
 }
 
 install_eclipse_ee() {
@@ -124,17 +124,17 @@ install_eclipse_ee() {
 	echo -e "ready to install Eclipse EE\n"
 	cd /usr/local
 	rm -rf ./eclipse
-	wget http://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/oxygen/R/eclipse-jee-oxygen-R-linux-gtk-x86_64.tar.gz\&r=1 -O eclipse-jee-oxygen-R-linux-gtk-x86_64.tar.gz
-	wget http://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/oxygen/R/eclipse-jee-oxygen-R-linux-gtk-x86_64.tar.gz.md5\&r=1 -O eclipse-jee-oxygen-R-linux-gtk-x86_64.tar.gz.md5
-	MD5SUM_SHOULD_BE="$(/bin/cat ./eclipse-jee-oxygen-R-linux-gtk-x86_64.tar.gz.md5 | cut -d ' ' -f 1)"
-        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./eclipse-jee-oxygen-R-linux-gtk-x86_64.tar.gz | cut -d ' ' -f 1)"
+	wget http://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/oxygen/M7/eclipse-jee-oxygen-M7-linux-gtk-x86_64.tar.gz\&r=1 -O eclipse-jee-oxygen-M7-linux-gtk-x86_64.tar.gz
+	wget http://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/oxygen/M7/eclipse-jee-oxygen-M7-linux-gtk-x86_64.tar.gz.md5\&r=1 -O eclipse-jee-oxygen-M7-linux-gtk-x86_64.tar.gz.md5
+	MD5SUM_SHOULD_BE="$(/bin/cat ./eclipse-jee-oxygen-M7-linux-gtk-x86_64.tar.gz.md5 | cut -d ' ' -f 1)"
+        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./eclipse-jee-oxygen-M7-linux-gtk-x86_64.tar.gz | cut -d ' ' -f 1)"
         [ "$MD5SUM_SHOULD_BE" == "$MD5SUM_COMPUTED" ] && echo "Eclipse EE md5sum matched." || exit 2
 	
-	tar -zxvf ./eclipse-jee-oxygen-R-linux-gtk-x86_64.tar.gz
+	tar -zxvf ./eclipse-jee-oxygen-M7-linux-gtk-x86_64.tar.gz
 	chown -R root:root ./eclipse
-	rm -rf /home/$YOUR_USERNAME/桌面/eclipse-EE-oxygen-R
-	ln -s /usr/local/eclipse/eclipse /home/$YOUR_USERNAME/桌面/eclipse-EE-oxygen-R
-	rm -rf ./eclipse-jee-oxygen-R-linux-gtk-x86_64.tar.gz*
+	rm -rf /home/$YOUR_USERNAME/桌面/eclipse-EE-oxygen-M7
+	ln -s /usr/local/eclipse/eclipse /home/$YOUR_USERNAME/桌面/eclipse-EE-oxygen-M7
+	rm -rf ./eclipse-jee-oxygen-M7-linux-gtk-x86_64.tar.gz*
 }
 
 set_environments_variables() {
@@ -173,7 +173,7 @@ register_tomcat_as_systemd_service() {
 	id tomcat
 
 	echo -e "change owner and group for \$CATALINA_HOME\n"
-	chown -R tomcat:tomcat /usr/local/apache-tomcat-8.5.16
+	chown -R tomcat:tomcat /usr/local/apache-tomcat-8.5.15
 
 	echo -e "create a systemd service\n"
 	rm -rf /lib/systemd/system/tomcat.service

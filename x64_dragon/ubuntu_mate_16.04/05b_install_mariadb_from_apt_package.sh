@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# This script will install MariaDB server 10.1.x on Ubuntu mate 16.10/17.04
+# This script will install MariaDB server 10.1.x on Ubuntu mate 16.04/16.10/17.04
 #
 #####################
 
@@ -57,40 +57,22 @@ remove_mysql_if_it_exists() {
 
 install_mariadb_server() {
 	MARIADB_SERVER_HAS_BEEN_INSTALL="$(dpkg --get-selections | grep mariadb-server)"
-	[ -n "$MARIADB_SERVER_HAS_BEEN_INSTALL" ] && echo "mariadb already has been installed." && exit 2 || echo "ready to install mariadb..."
-	apt-get install -y software-properties-common
-	apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
-
-	UBUNTU_VERSION_NAME="$a(/usr/bin/lsb_release -a 2>/dev/null | tail -1 | tr -d ' \t' | cut -d ':' -f 2)"
-	if [ "$UBUNTU_VERSION_NAME" == "xenial" ] ; then
-		add-apt-repository 'deb [arch=amd64,i386,ppc64el] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.1/ubuntu xenial main'
-		cat >> /etc/apt/sources.list.d/mariadb.list << "EOF"
-# MariaDB 10.1 repository list - created 2017-08-25 09:03 UTC
-# http://downloads.mariadb.org/mariadb/repositories/
-deb [arch=amd64,i386] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.1/ubuntu xenial main
-deb-src http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.1/ubuntu xenial main
-EOF
-	elif [ "$UBUNTU_VERSION_NAME" == "yakkety" ] ; then
-		add-apt-repository 'deb [arch=amd64,i386] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.1/ubuntu yakkety main'
-                cat >> /etc/apt/sources.list.d/mariadb.list << "EOF"
+	if [ -z $MARIADB_SERVER_HAS_BEEN_INSTALL ] ; then
+		echo -e "install mariadb-server ... \n"
+		apt-get install -y software-properties-common
+		apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
+		add-apt-repository 'deb [arch=amd64] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.1/ubuntu yakkety main'
+		cat >> /etc/apt/sources.list.d/mariadb.list << EOF
 # MariaDB 10.1 repository list - created 2017-03-25 04:18 UTC
 # http://downloads.mariadb.org/mariadb/repositories/
 deb [arch=amd64] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.1/ubuntu yakkety main
 deb-src http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.1/ubuntu yakkety main
 EOF
-	elif [ "$UBUNTU_VERSION_NAME" == "zesty" ] ; then
-		add-apt-repository 'deb [arch=amd64,i386] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.1/ubuntu zesty main'
-		cat >> /etc/apt/sources.list.d/mariadb.list << "EOF"
-# MariaDB 10.1 repository list - created 2017-08-25 08:59 UTC
-# http://downloads.mariadb.org/mariadb/repositories/
-deb [arch=amd64,i386] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.1/ubuntu zesty main
-deb-src http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.1/ubuntu zesty main
-EOF
-	fi
-
 		apt update
 		apt install -y mariadb-server
                 echo -e "done"
+	fi
+	#systemctl status mariadb.service
 }
 
 generate_config_file() {
@@ -224,10 +206,10 @@ EOF
 }
 
 main() {
-	unlock_apt_bala_bala
-	update_system
-	sync_system_time
-	remove_mysql_if_it_exists
+	#unlock_apt_bala_bala
+	#update_system
+	#sync_system_time
+	#remove_mysql_if_it_exists
 	install_mariadb_server
 	generate_config_file
 	restart_maraidb_service
