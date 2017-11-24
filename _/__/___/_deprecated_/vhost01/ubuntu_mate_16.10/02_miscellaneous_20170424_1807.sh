@@ -11,7 +11,8 @@ say_goodbye (){
 }
 
 fix_network_interfaces_name(){
-        ETH0_MAC_ADDRESS=$(ifconfig enp0s3 | grep -A 1 'ether' | head -1 | cut -d " " -f 10)
+        #ETH0_MAC_ADDRESS=$(ifconfig enp0s3 | grep -A 1 'ether' | head -1 | cut -d " " -f 10)
+        ETH0_MAC_ADDRESS=$(/sbin/ip addr show enp0s3 | grep ether | tr -s ' ' | cut -d ' ' -f 3)
         NETWORK_RULES_FILE="/etc/udev/rules.d/70-network.rules"
         touch $NETWORK_RULES_FILE
         HOW_MANY_TIMES_ETH0_APPEAR=$(cat $NETWORK_RULES_FILE | grep -c "eth0")
@@ -70,8 +71,8 @@ firewall_setting(){
 # ============ Set your network parameters here ===================================================
 iptables=/sbin/iptables
 loopback=127.0.0.1
-local="\$(/sbin/ifconfig eth0 | grep -A 1 'netmask' | head -1 | cut -d ' ' -f 10)"
-#local="\$(/sbin/ifconfig wlan0 | grep -A 1 'netmask' | head -1 | cut -d ' ' -f 10)"
+local="\$(/sbin/ip addr show eth0 | grep dynamic | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
+#local="\$(/sbin/ip addr show wlan0 | grep dynamic | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
 #local=10.1.1.170
 lan=$LAN
 vpn=$VPN

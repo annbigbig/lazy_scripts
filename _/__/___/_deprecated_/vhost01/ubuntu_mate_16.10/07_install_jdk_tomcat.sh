@@ -46,18 +46,18 @@ install_tomcat() {
 	echo -e "ready to install tomcat \n"
 	apt-get install -y build-essential
 	cd /usr/local
-	wget http://ftp.tc.edu.tw/pub/Apache/tomcat/tomcat-8/v8.5.16/bin/apache-tomcat-8.5.16.tar.gz
-        wget https://www.apache.org/dist/tomcat/tomcat-8/v8.5.16/bin/apache-tomcat-8.5.16.tar.gz.md5
-        MD5SUM_SHOULD_BE="$(/bin/cat ./apache-tomcat-8.5.16.tar.gz.md5 | cut -d ' ' -f 1)"
-        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./apache-tomcat-8.5.16.tar.gz | cut -d ' ' -f 1)"
+	wget http://ftp.tc.edu.tw/pub/Apache/tomcat/tomcat-8/v8.5.20/bin/apache-tomcat-8.5.20.tar.gz
+        wget https://www.apache.org/dist/tomcat/tomcat-8/v8.5.20/bin/apache-tomcat-8.5.20.tar.gz.md5
+        MD5SUM_SHOULD_BE="$(/bin/cat ./apache-tomcat-8.5.20.tar.gz.md5 | cut -d ' ' -f 1)"
+        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./apache-tomcat-8.5.20.tar.gz | cut -d ' ' -f 1)"
         [ "$MD5SUM_SHOULD_BE" == "$MD5SUM_COMPUTED" ] && echo "tomcat md5sum matched." || exit 2
 
-	tar -zxvf ./apache-tomcat-8.5.16.tar.gz
-	chown -R root:root ./apache-tomcat-8.5.16
-	chmod -R a+r ./apache-tomcat-8.5.16/conf
+	tar -zxvf ./apache-tomcat-8.5.20.tar.gz
+	chown -R root:root ./apache-tomcat-8.5.20
+	chmod -R a+r ./apache-tomcat-8.5.20/conf
 	rm -rf /usr/local/tomcat
-	ln -s /usr/local/apache-tomcat-8.5.16 /usr/local/tomcat
-	rm -rf ./apache-tomcat-8.5.16.tar.gz*
+	ln -s /usr/local/apache-tomcat-8.5.20 /usr/local/tomcat
+	rm -rf ./apache-tomcat-8.5.20.tar.gz*
 
 	echo -e "build jsvc\n"
 	cd /usr/local/tomcat/bin
@@ -173,7 +173,7 @@ register_tomcat_as_systemd_service() {
 	id tomcat
 
 	echo -e "change owner and group for \$CATALINA_HOME\n"
-	chown -R tomcat:tomcat /usr/local/apache-tomcat-8.5.16
+	chown -R tomcat:tomcat /usr/local/apache-tomcat-8.5.20
 
 	echo -e "create a systemd service\n"
 	rm -rf /lib/systemd/system/tomcat.service
