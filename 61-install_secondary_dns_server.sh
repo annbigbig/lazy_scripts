@@ -7,13 +7,19 @@
 ##########################################################################################################
 #
 DOMAIN_NAME="dq5rocks.com"
-FIRST_OCTET="10"
-SECOND_OCTET="55"
-THIRD_OCTET="66"
+FIRST_OCTET="172"
+SECOND_OCTET="28"
+THIRD_OCTET="117"
 #
-TRUSTED_LOCAL_SUBNET="172.17.205.0/24"
+TRUSTED_LOCAL_SUBNET="172.28.117.0/24"
 TRUSTED_VPN_SUBNET="10.8.0.0/24"
-PRIMARY_DNS_IP_ADDRESS="10.55.66.51"
+PRIMARY_DNS_IP_ADDRESS="172.28.117.132"
+#
+##########################################################################################################
+# *** Hint ***
+# how to query a specifc DNS server (ex: 172.28.117.132) ? use this command : 
+#  $ nslookup www.dq5rocks.com 172.28.117.132
+#  $ nslookup 172.28.117.160 172.28.117.132
 #
 ##########################################################################################################
 # *** SPECIAL THANKS ***
@@ -62,16 +68,21 @@ install_dependencies() {
 
 install_bind_server() {
         cd /usr/local/src/
-        wget ftp://ftp.isc.org/isc/bind9/9.11.2/bind-9.11.2.tar.gz
-        MD5SUM="$(md5sum ./bind-9.11.2.tar.gz | tr -s ' ' | cut -d ' ' -f 1)"
-        if [ "$MD5SUM" != "efca7e5a63a07efba264da9be2fbb57f" ]; then
-                echo -e "md5 checksum of downloaded tarball is error, dangerous.\n"
-                exit 1
-        fi
-        echo -e "md5 checksum pass!"
-        tar zxvf ./bind-9.11.2.tar.gz
-        cd bind-9.11.2
-        ./configure --prefix=/usr/local/bind-9.11.2           \
+        wget ftp://ftp.isc.org/isc/bind9/9.11.2/bind-9.11.3.tar.gz
+        wget ftp://ftp.isc.org/isc/bind9/9.11.3/bind-9.11.3.tar.gz.sha512.asc
+
+        # how to verify the integrity of downloaded tar.gz file ? see here:
+        # https://kb.isc.org/article/AA-01225/0/Verifying-the-Integrity-of-ISC-Downloads-using-PGP-GPG.html
+
+        PUBLIC_KEY="$(gpg --verify ./bind-9.11.3.tar.gz.sha512.asc ./bind-9.11.3.tar.gz 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
+        IMPORT_KEY_RESULT="$(gpg --keyserver keyserver.ubuntu.com --recv $PUBLIC_KEY 2>&1 | grep 'codesign@isc.org' | wc -l)"
+        VERIFY_SIGNATURE_RESULT="$(gpg --verify ./bind-9.11.3.tar.gz.sha512.asc ./bind-9.11.3.tar.gz 2>&1 | tr -s ' ' | grep 'BE0E 9748 B718 253A 28BB 89FF F1B1 1BF0 5CF0 2E57' | wc -l)"
+        [ "$IMPORT_KEY_RESULT" -gt 0 ] && echo "pubkey $PUBLIC_KEY imported successfuly" ||  exit 2
+        [ "$VERIFY_SIGNATURE_RESULT" -gt 0 ] && echo "verify signature successfully" || exit 2
+
+        tar zxvf ./bind-9.11.3.tar.gz
+        cd bind-9.11.3
+        ./configure --prefix=/usr/local/bind-9.11.3           \
                     --sysconfdir=/etc                         \
                     --localstatedir=/var                      \
                     --mandir=/usr/share/man                   \
@@ -82,10 +93,10 @@ install_bind_server() {
                     --with-randomdev=/dev/urandom
         make
         make install
-        ln -s /usr/local/bind-9.11.2 /usr/local/bind9
-        install -v -m755 -d /usr/share/doc/bind-9.11.2/{arm,misc}
-        install -v -m644 doc/arm/*.html /usr/share/doc/bind-9.11.2/arm
-        install -v -m644 doc/misc/{dnssec,ipv6,migrat*,options,rfc-compliance,roadmap,sdb} /usr/share/doc/bind-9.11.2/misc
+        ln -s /usr/local/bind-9.11.3 /usr/local/bind9
+        install -v -m755 -d /usr/share/doc/bind-9.11.3/{arm,misc}
+        install -v -m644 doc/arm/*.html /usr/share/doc/bind-9.11.3/arm
+        install -v -m644 doc/misc/{dnssec,ipv6,migrat*,options,rfc-compliance,roadmap,sdb} /usr/share/doc/bind-9.11.3/misc
 }
 
 export_sbin_dir_to_path() {

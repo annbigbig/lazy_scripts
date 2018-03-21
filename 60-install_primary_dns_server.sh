@@ -7,36 +7,44 @@
 ##########################################################################################################
 #
 DOMAIN_NAME="dq5rocks.com"
-FIRST_OCTET="10"
-SECOND_OCTET="55"
-THIRD_OCTET="66"
+FIRST_OCTET="172"
+SECOND_OCTET="28"
+THIRD_OCTET="117"
 #
 TRUSTED_LOCAL_SUBNET="172.28.117.0/24"
 TRUSTED_VPN_SUBNET="10.8.0.0/24"
-SECONDARY_DNS_IP_ADDRESS="10.55.66.52"
+SECONDARY_DNS_IP_ADDRESS="172.28.117.133"
 #
 # dont forget suffix dot . if you write a FQDN for NS/MX/A/PTR record
 # each column is seperated by space
 read -r -d '' DNS_RECORDS << EOV
-NS router1.dq5rocks.com.
-NS router2.dq5rocks.com.
-MX router1.dq5rocks.com. 10
-MX router2.dq5rocks.com. 20
-CNAME ns1 router1
-CNAME ns2 router2
-CNAME mail1 router1
-CNAME mail2 router2
-A router1.dq5rocks.com. 10.55.66.51
-A router2.dq5rocks.com. 10.55.66.52
-A www.dq5rocks.com. 10.55.66.51
-A www.dq5rocks.com. 10.55.66.52
+NS vhost02.dq5rocks.com.
+NS vhost03.dq5rocks.com.
+MX vhost02.dq5rocks.com. 10
+MX vhost03.dq5rocks.com. 20
+CNAME ns1 vhost02
+CNAME ns2 vhost03
+CNAME mail1 vhost02
+CNAME mail2 vhost03
+A vhost02.dq5rocks.com. 172.28.117.132
+A vhost03.dq5rocks.com. 172.28.117.133
+A www.dq5rocks.com. 172.28.117.132
+A www.dq5rocks.com. 172.28.117.133
 A dragon.dq5rocks.com. 172.28.117.100
 A x64desktop.dq5rocks.com. 172.28.117.110
 A cubietruck.dq5rocks.com. 172.28.117.160
 A bananapi.dq5rocks.com. 172.17.205.175
-PTR 51 router1.dq5rocks.com.
-PTR 52 router2.dq5rocks.com.
+PTR 100 dragon.dq5rocks.com.
+PTR 110 x64desktop.dq5rocks.com.
+PTR 132 vhost02.dq5rocks.com.
+PTR 133 vhost03.dq5rocks.com.
+PTR 160 cubietruck.dq5rocks.com.
 EOV
+##########################################################################################################
+# *** Hint ***
+# how to query a specifc DNS server (ex: 172.28.117.132) ? use this command : 
+#  $ nslookup www.dq5rocks.com 172.28.117.132
+#  $ nslookup 172.28.117.160 172.28.117.132
 #
 ##########################################################################################################
 # *** SPECIAL THANKS ***
@@ -83,16 +91,22 @@ install_dependencies() {
 
 install_bind_server() {
 	cd /usr/local/src/
-	wget ftp://ftp.isc.org/isc/bind9/9.11.2/bind-9.11.2.tar.gz
-	MD5SUM="$(md5sum ./bind-9.11.2.tar.gz | tr -s ' ' | cut -d ' ' -f 1)"
-	if [ "$MD5SUM" != "efca7e5a63a07efba264da9be2fbb57f" ]; then
-		echo -e "md5 checksum of downloaded tarball is error, dangerous.\n"
-		exit 1
-	fi
-	echo -e "md5 checksum pass!"
-	tar zxvf ./bind-9.11.2.tar.gz
-	cd bind-9.11.2
-        ./configure --prefix=/usr/local/bind-9.11.2           \
+	wget ftp://ftp.isc.org/isc/bind9/9.11.3/bind-9.11.3.tar.gz
+	wget ftp://ftp.isc.org/isc/bind9/9.11.3/bind-9.11.3.tar.gz.sha512.asc
+
+        # how to verify the integrity of downloaded tar.gz file ? see here:
+        # https://kb.isc.org/article/AA-01225/0/Verifying-the-Integrity-of-ISC-Downloads-using-PGP-GPG.html
+
+        PUBLIC_KEY="$(gpg --verify ./bind-9.11.3.tar.gz.sha512.asc ./bind-9.11.3.tar.gz 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
+        IMPORT_KEY_RESULT="$(gpg --keyserver keyserver.ubuntu.com --recv $PUBLIC_KEY 2>&1 | grep 'codesign@isc.org' | wc -l)"
+        VERIFY_SIGNATURE_RESULT="$(gpg --verify ./bind-9.11.3.tar.gz.sha512.asc ./bind-9.11.3.tar.gz 2>&1 | tr -s ' ' | grep 'BE0E 9748 B718 253A 28BB 89FF F1B1 1BF0 5CF0 2E57' | wc -l)"
+        [ "$IMPORT_KEY_RESULT" -gt 0 ] && echo "pubkey $PUBLIC_KEY imported successfuly" ||  exit 2
+        [ "$VERIFY_SIGNATURE_RESULT" -gt 0 ] && echo "verify signature successfully" || exit 2
+
+
+	tar zxvf ./bind-9.11.3.tar.gz
+	cd bind-9.11.3
+        ./configure --prefix=/usr/local/bind-9.11.3           \
 	            --sysconfdir=/etc                         \
 	            --localstatedir=/var                      \
 	            --mandir=/usr/share/man                   \
@@ -103,10 +117,10 @@ install_bind_server() {
 	            --with-randomdev=/dev/urandom
 	make
 	make install
-        ln -s /usr/local/bind-9.11.2 /usr/local/bind9
-	install -v -m755 -d /usr/share/doc/bind-9.11.2/{arm,misc}
-	install -v -m644 doc/arm/*.html /usr/share/doc/bind-9.11.2/arm
-	install -v -m644 doc/misc/{dnssec,ipv6,migrat*,options,rfc-compliance,roadmap,sdb} /usr/share/doc/bind-9.11.2/misc
+        ln -s /usr/local/bind-9.11.3 /usr/local/bind9
+	install -v -m755 -d /usr/share/doc/bind-9.11.3/{arm,misc}
+	install -v -m644 doc/arm/*.html /usr/share/doc/bind-9.11.3/arm
+	install -v -m644 doc/misc/{dnssec,ipv6,migrat*,options,rfc-compliance,roadmap,sdb} /usr/share/doc/bind-9.11.3/misc
 }
 
 export_sbin_dir_to_path() {

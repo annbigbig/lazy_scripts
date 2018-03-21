@@ -9,7 +9,7 @@ FIRST_NODE="yes"                                                     # if this n
 FIRST_NODES_DEBIAN_SYS_MAINT_PASSWD=""                               # set this value only when you are NOT installing first node
 MYSQL_ROOT_PASSWD="root"                                             # mariadb root password you specify for first node
 WSREP_CLUSTER_NAME="kashu_cluster"                                   # name of galera cluster you preffered
-WSREP_CLUSTER_ADDRESS="172.17.205.141,172.17.205.142"                # IP addresses list seperated by comma of all cluster nodes
+WSREP_CLUSTER_ADDRESS="172.28.117.132,172.28.117.133"                # IP addresses list seperated by comma of all cluster nodes
 SERVER_ID_MANUAL=""                                                  # server id u specify here has higher priority than $SERVER_ID_AUTO
 #########################################################################################################################################
 SERVER_ID_AUTO="$(/sbin/ifconfig eth0 | grep 'inet addr' | tr -s ' ' | cut -d ' ' -f 3 | cut -d ':' -f 2 | cut -d '.' -f 4)"
@@ -394,8 +394,8 @@ EOF
 
 # create users and database for cacti
         cd /tmp
-        wget https://www.cacti.net/downloads/cacti-1.1.27.tar.gz
-        tar zxvf /tmp/cacti-1.1.27.tar.gz
+        wget https://www.cacti.net/downloads/cacti-1.1.36.tar.gz
+        tar zxvf /tmp/cacti-1.1.36.tar.gz
 mysql -h localhost --port 3306 -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 drop database if exists cacti_db;
 create database cacti_db;
@@ -407,7 +407,7 @@ grant select on mysql.time_zone_name to 'cactiuser'@'localhost';
 grant select on mysql.time_zone_name to 'cactiuser'@'127.0.0.1';
 flush privileges;
 use cacti_db;
-source /tmp/cacti-1.1.27/cacti.sql;
+source /tmp/cacti-1.1.36/cacti.sql;
 EOF
         # populate timezone data from /usr/share/zoneinfo to mysql time_zone_name table
         /usr/bin/mysql_tzinfo_to_sql /usr/share/zoneinfo/ | mysql -h localhost --port 3306 -u root -p$MYSQL_ROOT_PASSWD mysql

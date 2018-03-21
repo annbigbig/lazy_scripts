@@ -72,8 +72,8 @@ firewall_setting(){
 # ============ Set your network parameters here ===================================================
 iptables=/sbin/iptables
 loopback=127.0.0.1
-local="\$(/sbin/ip addr show eth0 | grep dynamic | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
-#local="\$(/sbin/ip addr show wlan0 | grep dynamic | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
+local="\$(/sbin/ip addr show eth0 | grep dynamic | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
+#local="\$(/sbin/ip addr show wlan0 | grep dynamic | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
 #local=10.1.1.170
 lan=$LAN
 vpn=$VPN
@@ -201,7 +201,7 @@ main(){
 	disable_dnssec
 	sync_system_time
 	fix_too_many_authentication_failures
-	#firewall_setting
+	firewall_setting
 	delete_route_to_169_254_0_0
 	#add_swap_space
 	install_softwares
