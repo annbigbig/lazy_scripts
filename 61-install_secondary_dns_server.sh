@@ -68,7 +68,7 @@ install_dependencies() {
 
 install_bind_server() {
         cd /usr/local/src/
-        wget ftp://ftp.isc.org/isc/bind9/9.11.2/bind-9.11.3.tar.gz
+        wget ftp://ftp.isc.org/isc/bind9/9.11.3/bind-9.11.3.tar.gz
         wget ftp://ftp.isc.org/isc/bind9/9.11.3/bind-9.11.3.tar.gz.sha512.asc
 
         # how to verify the integrity of downloaded tar.gz file ? see here:

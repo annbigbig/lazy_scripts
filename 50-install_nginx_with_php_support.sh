@@ -451,7 +451,7 @@ install_nginx() {
         wget http://nginx.org/download/nginx-1.13.9.tar.gz
         wget http://nginx.org/download/nginx-1.13.9.tar.gz.asc
         PUBLIC_KEY_1="$(gpg nginx-1.13.9.tar.gz.asc 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
-        IMPORT_KEY_RESULT_1="$(gpg --keyserver pgpkeys.mit.edu --recv-key $PUBLIC_KEY_1 2>&1 | grep 'mdounin@mdounin.ru' | wc -l)"
+        IMPORT_KEY_RESULT_1="$(gpg --keyserver keyserver.ubuntu.com --recv-key $PUBLIC_KEY_1 2>&1 | grep 'mdounin@mdounin.ru' | wc -l)"
         VERIFY_SIGNATURE_RESULT_1="$(gpg ./nginx-1.13.9.tar.gz.asc 2>&1 | tr -s ' ' | grep 'B0F4 2533 73F8 F6F5 10D4 2178 520A 9993 A1C0 52F8' | wc -l)"
         [ "$IMPORT_KEY_RESULT_1" -gt 0 ] && echo "pubkey $PUBLIC_KEY_1 imported successfuly" ||  exit 2
         [ "$VERIFY_SIGNATURE_RESULT_1" -gt 0 ] && echo "verify signature successfully" || exit 2
@@ -465,7 +465,7 @@ install_nginx() {
         wget https://ftp.pcre.org/pub/pcre/pcre-8.41.tar.gz
         wget https://ftp.pcre.org/pub/pcre/pcre-8.41.tar.gz.sig
         PUBLIC_KEY_2="$(gpg ./pcre-8.41.tar.gz.sig 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
-        IMPORT_KEY_RESULT_2="$(gpg --keyserver pgpkeys.mit.edu --recv-key $PUBLIC_KEY_2 2>&1 | grep 'ph10@hermes.cam.ac.uk' | wc -l)"
+        IMPORT_KEY_RESULT_2="$(gpg --keyserver keyserver.ubuntu.com --recv-key $PUBLIC_KEY_2 2>&1 | grep 'ph10@hermes.cam.ac.uk' | wc -l)"
         VERIFY_SIGNATURE_RESULT_2="$(gpg ./pcre-8.41.tar.gz.sig 2>&1 | tr -s ' ' | grep '45F6 8D54 BBE2 3FB3 039B 46E5 9766 E084 FB0F 43D8' | wc -l)"
         [ "$IMPORT_KEY_RESULT_2" -gt 0 ] && echo "pubkey $PUBLIC_KEY_2 imported successfuly" || exit 2
         [ "$VERIFY_SIGNATURE_RESULT_2" -gt 0 ] && echo "verify signature successfully" || exit 2
@@ -473,7 +473,7 @@ install_nginx() {
         wget http://zlib.net/zlib-1.2.11.tar.gz
         wget http://zlib.net/zlib-1.2.11.tar.gz.asc
         PUBLIC_KEY_3="$(gpg ./zlib-1.2.11.tar.gz.asc 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
-        IMPORT_KEY_RESULT_3="$(gpg --keyserver pgpkeys.mit.edu --recv-key $PUBLIC_KEY_3 2>&1 | grep 'madler@alumni.caltech.edu' | wc -l)"
+        IMPORT_KEY_RESULT_3="$(gpg --keyserver keyserver.ubuntu.com --recv-key $PUBLIC_KEY_3 2>&1 | grep 'madler@alumni.caltech.edu' | wc -l)"
         VERIFY_SIGNATURE_RESULT_3="$(gpg ./zlib-1.2.11.tar.gz.asc 2>&1 | tr -s ' ' | grep '5ED4 6A67 21D3 6558 7791 E2AA 783F CD8E 58BC AFBA' | wc -l)"
         [ "$IMPORT_KEY_RESULT_3" -gt 0 ] && echo "pubkey $PUBLIC_KEY_3 imported successfuly" || exit 2
         [ "$VERIFY_SIGNATURE_RESULT_3" -gt 0 ] && echo "verify signature successfully" || exit 2
