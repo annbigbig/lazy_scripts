@@ -11,7 +11,7 @@ install_memcached_server() {
    apt-get install memcached
    systemctl enable memcached
    sed -i -- "s|-l 127.0.0.1|-l 0.0.0.0|g" /etc/memcached.conf
-   sed -i -- "s|-m 64|-m 256|g" /etc/memcached.conf
+   sed -i -- "s|-m 64|-m 128|g" /etc/memcached.conf
    systemctl restart memcached
    systemctl status memcached
 
