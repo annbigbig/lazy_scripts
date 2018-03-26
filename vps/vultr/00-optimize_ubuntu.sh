@@ -7,6 +7,7 @@
 MY_LAN="172.16.225.0/24" # The local network that you attached for this VPS node
 MY_PRIVATE_STATIC_IP="172.16.225.17" # The private ip address that you specify for this VPS node
 MY_TIMEZONE="Asia/Taipei"
+MY_BROTHER="140.82.10.123/32" # Another VPS node that will exchange data with you
 #################################################################################################
 
 say_goodbye (){
@@ -92,15 +93,18 @@ iptables=/sbin/iptables
 public_ip="\$(/sbin/ip addr show eth0 | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
 private_ip=$MY_PRIVATE_STATIC_IP
 lan=$MY_LAN
+brother=$MY_BROTHER
 # =================================================================================================
 if [ -n \$local ] ; then
   \$iptables -t filter -F
   \$iptables -t filter -A INPUT -i lo -p all -j ACCEPT
   \$iptables -t filter -A INPUT -i eth0 -s \$public_ip -d \$public_ip -p all -j ACCEPT
+  \$iptables -t filter -A INPUT -i eth0 -s \$brother -d \$public_ip -p all -j ACCEPT
   \$iptables -t filter -A INPUT -i eth1 -s \$private_ip -d \$private_ip -p all -j ACCEPT
   \$iptables -t filter -A INPUT -i eth1 -s \$lan -d \$private_ip -p all -j ACCEPT
   \$iptables -t filter -A INPUT -s \$public_ip -d \$private_ip -p all -j ACCEPT
   \$iptables -t filter -A INPUT -s \$private_ip -d \$public_ip -p all -j ACCEPT
+  \$iptables -t filter -A INPUT -p tcp --dport 53 -j ACCEPT
   \$iptables -t filter -A INPUT -p udp --dport 53 -j ACCEPT
   \$iptables -t filter -A INPUT -d \$public_ip -p tcp --dport 36000 --syn -m state --state NEW -m limit --limit 10/s --limit-burst 20 -j ACCEPT
   \$iptables -t filter -A INPUT -d \$public_ip -p tcp --dport 36000 --syn -m state --state NEW -j DROP

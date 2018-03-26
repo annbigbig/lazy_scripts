@@ -218,7 +218,7 @@ EOF
         cat > /usr/local/nginx-1.13.9/conf.d/$SERVER_FQDN.conf << "EOF"
 server {
          listen 80 default_server;
-         server_name IP_ADDRESS;
+         server_name SERVER_FQDN;
 EOF
 
 if [ "$ENABLE_HTTPS" == "yes" ] ; then
@@ -267,8 +267,8 @@ fi
 
 }
 EOF
-        IP_ADDRESS="$(/sbin/ip addr show eth0 | grep 'inet' | grep -v inet6 | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
-        sed -i -- "s|IP_ADDRESS|$IP_ADDRESS|g" /usr/local/nginx-1.13.9/conf.d/$SERVER_FQDN.conf
+        #IP_ADDRESS="$(/sbin/ip addr show eth0 | grep 'inet' | grep -v inet6 | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
+        #sed -i -- "s|IP_ADDRESS|$IP_ADDRESS|g" /usr/local/nginx-1.13.9/conf.d/$SERVER_FQDN.conf
         sed -i -- "s|SERVER_FQDN|$SERVER_FQDN|g" /usr/local/nginx-1.13.9/conf.d/$SERVER_FQDN.conf
 
         # create www.bubu.com.conf for 'www.bubu.com'
@@ -1023,16 +1023,16 @@ start_nginx_service() {
 }
 
 main() {
-#	remove_previous_install
-#	install_prerequisite
-#	configure_snmpd_service
-#	create_self_signed_ssl_cert_and_key
-#        install_nginx
-#        edit_nginx_config
-#        create_some_webpages
-#        install_imap2007f
-#	install_phpfpm
-#        install_php-memcached
+	remove_previous_install
+	install_prerequisite
+	configure_snmpd_service
+	create_self_signed_ssl_cert_and_key
+        install_nginx
+        edit_nginx_config
+        create_some_webpages
+        install_imap2007f
+	install_phpfpm
+        install_php-memcached
         deploy_phpmyadmin
 	deploy_wordpress
         deploy_cacti

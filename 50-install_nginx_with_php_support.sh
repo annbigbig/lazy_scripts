@@ -218,7 +218,7 @@ EOF
         cat > /usr/local/nginx-1.13.9/conf.d/$SERVER_FQDN.conf << "EOF"
 server {
          listen 80 default_server;
-         server_name IP_ADDRESS;
+         server_name SERVER_FQDN;
 EOF
 
 if [ "$ENABLE_HTTPS" == "yes" ] ; then
@@ -267,8 +267,8 @@ fi
 
 }
 EOF
-        IP_ADDRESS="$(/sbin/ip addr show eth0 | grep dynamic | grep -v inet6 | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
-        sed -i -- "s|IP_ADDRESS|$IP_ADDRESS|g" /usr/local/nginx-1.13.9/conf.d/$SERVER_FQDN.conf
+        #IP_ADDRESS="$(/sbin/ip addr show eth0 | grep dynamic | grep -v inet6 | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
+        #sed -i -- "s|IP_ADDRESS|$IP_ADDRESS|g" /usr/local/nginx-1.13.9/conf.d/$SERVER_FQDN.conf
         sed -i -- "s|SERVER_FQDN|$SERVER_FQDN|g" /usr/local/nginx-1.13.9/conf.d/$SERVER_FQDN.conf
 
         # create www.bubu.com.conf for 'www.bubu.com'
@@ -731,7 +731,7 @@ install_phpfpm() {
         cp /usr/local/php-7.2.3/etc/php-fpm.conf.default /usr/local/php-7.2.3/etc/php-fpm.conf
 
         # php.ini setting
-        sed -i -- "/\[opcache\]/a zend_extension=/usr/local/php-7.2.3/lib/php/extensions/no-debug-non-zts-20160303/opcache.so" /usr/local/php-7.2.3/lib/php.ini
+        sed -i -- "/\[opcache\]/a zend_extension=/usr/local/php-7.2.3/lib/php/extensions/no-debug-non-zts-20170718/opcache.so" /usr/local/php-7.2.3/lib/php.ini
         sed -i -- "s|;opcache.enable=1|opcache.enable=1|g" /usr/local/php-7.2.3/lib/php.ini
         sed -i -- "s|;opcache.enable_cli=1|opcache.enable_cli=1|g" /usr/local/php-7.2.3/lib/php.ini
         sed -i -- "s|;opcache.memory_consumption=128|opcache.memory_consumption=128|g" /usr/local/php-7.2.3/lib/php.ini

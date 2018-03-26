@@ -27,9 +27,9 @@ CNAME ns2 vps02
 CNAME mail1 vps01
 CNAME mail2 vps02
 A vps01.dq5rocks.com. 140.82.6.242
-A vps02.dq5rocks.com. 140.82.6.243
+A vps02.dq5rocks.com. 140.82.10.123
 A www.dq5rocks.com. 140.82.6.242
-A www.dq5rocks.com. 140.82.6.243
+A www.dq5rocks.com. 140.82.10.123
 A vps01-internal.dq5rocks.com. 172.16.225.17
 A vps02-internal.dq5rocks.com. 172.16.225.18
 PTR 17 vps01-internal.dq5rocks.com.
