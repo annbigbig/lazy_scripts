@@ -7,11 +7,11 @@
 #
 NAGIOS_LOGIN_USERNAME="nagiosadmin"
 NAGIOS_LOGIN_PASSWORD="nagiospassword"
+ADMIN_EMAIL_ADDRESS="annbigbig@gmail.com"
 #
 read -r -d '' MONITORED_HOSTS << EOV
-vhostu05 172.28.117.135
-vhostu06 172.28.117.136
-vhostu07 172.28.117.137
+vhostu01 172.28.117.131
+vhostu02 172.28.117.132
 EOV
 #
 read -r -d '' MONITORED_SERVICES << EOV
@@ -26,19 +26,28 @@ EOV
 ##########################################################################################################
 # *** SPECIAL THANKS ***
 # https://www.howtoforge.com/tutorial/ubuntu-nagios/#step-install-nrpe-service
+# https://linuxconfig.org/install-nagios-on-ubuntu-18-04-bionic-beaver-linux
+# https://serverfault.com/questions/849507/systemctl-doesnt-recognize-my-service-default-start-contains-no-runlevels-abo
 ##########################################################################################################
-
+# *** HINT ***
+# after running this script , then you could open broweser , link to URL
+# http://ip_address_you_installed_nagios_service/nagios/
+# then type in $NAGIOS_LOGIN_USERNAME and $NAGIOS_LOGIN_PASSWORD to login into nagios admin GUI
+##########################################################################################################
+#
 say_goodbye() {
         echo "goodbye everyone"
 }
 
 remove_previous_installation() {
         # stop service
-        service apache2 stop
-        /etc/init.d/nagios stop
+	systemctl stop apache2
+	systemctl stop nagios.service
+	systemctl disable apache2
+	systemctl disable nagios.service
 
         # remove apache2 
-        apt-get purge -y apache2 php apache2-mod-php7.0 php-gd sendmail
+        apt-get purge -y apache2 php php-gd sendmail
         apt-get autoremove -y
 
         # remove nagios
@@ -48,7 +57,7 @@ remove_previous_installation() {
 
 install_prerequisites() {
         apt-get update
-        apt-get install wget build-essential apache2 php apache2-mod-php7.0 php-gd libgd-dev sendmail unzip -y
+        apt-get install wget build-essential apache2 php php-gd libgd-dev sendmail unzip -y
         apt-get install mailutils -y
         ln -s /usr/bin/mail /bin/mail
 }
@@ -63,9 +72,9 @@ add_users_and_groups() {
 install_nagios() {
         # Install Nagios Core
         cd /usr/local/src/
-        wget https://assets.nagios.com/downloads/nagioscore/releases/nagios-4.3.4.tar.gz
+        wget https://assets.nagios.com/downloads/nagioscore/releases/nagios-4.4.2.tar.gz
         tar -xzf nagios*.tar.gz
-        cd nagios-4.3.4
+        cd nagios-4.4.2
         ./configure --with-nagios-group=nagios --with-command-group=nagcmd
         make all
         make install
@@ -113,7 +122,7 @@ install_nagios() {
 edit_config_files() {
         sed -i -- 's|#cfg_dir=/usr/local/nagios/etc/servers|cfg_dir=/usr/local/nagios/etc/servers|g' /usr/local/nagios/etc/nagios.cfg
         mkdir -p /usr/local/nagios/etc/servers
-        sed -i -- 's|nagios@localhost|annbigbig@gmail.com|g' /usr/local/nagios/etc/objects/contacts.cfg
+        sed -i -- "s|nagios@localhost|$ADMIN_EMAIL_ADDRESS|g" /usr/local/nagios/etc/objects/contacts.cfg
 
         # Configuration for localhost
         sed -i -- 's|check_ssh|check_ssh!-p 36000|g' /usr/local/nagios/etc/objects/localhost.cfg
@@ -215,19 +224,20 @@ EOF
 }
 
 start_nagios_service() {
+	# move daemon file to /etc/systemd/system/
+	mv /etc/init.d/nagios /etc/systemd/system/
 
-        # Installing Nagios Step 11 - make nagios service autostart
-        ln -s /etc/init.d/nagios /etc/rc3.d/S20nagios
-        ln -s /etc/init.d/nagios /etc/rc4.d/S20nagios
-        ln -s /etc/init.d/nagios /etc/rc5.d/S20nagios
+        # make nagios service autostart and start it now
+	systemctl enable nagios.service
+	systemctl start nagios.service
 
-        # Configuring Apache Step 5 - Start Apache and Nagios
-        service apache2 restart
-        /etc/init.d/nagios start
+        # make apache2 service autostart and start it now
+        systemctl enable apache2
+        systemctl start apache2
 }
 
 main() {
-        #remove_previous_installation
+        remove_previous_installation
         install_prerequisites
         add_users_and_groups
         install_nagios

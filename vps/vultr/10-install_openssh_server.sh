@@ -1,17 +1,21 @@
 #!/bin/bash
 #
-# This script will install openssh-server on Ubuntu 16.04 LTS
+# This script will install openssh-server on Ubuntu 18.04 LTS
 # it will change sshd port number from default 22 to the number you specified here
 # (range could be: 1024 to 65535)
 #
 SSHD_LISTENING_PORT="36000"
 #
-# and append the public key you specify here to /root/.ssh/authorzied_keys
+# and append the public key you specify here to $USER_HOME_DIRECTORY/.ssh/authorzied_keys
 # you could find your own public key at your local computer's /home/$USER/.ssh/id_rsa.pub
 # and this public key is mine, dont forget replace it with yours before you run this script
 PUBLIC_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCeAV+ikReUS2tJtgTmCUYNm3pTxnBo4dM+rSgvci4kvj54DOGG4ZBZ0zWPjdNGCyf9XA1pmhth8PNA6VBuzUvITlMC6HLzM0qqOVa0WQzTnbjNo8NEKZy49MPT0VUlhh9T7wb+zmAQzoiMOZ6TWO9Qmykdv63hsr97Uq9FEPFp289lyWNMMnr8aMyOSk962sV+iGo0/KdG9uwg2n4XgFy9DYeHzChyhk75HXgb7ElmLIZFSZ6UEkLkiYCexJGvqPlMJowOEItz8kjVa4eWBdQKfzcpf0Qi3+IaV1u1zJlxJoYDLe7xwoSrZmPUippT8iHkCV54QhAtw3daRh4oyEjv annbigbig@gmail.com"
 #
+AUTHORIZED_USER="root"
+#
 #####################
+#
+USER_HOME_DIRECTORY=$(/bin/cat /etc/passwd | grep $AUTHORIZED_USER | cut -d ":" -f 6)
 
 say_goodbye() {
 	echo "goodbye everyone"
@@ -45,14 +49,16 @@ change_sshd_settings() {
 }
 
 append_public_key() {
-	if [ -n "$PUBLIC_KEY" ]; then
-		cd /root
+	USER_EXISTED=$(/bin/grep -c "^$AUTHORIZED_USER:" /etc/passwd)
+	if [ -n "$PUBLIC_KEY" ] && [ $USER_EXISTED -eq 1 ]; then
+		cd $USER_HOME_DIRECTORY
 		mkdir .ssh
 		cd .ssh
 		touch ./authorized_keys
-		chmod 700 /root/.ssh/
-		chmod 600 /root/.ssh/authorized_keys
-		echo "$PUBLIC_KEY" >> /root/.ssh/authorized_keys
+		chown -R $AUTHORIZED_USER:$AUTHORIZED_USER $USER_HOME_DIRECTORY
+		chmod 700 $USER_HOME_DIRECTORY/.ssh/
+		chmod 600 $USER_HOME_DIRECTORY/.ssh/authorized_keys
+		echo "$PUBLIC_KEY" >> $USER_HOME_DIRECTORY/.ssh/authorized_keys
 	fi
 }
 
@@ -63,13 +69,13 @@ main() {
 	echo -e "now you can connect to your SSH service .\n"
 	echo -e "with the following command:\n"
 	ip_address=$(/sbin/ifconfig eth0 | grep inet | grep -v inet6 | tr -s ' ' | cut -d ' ' -f 3 | cut -d ':' -f 2)
-        echo -e "ssh -p$SSHD_LISTENING_PORT -i <PATH_TO_YOUR_PRIVATE_KEY> root@$ip_address \n"
+        echo -e "ssh -p$SSHD_LISTENING_PORT -i <PATH_TO_YOUR_PRIVATE_KEY> $AUTHORIZED_USER@$ip_address \n"
 	echo -e "\n"
 	echo -e "you could also put this block below into /home/\$USER/.ssh/config of ssh client computer \n"
 	echo -e " \n"
 	echo -e "Host $HOSTNAME"
 	echo -e "  HostName $ip_address"
-	echo -e "  User root"
+	echo -e "  User $AUTHORIZED_USER"
 	echo -e "  IdentitiesOnly yes"
 	echo -e "  Port $SSHD_LISTENING_PORT"
 	echo -e "  IdentityFile /path/to/your/private/key/.ssh/id_rsa"
@@ -80,9 +86,9 @@ main() {
 }
 
 echo -e "This script will do the following tasks for you, including: \n"
-echo -e "  1.install openssh-server on this computer if it doesnt yet install \n"
+echo -e "  1.install openssh-server on this computer \n"
 echo -e "  2.change sshd service port from default 22 to custom $SSHD_LISTENING_PORT then restart sshd service \n"
-echo -e "  3.append public key you specified in this script to /root/.ssh/authorized_keys \n"
+echo -e "  3.append public key you specified in this script to $USER_HOME_DIRECTORY/.ssh/authorized_keys \n"
 read -p "Are you sure (y/n)?" sure
 case $sure in
 	[Yy]*)

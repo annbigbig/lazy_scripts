@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script will perform lots of work for optimizing Ubuntu 16.04 LTS you've just installed
+# This script will perform lots of work for optimizing Ubuntu 18.04 LTS you've just installed
 # before you run this script , please specify some parameters here:
 #
 # these parameters will be used in firewall rules:
@@ -13,21 +13,27 @@ say_goodbye (){
 }
 
 fix_network_interfaces_name(){
-        #ETH0_MAC_ADDRESS=$(ifconfig enp0s3 | grep -A 1 'ether' | head -1 | cut -d " " -f 10)
-        ETH0_MAC_ADDRESS=$(/sbin/ip addr show enp0s3 | grep ether | tr -s ' ' | cut -d ' ' -f 3)
-        NETWORK_RULES_FILE="/etc/udev/rules.d/70-network.rules"
-        touch $NETWORK_RULES_FILE
-        HOW_MANY_TIMES_ETH0_APPEAR=$(cat $NETWORK_RULES_FILE | grep -c "eth0")
-        HOW_MANY_LINES_IN_NETWORK_RULES_FILE=$(wc -l $NETWORK_RULES_FILE | cut -d ' ' -f 1)
+        # change network interface name from ens3/ens7 to eth0/eth1 , and disable netplan
+        sed -i -- 's|GRUB_CMDLINE_LINUX=.*|GRUB_CMDLINE_LINUX="consoleblank=0 net.ifnames=0 biosdevname=0 netcfg/do_not_use_netplan=true"|g' /etc/default/grub
+        update-grub
+}
 
-        if [ ! -z "$ETH0_MAC_ADDRESS" -a "$ETH0_MAC_ADDRESS" != " " -a $HOW_MANY_TIMES_ETH0_APPEAR -eq 0 ]; then
-                echo "mac address of eth0 : $ETH0_MAC_ADDRESS \n"
-                echo "SUBSYSTEM==\"net\", ACTION==\"add\", ATTR{address}==\"$ETH0_MAC_ADDRESS\", NAME=\"eth0\"" >> $NETWORK_RULES_FILE
-        fi
+modify_network_config() {
+        NETWORK_CONFIG_FILE="/etc/network/interfaces"
+        rm -rf $NETWORK_CONFIG_FILE
+        cat >> $NETWORK_CONFIG_FILE << "EOF"
+# ifupdown has been replaced by netplan(5) on this system.  See
+# /etc/netplan for current configuration.
+# To re-enable ifupdown on this system, you can run:
+#    sudo apt install ifupdown
+auto lo
+iface lo inet loopback
 
-        if [ $HOW_MANY_LINES_IN_NETWORK_RULES_FILE -eq 1 ]; then
-                echo "$NETWORK_RULES_FILE has been created successfully."
-        fi
+auto eth0
+iface eth0 inet dhcp
+EOF
+        chown root:root $NETWORK_CONFIG_FILE
+        chmod 644 $NETWORK_CONFIG_FILE
 }
 
 disable_ipv6_entirely() {
@@ -60,7 +66,7 @@ EOF
 
 fix_too_many_authentication_failures() {
         sed -e '/pam_motd/ s/^#*/#/' -i /etc/pam.d/login
-        apt-get purge landscape-client landscape-common
+        apt-get purge -y landscape-client landscape-common
 }
 
 firewall_setting(){
@@ -72,8 +78,8 @@ firewall_setting(){
 # ============ Set your network parameters here ===================================================
 iptables=/sbin/iptables
 loopback=127.0.0.1
-local="\$(/sbin/ip addr show eth0 | grep dynamic | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
-#local="\$(/sbin/ip addr show wlan0 | grep dynamic | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
+local="\$(/sbin/ip addr show eth0 | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
+#local="\$(/sbin/ip addr show wlan0 | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
 #local=10.1.1.170
 lan=$LAN
 vpn=$VPN
@@ -137,7 +143,7 @@ add_swap_space(){
 
 install_softwares(){
         apt-get update
-	string="build-essential:git:htop:memtester:vim:subversion:synaptic:vinagre:seahorse:fcitx:fcitx-table-boshiamy:fcitx-chewing"
+	string="build-essential:git:htop:memtester:vim:subversion:synaptic:vinagre:seahorse:fcitx:fcitx-table-boshiamy:fcitx-chewing:ifupdown"
 	IFS=':' read -r -a array <<< "$string"
 	for index in "${!array[@]}"
 	do
@@ -164,8 +170,8 @@ remove_ugly_fonts() {
 }
 
 downgrade_gcc_version() {
-        apt-get install -y gcc-4.8 g++-4.8
-        update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 48 --slave /usr/bin/g++ g++ /usr/bin/g++-4.8
+        apt-get install -y gcc-5 g++-5
+        update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 50 --slave /usr/bin/g++ g++ /usr/bin/g++-5
         # update-alternatives --config gcc
 }
 
@@ -197,6 +203,7 @@ main(){
         unlock_apt_bala_bala
         update_system
 	fix_network_interfaces_name
+	modify_network_config
 	disable_ipv6_entirely
 	disable_dnssec
 	sync_system_time
@@ -216,17 +223,18 @@ echo -e "This script will do the following tasks for your x64 machine, including
 echo -e "  1.unlock apt package manager \n"
 echo -e "  2.update packages to newest version \n"
 echo -e "  3.Fix network interfaces name (To conventional 'eth0' and 'wlan0') \n"
-echo -e "  4.disable ipv6 entirely \n"
-echo -e "  5.disable DNSSEC for systemd-resolved.service \n"
-echo -e "  6.install ntpdate and sync system time \n"
-echo -e "  7.fix too many authentication failures problem \n"
-echo -e "  8.Firewall rule setting (Write firewall rules in /etc/network/if-up.d/firewall) \n"
-echo -e "  9.delete route to 169.254.0.0 \n"
-echo -e "  10.add swap space with 4096MB \n"
-echo -e "  11.install softwares you need \n"
-echo -e "  12.install chrome browser \n"
-echo -e "  13.remove ugly fonts \n"
-echo -e "  14.downgrade gcc/g++ version to 4.8 \n"
+echo -e "  4.modify network config /etc/network/interfaces \n"
+echo -e "  5.disable ipv6 entirely \n"
+echo -e "  6.disable DNSSEC for systemd-resolved.service \n"
+echo -e "  7.install ntpdate and sync system time \n"
+echo -e "  8.fix too many authentication failures problem \n"
+echo -e "  9.Firewall rule setting (Write firewall rules in /etc/network/if-up.d/firewall) \n"
+echo -e "  10.delete route to 169.254.0.0 \n"
+echo -e "  11.add swap space with 4096MB \n"
+echo -e "  12.install softwares you need \n"
+echo -e "  13.install chrome browser \n"
+echo -e "  14.remove ugly fonts \n"
+echo -e "  15.downgrade gcc/g++ version to 5.5 \n"
 
 read -p "Are you sure (y/n)?" sure
 case $sure in

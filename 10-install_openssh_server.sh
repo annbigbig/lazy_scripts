@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# This script will install openssh-server on Ubuntu 16.04 LTS
+# This script will install openssh-server on Ubuntu 18.04 LTS
 # it will change sshd port number from default 22 to the number you specified here
 # (range could be: 1024 to 65535)
 #

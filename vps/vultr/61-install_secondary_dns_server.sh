@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # This script will configure a Bind9 server as secondary DNS server with chroot environment
-# (tested on Ubuntu mate 16.04 LTS)
+# (tested on Ubuntu mate 18.04 LTS)
 # before running this script, please set some parameters below:
 #
 ##########################################################################################################
@@ -17,10 +17,11 @@ PRIMARY_DNS_IP_ADDRESS="140.82.6.242"
 #
 ##########################################################################################################
 # *** Hint ***
-# how to query a specifc DNS server (ex: 140.82.6.242) ? use this command : 
-#  $ nslookup www.dq5rocks.com 140.82.6.242
-#  $ nslookup 172.16.225.17 140.82.6.242
-
+# how to query a specifc DNS server (ex: 140.82.10.123) ? use this command : 
+#  $ nslookup www.dq5rocks.com 140.82.10.123
+#  $ nslookup vps02.dq5rocks.com 140.82.10.123
+#  $ nslookup 172.16.225.18 140.82.10.123
+#
 ##########################################################################################################
 # *** SPECIAL THANKS ***
 # All of the commands used here were inspired by this article : 
@@ -68,21 +69,21 @@ install_dependencies() {
 
 install_bind_server() {
         cd /usr/local/src/
-        wget ftp://ftp.isc.org/isc/bind9/9.11.3/bind-9.11.3.tar.gz
-        wget ftp://ftp.isc.org/isc/bind9/9.11.3/bind-9.11.3.tar.gz.sha512.asc
+        wget ftp://ftp.isc.org/isc/bind9/9.12.2-P1/bind-9.12.2-P1.tar.gz
+        wget ftp://ftp.isc.org/isc/bind9/9.12.2-P1/bind-9.12.2-P1.tar.gz.sha512.asc
 
         # how to verify the integrity of downloaded tar.gz file ? see here:
         # https://kb.isc.org/article/AA-01225/0/Verifying-the-Integrity-of-ISC-Downloads-using-PGP-GPG.html
 
-        PUBLIC_KEY="$(gpg --verify ./bind-9.11.3.tar.gz.sha512.asc ./bind-9.11.3.tar.gz 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
+        PUBLIC_KEY="$(gpg --verify ./bind-9.12.2-P1.tar.gz.sha512.asc ./bind-9.12.2-P1.tar.gz 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
         IMPORT_KEY_RESULT="$(gpg --keyserver keyserver.ubuntu.com --recv $PUBLIC_KEY 2>&1 | grep 'codesign@isc.org' | wc -l)"
-        VERIFY_SIGNATURE_RESULT="$(gpg --verify ./bind-9.11.3.tar.gz.sha512.asc ./bind-9.11.3.tar.gz 2>&1 | tr -s ' ' | grep 'BE0E 9748 B718 253A 28BB 89FF F1B1 1BF0 5CF0 2E57' | wc -l)"
+        VERIFY_SIGNATURE_RESULT="$(gpg --verify ./bind-9.12.2-P1.tar.gz.sha512.asc ./bind-9.12.2-P1.tar.gz 2>&1 | tr -s ' ' | grep 'BE0E 9748 B718 253A 28BB 89FF F1B1 1BF0 5CF0 2E57' | wc -l)"
         [ "$IMPORT_KEY_RESULT" -gt 0 ] && echo "pubkey $PUBLIC_KEY imported successfuly" ||  exit 2
         [ "$VERIFY_SIGNATURE_RESULT" -gt 0 ] && echo "verify signature successfully" || exit 2
 
-        tar zxvf ./bind-9.11.3.tar.gz
-        cd bind-9.11.3
-        ./configure --prefix=/usr/local/bind-9.11.3           \
+        tar zxvf ./bind-9.12.2-P1.tar.gz
+        cd bind-9.12.2-P1
+        ./configure --prefix=/usr/local/bind-9.12.2-P1           \
                     --sysconfdir=/etc                         \
                     --localstatedir=/var                      \
                     --mandir=/usr/share/man                   \
@@ -93,10 +94,10 @@ install_bind_server() {
                     --with-randomdev=/dev/urandom
         make
         make install
-        ln -s /usr/local/bind-9.11.3 /usr/local/bind9
-        install -v -m755 -d /usr/share/doc/bind-9.11.3/{arm,misc}
-        install -v -m644 doc/arm/*.html /usr/share/doc/bind-9.11.3/arm
-        install -v -m644 doc/misc/{dnssec,ipv6,migrat*,options,rfc-compliance,roadmap,sdb} /usr/share/doc/bind-9.11.3/misc
+        ln -s /usr/local/bind-9.12.2-P1 /usr/local/bind9
+        install -v -m755 -d /usr/share/doc/bind-9.12.2-P1/{arm,misc}
+        install -v -m644 doc/arm/*.html /usr/share/doc/bind-9.12.2-P1/arm
+        install -v -m644 doc/misc/{dnssec,ipv6,migrat*,options,rfc-compliance,roadmap,sdb} /usr/share/doc/bind-9.12.2-P1/misc
 }
 
 export_sbin_dir_to_path() {
@@ -332,7 +333,7 @@ EOF
 ;
 $TTL	604800
 @	IN	SOA	localhost. root.localhost. (
-			      2		; Serial
+			      5		; Serial
 			 604800		; Refresh
 			  86400		; Retry
 			2419200		; Expire
@@ -350,7 +351,7 @@ EOF
 ;
 $TTL	604800
 @	IN	SOA	localhost. root.localhost. (
-			      1		; Serial
+			      5		; Serial
 			 604800		; Refresh
 			  86400		; Retry
 			2419200		; Expire
@@ -367,7 +368,7 @@ EOF
 ;
 $TTL	604800
 @	IN	SOA	localhost. root.localhost. (
-			      1		; Serial
+			      5		; Serial
 			 604800		; Refresh
 			  86400		; Retry
 			2419200		; Expire
@@ -383,7 +384,7 @@ EOF
 ;
 $TTL	604800
 @	IN	SOA	localhost. root.localhost. (
-			      1		; Serial
+			      5		; Serial
 			 604800		; Refresh
 			  86400		; Retry
 			2419200		; Expire

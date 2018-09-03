@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # This script will configure a Bind9 server as primary DNS server with chroot environment
-# (tested on Ubuntu mate 16.04 LTS)
+# (tested on Ubuntu mate 18.04 LTS)
 # before running this script, please set some parameters below:
 #
 ##########################################################################################################
@@ -32,13 +32,16 @@ A www.dq5rocks.com. 140.82.6.242
 A www.dq5rocks.com. 140.82.10.123
 A vps01-internal.dq5rocks.com. 172.16.225.17
 A vps02-internal.dq5rocks.com. 172.16.225.18
+A vps03-internal.dq5rocks.com. 172.16.225.19
 PTR 17 vps01-internal.dq5rocks.com.
 PTR 18 vps02-internal.dq5rocks.com.
+PTR 19 vps03-internal.dq5rocks.com.
 EOV
 ##########################################################################################################
 # *** Hint ***
 # how to query a specifc DNS server (ex: 140.82.6.242) ? use this command : 
 #  $ nslookup www.dq5rocks.com 140.82.6.242
+#  $ nslookup vps01.dq5rocks.com 140.82.6.242
 #  $ nslookup 172.16.225.17 140.82.6.242
 #
 ##########################################################################################################
@@ -86,22 +89,22 @@ install_dependencies() {
 
 install_bind_server() {
 	cd /usr/local/src/
-	wget ftp://ftp.isc.org/isc/bind9/9.11.3/bind-9.11.3.tar.gz
-	wget ftp://ftp.isc.org/isc/bind9/9.11.3/bind-9.11.3.tar.gz.sha512.asc
+	wget ftp://ftp.isc.org/isc/bind9/9.12.2-P1/bind-9.12.2-P1.tar.gz
+	wget ftp://ftp.isc.org/isc/bind9/9.12.2-P1/bind-9.12.2-P1.tar.gz.sha512.asc
 
         # how to verify the integrity of downloaded tar.gz file ? see here:
         # https://kb.isc.org/article/AA-01225/0/Verifying-the-Integrity-of-ISC-Downloads-using-PGP-GPG.html
 
-        PUBLIC_KEY="$(gpg --verify ./bind-9.11.3.tar.gz.sha512.asc ./bind-9.11.3.tar.gz 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
+        PUBLIC_KEY="$(gpg --verify ./bind-9.12.2-P1.tar.gz.sha512.asc ./bind-9.12.2-P1.tar.gz 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
         IMPORT_KEY_RESULT="$(gpg --keyserver keyserver.ubuntu.com --recv $PUBLIC_KEY 2>&1 | grep 'codesign@isc.org' | wc -l)"
-        VERIFY_SIGNATURE_RESULT="$(gpg --verify ./bind-9.11.3.tar.gz.sha512.asc ./bind-9.11.3.tar.gz 2>&1 | tr -s ' ' | grep 'BE0E 9748 B718 253A 28BB 89FF F1B1 1BF0 5CF0 2E57' | wc -l)"
+        VERIFY_SIGNATURE_RESULT="$(gpg --verify ./bind-9.12.2-P1.tar.gz.sha512.asc ./bind-9.12.2-P1.tar.gz 2>&1 | tr -s ' ' | grep 'BE0E 9748 B718 253A 28BB 89FF F1B1 1BF0 5CF0 2E57' | wc -l)"
         [ "$IMPORT_KEY_RESULT" -gt 0 ] && echo "pubkey $PUBLIC_KEY imported successfuly" ||  exit 2
         [ "$VERIFY_SIGNATURE_RESULT" -gt 0 ] && echo "verify signature successfully" || exit 2
 
 
-	tar zxvf ./bind-9.11.3.tar.gz
-	cd bind-9.11.3
-        ./configure --prefix=/usr/local/bind-9.11.3           \
+	tar zxvf ./bind-9.12.2-P1.tar.gz
+	cd bind-9.12.2-P1
+        ./configure --prefix=/usr/local/bind-9.12.2-P1           \
 	            --sysconfdir=/etc                         \
 	            --localstatedir=/var                      \
 	            --mandir=/usr/share/man                   \
@@ -112,10 +115,10 @@ install_bind_server() {
 	            --with-randomdev=/dev/urandom
 	make
 	make install
-        ln -s /usr/local/bind-9.11.3 /usr/local/bind9
-	install -v -m755 -d /usr/share/doc/bind-9.11.3/{arm,misc}
-	install -v -m644 doc/arm/*.html /usr/share/doc/bind-9.11.3/arm
-	install -v -m644 doc/misc/{dnssec,ipv6,migrat*,options,rfc-compliance,roadmap,sdb} /usr/share/doc/bind-9.11.3/misc
+        ln -s /usr/local/bind-9.12.2-P1 /usr/local/bind9
+	install -v -m755 -d /usr/share/doc/bind-9.12.2-P1/{arm,misc}
+	install -v -m644 doc/arm/*.html /usr/share/doc/bind-9.12.2-P1/arm
+	install -v -m644 doc/misc/{dnssec,ipv6,migrat*,options,rfc-compliance,roadmap,sdb} /usr/share/doc/bind-9.12.2-P1/misc
 }
 
 export_sbin_dir_to_path() {
@@ -197,7 +200,7 @@ cat >> /srv/named/etc/named.conf << "EOF"
 acl "trusted" {
         127.0.0.0/8;            # loopback
         TRUSTED_LOCAL_SUBNET;   # local subnet
-        #TRUSTED_VPN_SUBNET;     # vpn subnet
+        TRUSTED_VPN_SUBNET;     # vpn subnet
 };
 
 options {
@@ -295,7 +298,7 @@ logging {
 };
 EOF
         sed -i -- "s|TRUSTED_LOCAL_SUBNET|$TRUSTED_LOCAL_SUBNET|g" /srv/named/etc/named.conf
-        #sed -i -- "s|TRUSTED_VPN_SUBNET|$TRUSTED_VPN_SUBNET|g" /srv/named/etc/named.conf
+        sed -i -- "s|TRUSTED_VPN_SUBNET|$TRUSTED_VPN_SUBNET|g" /srv/named/etc/named.conf
         sed -i -- "s|DOMAIN_NAME|$DOMAIN_NAME|g" /srv/named/etc/named.conf
         sed -i -- "s|SECONDARY_DNS_IP_ADDRESS|$SECONDARY_DNS_IP_ADDRESS|g" /srv/named/etc/named.conf
         sed -i -- "s|FIRST_OCTET|$FIRST_OCTET|g" /srv/named/etc/named.conf
@@ -351,7 +354,7 @@ EOF
 ;
 $TTL	604800
 @	IN	SOA	localhost. root.localhost. (
-			      2		; Serial
+			      5		; Serial
 			 604800		; Refresh
 			  86400		; Retry
 			2419200		; Expire
@@ -369,7 +372,7 @@ EOF
 ;
 $TTL	604800
 @	IN	SOA	localhost. root.localhost. (
-			      1		; Serial
+			      5		; Serial
 			 604800		; Refresh
 			  86400		; Retry
 			2419200		; Expire
@@ -386,7 +389,7 @@ EOF
 ;
 $TTL	604800
 @	IN	SOA	localhost. root.localhost. (
-			      1		; Serial
+			      5		; Serial
 			 604800		; Refresh
 			  86400		; Retry
 			2419200		; Expire
@@ -402,7 +405,7 @@ EOF
 ;
 $TTL	604800
 @	IN	SOA	localhost. root.localhost. (
-			      1		; Serial
+			      5		; Serial
 			 604800		; Refresh
 			  86400		; Retry
 			2419200		; Expire
@@ -415,7 +418,7 @@ EOF
         cat > /srv/named/etc/namedb/pz/db.$DOMAIN_NAME << "EOF"
 $TTL    604800
 @       IN      SOA     PRIMARY_DNS_SERVER_NAME admin.DOMAIN_NAME. (
-                  3     ; Serial --> increase this value then restart bind if there are any changes happend
+                  5     ; Serial --> increase this value then restart bind if there are any changes happend
              604800     ; Refresh
               86400     ; Retry
             2419200     ; Expire
@@ -456,7 +459,7 @@ EOF
         cat > /srv/named/etc/namedb/pz/db.$FIRST_OCTET.$SECOND_OCTET.$THIRD_OCTET << "EOF"
 $TTL    604800
 @       IN      SOA     PRIMARY_DNS_SERVER_NAME admin.DOMAIN_NAME. (
-                              3         ; Serial --> increase this value then restart bind if there are any changes happend
+                              5         ; Serial --> increase this value then restart bind if there are any changes happend
                          604800         ; Refresh
                           86400         ; Retry
                         2419200         ; Expire

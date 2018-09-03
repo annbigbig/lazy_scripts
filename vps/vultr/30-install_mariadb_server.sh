@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# This script will install MariaDB server 10.2.x galera cluster on Ubuntu mate 16.04 LTS
+# This script will install MariaDB server 10.3.x galera cluster on Ubuntu mate 18.04 LTS
 #
 ######################################################################
 INSTALL_MARIADB_AS_MULTIPLE_NODES_GALERA_CLUSTER="yes"               # 'galera.cnf' would be generated only when its value is 'yes'
@@ -12,7 +12,7 @@ WSREP_CLUSTER_NAME="kashu_cluster"                                   # name of g
 WSREP_CLUSTER_ADDRESS="172.16.225.17,172.16.225.18"                  # IP addresses list seperated by comma of all cluster nodes
 SERVER_ID_MANUAL=""                                                  # server id u specify here has higher priority than $SERVER_ID_AUTO
 #########################################################################################################################################
-SERVER_ID_AUTO="$(/sbin/ifconfig eth1 | grep 'inet addr' | tr -s ' ' | cut -d ' ' -f 3 | cut -d ':' -f 2 | cut -d '.' -f 4)"
+SERVER_ID_AUTO="$(/sbin/ifconfig eth1 | grep -v 'inet6' | grep 'inet' | tr -s ' ' | cut -d ' ' -f 3 | cut -d ':' -f 2 | cut -d '.' -f 4)"
 #########################################################################################################################################
 # *** SPECIAL THANKS ***
 # mysql_secure_installation part was inspired by this link:
@@ -52,43 +52,34 @@ install_mariadb_server() {
 	apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
 
 	UBUNTU_VERSION_NAME="$(/usr/bin/lsb_release -a 2>/dev/null | tail -1 | tr -d ' \t' | cut -d ':' -f 2)"
-	if [ "$UBUNTU_VERSION_NAME" == "xenial" ] ; then
-		add-apt-repository 'deb [arch=amd64,i386,ppc64el] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.1/ubuntu xenial main'
+	if [ "$UBUNTU_VERSION_NAME" == "bionic" ] ; then
+		add-apt-repository 'deb [arch=amd64,arm64,ppc64el] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.3/ubuntu bionic main'
 		cat >> /etc/apt/sources.list.d/mariadb.list << "EOF"
-# MariaDB 10.2 repository list - created 2017-10-03 16:49 UTC
+# MariaDB 10.3 repository list - created 2018-08-13 17:14 UTC
 # http://downloads.mariadb.org/mariadb/repositories/
-deb [arch=amd64,i386] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.2/ubuntu xenial main
-deb-src http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.2/ubuntu xenial main
+deb [arch=amd64,arm64,ppc64el] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.3/ubuntu bionic main
+deb-src http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.3/ubuntu bionic main
 EOF
-	elif [ "$UBUNTU_VERSION_NAME" == "yakkety" ] ; then
-		add-apt-repository 'deb [arch=amd64,i386] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.1/ubuntu yakkety main'
-                cat >> /etc/apt/sources.list.d/mariadb.list << "EOF"
-# MariaDB 10.1 repository list - created 2017-10-03 16:55 UTC
-# http://downloads.mariadb.org/mariadb/repositories/
-deb [arch=amd64,i386] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.1/ubuntu yakkety main
-deb-src http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.1/ubuntu yakkety main
-EOF
-	elif [ "$UBUNTU_VERSION_NAME" == "zesty" ] ; then
-		add-apt-repository 'deb [arch=amd64,i386] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.1/ubuntu zesty main'
+	else
+		add-apt-repository 'deb [arch=amd64,arm64,i386,ppc64el] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.3/ubuntu xenial main'
 		cat >> /etc/apt/sources.list.d/mariadb.list << "EOF"
-# MariaDB 10.2 repository list - created 2017-10-03 16:56 UTC
+# MariaDB 10.3 repository list - created 2018-08-13 17:55 UTC
 # http://downloads.mariadb.org/mariadb/repositories/
-deb [arch=amd64,i386] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.2/ubuntu zesty main
-deb-src http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.2/ubuntu zesty main
+deb [arch=amd64,arm64,i386,ppc64el] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.3/ubuntu xenial main
+deb-src http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.3/ubuntu xenial main
 EOF
 	fi
 
 		apt-get update
                 export DEBIAN_FRONTEND=noninteractive
-                debconf-set-selections <<< 'mariadb-server-10.2 mysql-server/root_password password PASS'
-                debconf-set-selections <<< 'mariadb-server-10.2 mysql-server/root_password_again password PASS'
+                debconf-set-selections <<< 'mariadb-server-10.3 mysql-server/root_password password PASS'
+                debconf-set-selections <<< 'mariadb-server-10.3 mysql-server/root_password_again password PASS'
 		apt-get install -y mariadb-server
                 echo -e "done"
 }
 
 generate_config_file() {
-
-        MY_IP="$(/sbin/ifconfig eth0 | grep 'inet addr' | tr -s ' ' | cut -d ' ' -f 3 | cut -d ':' -f 2)"
+        MY_IP="$(/sbin/ifconfig eth0 | grep -v 'inet6' | grep 'inet' | tr -s ' ' | cut -d ' ' -f 3)"
 
         echo "generating config file at /etc/mysql/my.cnf"
         install -v -dm 755 /etc/mysql
@@ -388,8 +379,8 @@ EOF
 
 # create users and database for cacti
         cd /tmp
-        wget https://www.cacti.net/downloads/cacti-1.1.36.tar.gz
-        tar zxvf /tmp/cacti-1.1.36.tar.gz
+        wget https://www.cacti.net/downloads/cacti-1.1.38.tar.gz
+        tar zxvf /tmp/cacti-1.1.38.tar.gz
 mysql -h localhost --port 3306 -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 drop database if exists cacti_db;
 create database cacti_db;
@@ -401,7 +392,7 @@ grant select on mysql.time_zone_name to 'cactiuser'@'localhost';
 grant select on mysql.time_zone_name to 'cactiuser'@'127.0.0.1';
 flush privileges;
 use cacti_db;
-source /tmp/cacti-1.1.36/cacti.sql;
+source /tmp/cacti-1.1.38/cacti.sql;
 EOF
         # populate timezone data from /usr/share/zoneinfo to mysql time_zone_name table
         /usr/bin/mysql_tzinfo_to_sql /usr/share/zoneinfo/ | mysql -h localhost --port 3306 -u root -p$MYSQL_ROOT_PASSWD mysql
