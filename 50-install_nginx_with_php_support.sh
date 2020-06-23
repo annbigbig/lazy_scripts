@@ -13,14 +13,14 @@ SELF_SIGNED_SSL_C="TW"
 SELF_SIGNED_SSL_ST="New Taipei"
 SELF_SIGNED_SSL_L="Tamsui"
 SELF_SIGNED_SSL_O="Tong-Shing, Inc."
-SELF_SIGNED_SSL_CN="www.dq5rocks.com"
-SESSION_SAVE_PATH="172.28.117.131:11211,172.28.117.132:11211"
+SELF_SIGNED_SSL_CN="*.dq5rocks.com"
+SESSION_SAVE_PATH="192.168.0.107:11211,192.168.0.108:11211"
 #
 #####################################################################################################
 ###     use this command to generate your own blowfish secret then fill in parameter values below 
 ###     cat /dev/urandom | tr -dc 'a-zA-Z0-9#@!' | fold -w ${1:-32} | head -n 1
 DEPLOY_PHPMYADMIN="yes"
-PHPMYADMIN_BLOWFISH_SECRET="HrkawpNGPOya7tMeUy!XIsL80oDaT#le"
+PHPMYADMIN_BLOWFISH_SECRET="Sn6b1p10UyQsUGwhMIPmkJn@E0BcKu2Q"
 PHPMYADMIN_DB_HOST="127.0.0.1"
 PHPMYADMIN_DB_PORT="3306"
 PHPMYADMIN_CONTROL_USER="pmauser"
@@ -29,6 +29,7 @@ PHPMYADMIN_CONTROL_PASS="pmapassword"
 #####################################################################################################
 #
 DEPLOY_WORDPRESS="yes"
+WORDPRESS_FQDN="blog.dq5rocks.com"
 WORDPRESS_DB_HOST="127.0.0.1:3306"
 WORDPRESS_DB_NAME="wpdb"
 WORDPRESS_DB_USER="wpuser"
@@ -37,14 +38,14 @@ WORDPRESS_DB_PASS="wppassword"
 ###     cat /dev/urandom | tr -dc 'a-zA-Z0-9#@!' | fold -w ${1:-64} | head -n 1
 ###     i tried use command below either but it generate too many SPECIAL CHARACTERS i cannot escape in sed command :-(
 ###     wget -O salt.txt https://api.wordpress.org/secret-key/1.1/salt/
-WORDPRESS_AUTH_KEY='30hhSvxDUokT1QaxTkXly!gsz#MsyfQCsE1#RUFAXQH3X6GUGXblUrmusADDjxxJ'
-WORDPRESS_SECURE_AUTH_KEY='smQixwGo7DMmppPyipqOqP7DUloCXFS5Vg9sVbYbmep5nFnhr4ypLJXiNbbaR2KS'
-WORDPRESS_LOGGED_IN_KEY='HigWCbHGVx4VgBlt5CAfx@rgmUftidr1BYYD@06I1dG6xS!PYequhVWntrvYnzzk'
-WORDPRESS_NONCE_KEY='1WqNOvhrg#z#ERecoX4S@lffmmtQ4akKprvhCFTcTjQhEDok@9yuzteCgPOhyGO8'
-WORDPRESS_AUTH_SALT='xc#0WhpU2ULWl#S2QqTNQMOxiNdG17lNpyLoqnOeK@!EOxy1RAuQCgeUE!W2ZgAe'
-WORDPRESS_SECURE_AUTH_SALT='jn#IMx!#k1EICuL80@JOx5E6VLY0IrQbZfnNs@bmsPnAXUHoOeIS5cdlL0YcnK3Q'
-WORDPRESS_LOGGED_IN_SALT='@p5SO0evgGbZsfrdt9FS6lQ7flgJIyB9TkURUHLc9@SAcv@7HYtXEtgMK04Kn06T'
-WORDPRESS_NONCE_SALT='atao8LV0snpo4PXGjRm3vmJLOeWc@l@1Vl8bw2I2jTlZSpWq#YAtPwAq#Tb6kUNh'
+WORDPRESS_AUTH_KEY='80Bg9OvoS3Icv2m9bQvV34uVw#1Uzt1hSgNzO4jdDBEDgthTiOOEdx2vPTtRwtQ@'
+WORDPRESS_SECURE_AUTH_KEY='BHlms@Y7B!Ku7DeuNp!p1HGXR0jY7HIrnx1ZUUIwWyP5NqshTKchBigg2EsYDAcl'
+WORDPRESS_LOGGED_IN_KEY='y1Q6V!gNQiCbaJAzKnY!GuXLdpWJrZgGQBxAIlOUDvc8ZzZz#UlJBSR3HQw@XLto'
+WORDPRESS_NONCE_KEY='iZKaPGcfwwoN#r8H7a7P@L3VEeLY3GAPIvO71pWHXaLWJOx!@PF0vSAreifMfkdE'
+WORDPRESS_AUTH_SALT='P2kQkCBfs6RxhKHgsnPPcPq15yNi7kzwTX45b@B2D@FCDZmFq5PW74!Pd!ci5Jup'
+WORDPRESS_SECURE_AUTH_SALT='8X#ueb166nsQu@s442RE!KZUBRhEdAHkeQmbPyIpbP1nIDnWxT1fR5FT4cdWN1@o'
+WORDPRESS_LOGGED_IN_SALT='3@kPwEApF8tNBfgRZpxR9O!uGPxCxKS#@uTlqs6tm6zRufYgcgz1wxz4axFvIXNI'
+WORDPRESS_NONCE_SALT='g7t!b2X3zwDM!adKV0!pvkbjhqO09Ab3!7GxGjOqLiCTCm7g!d0vootIbLCJmjK8'
 #
 #####################################################################################################
 #
@@ -64,7 +65,7 @@ CACTI_DB_PASS="cactipass"
 edit_nginx_config(){
 
         # create nginx.conf
-        cat > /usr/local/nginx-1.15.2/conf/nginx.conf << "EOF"
+        cat > /usr/local/nginx-1.18.0/conf/nginx.conf << "EOF"
 user nginx nginx;
 worker_processes 2;
 pid run/nginx.pid;
@@ -116,8 +117,8 @@ log_format gzip '$remote_addr - $remote_user [$time_local]  '
 }
 EOF
         # create fastcgi.conf
-        rm -rf /usr/local/nginx-1.15.2/conf/fastcgi.conf
-        cat > /usr/local/nginx-1.15.2/conf/fastcgi.conf << "EOF"
+        rm -rf /usr/local/nginx-1.18.0/conf/fastcgi.conf
+        cat > /usr/local/nginx-1.18.0/conf/fastcgi.conf << "EOF"
 fastcgi_param  SCRIPT_FILENAME    $document_root$fastcgi_script_name;
 fastcgi_param  QUERY_STRING       $query_string;
 fastcgi_param  REQUEST_METHOD     $request_method;
@@ -141,8 +142,8 @@ fastcgi_index  index.php;
 fastcgi_param  REDIRECT_STATUS    200;
 EOF
         # create proxy.conf
-        rm -rf /usr/local/nginx-1.15.2/conf/proxy.conf
-        cat > /usr/local/nginx-1.15.2/conf/proxy.conf << "EOF"
+        rm -rf /usr/local/nginx-1.18.0/conf/proxy.conf
+        cat > /usr/local/nginx-1.18.0/conf/proxy.conf << "EOF"
 proxy_redirect          off;
 proxy_set_header        Host            $host;
 proxy_set_header        X-Real-IP       $remote_addr;
@@ -157,15 +158,15 @@ EOF
 
         if [ "$ENABLE_HTTPS" == "yes" ] ; then
         # create self-signed.conf
-	rm -rf /usr/local/nginx-1.15.2/conf/self-signed.conf
-        cat > /usr/local/nginx-1.15.2/conf/self-signed.conf << "EOF"
+	rm -rf /usr/local/nginx-1.18.0/conf/self-signed.conf
+        cat > /usr/local/nginx-1.18.0/conf/self-signed.conf << "EOF"
 ssl_certificate /etc/ssl/certs/nginx-selfsigned.crt;
 ssl_certificate_key /etc/ssl/private/nginx-selfsigned.key;
 EOF
 
         # create ssl-params.conf
-	rm -rf /usr/local/nginx-1.15.2/conf/ssl-params.conf
-	cat > /usr/local/nginx-1.15.2/conf/ssl-params.conf << "EOF"
+	rm -rf /usr/local/nginx-1.18.0/conf/ssl-params.conf
+	cat > /usr/local/nginx-1.18.0/conf/ssl-params.conf << "EOF"
 # from https://cipherli.st/
 # and https://raymii.org/s/tutorials/Strong_SSL_Security_On_nginx.html
 
@@ -191,7 +192,7 @@ EOF
         fi
 
         # create localhost.conf for 'localhost'
-        cat > /usr/local/nginx-1.15.2/conf.d/localhost.conf << "EOF"
+        cat > /usr/local/nginx-1.18.0/conf.d/localhost.conf << "EOF"
 server {
          listen 127.0.0.1:80;
          server_name localhost;
@@ -215,24 +216,25 @@ server {
 EOF
 
         # create $SERVER_FQDN.conf , this is main configuration of your website
-        cat > /usr/local/nginx-1.15.2/conf.d/$SERVER_FQDN.conf << "EOF"
+        cat > /usr/local/nginx-1.18.0/conf.d/$SERVER_FQDN.conf << "EOF"
 server {
          listen 80 default_server;
          server_name SERVER_FQDN;
 EOF
 
 if [ "$ENABLE_HTTPS" == "yes" ] ; then
-        cat >> /usr/local/nginx-1.15.2/conf.d/$SERVER_FQDN.conf << "EOF"
+        cat >> /usr/local/nginx-1.18.0/conf.d/$SERVER_FQDN.conf << "EOF"
          return 301 https://$server_name$request_uri;
 }
 
 server {
          listen 443 ssl default_server;
+         server_name SERVER_FQDN;
          include self-signed.conf;
          include ssl-params.conf;
 EOF
 fi
-        cat >> /usr/local/nginx-1.15.2/conf.d/$SERVER_FQDN.conf << "EOF" 
+        cat >> /usr/local/nginx-1.18.0/conf.d/$SERVER_FQDN.conf << "EOF" 
          root /var/www/SERVER_FQDN;
 
          # Logging --
@@ -267,20 +269,36 @@ fi
 
 }
 EOF
-        #IP_ADDRESS="$(/sbin/ip addr show eth0 | grep dynamic | grep -v inet6 | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
-        #sed -i -- "s|IP_ADDRESS|$IP_ADDRESS|g" /usr/local/nginx-1.15.2/conf.d/$SERVER_FQDN.conf
-        sed -i -- "s|SERVER_FQDN|$SERVER_FQDN|g" /usr/local/nginx-1.15.2/conf.d/$SERVER_FQDN.conf
 
-        # create www.bubu.com.conf for 'www.bubu.com'
-        cat > /usr/local/nginx-1.15.2/conf.d/www.bubu.com.conf << "EOF"
+        sed -i -- "s|SERVER_FQDN|$SERVER_FQDN|g" /usr/local/nginx-1.18.0/conf.d/$SERVER_FQDN.conf
+
+#####
+        # create $WORDPRESS_FQDN.conf, this is configuration file for wordpress blog.
+        cat > /usr/local/nginx-1.18.0/conf.d/$WORDPRESS_FQDN.conf << "EOF"
 server {
          listen 80;
-         server_name www.bubu.com;
-         root /var/www/www.bubu.com;
+         server_name WORDPRESS_FQDN;
+EOF
+
+if [ "$ENABLE_HTTPS" == "yes" ] ; then
+        cat >> /usr/local/nginx-1.18.0/conf.d/$WORDPRESS_FQDN.conf << "EOF"
+         return 301 https://$server_name$request_uri;
+}
+
+server {
+         listen 443 ssl;
+         server_name WORDPRESS_FQDN;
+         include self-signed.conf;
+         include ssl-params.conf;
+EOF
+fi
+
+	cat >> /usr/local/nginx-1.18.0/conf.d/$WORDPRESS_FQDN.conf << "EOF"
+         root /var/www/WORDPRESS_FQDN;
 
          # Logging --
-         access_log  logs/www.bubu.com.access.log;
-         error_log  logs/www.bubu.com.error.log notice;
+         access_log  logs/WORDPRESS_FQDN.access.log;
+         error_log  logs/WORDPRESS_FQDN.error.log notice;
 
          # serve static files directly
          location ~* ^.+.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt)$ {
@@ -294,13 +312,15 @@ server {
          }
 }
 EOF
+	sed -i -- "s|WORDPRESS_FQDN|$WORDPRESS_FQDN|g" /usr/local/nginx-1.18.0/conf.d/$WORDPRESS_FQDN.conf
+#####
 
         # test nginx.conf to see if syntax error exist
         CONFIG_SYNTAX_ERR="$(sbin/nginx -t -c conf/nginx.conf 2>&1 | grep 'test failed' | wc -l)"
         [ "$CONFIG_SYNTAX_ERR" -eq 1 ] && echo 'SYNTAX ERROR in nginx.conf' || echo 'nginx.conf is GOOD'
 
 
-        chown -R nginx:nginx /usr/local/nginx-1.15.2
+        chown -R nginx:nginx /usr/local/nginx-1.18.0
 }
 
 #####################################################################################################
@@ -321,6 +341,25 @@ EOF
 # https://stackoverflow.com/questions/23929235/multi-line-string-with-extra-space-preserved-indentation
 # https://gist.github.com/earthgecko/3089509
 # https://www.linode.com/docs/security/ssl/install-lets-encrypt-to-create-ssl-certificates/
+# https://coderwall.com/p/b443ng/generating-a-self-signed-wildcard-certificate
+# https://forum.directadmin.com/threads/how-to-build-php-with-proper-imap-support.41879/
+# https://docs.bitnami.com/aws/apps/wordpress/configuration/install-modules-php/#php7
+# https://linuxize.com/post/how-to-install-gcc-compiler-on-ubuntu-18-04/
+# https://askubuntu.com/questions/1140183/install-gcc-9-on-ubuntu-18-04
+# https://askubuntu.com/questions/43345/how-to-remove-a-repository
+# https://launchpad.net/~jonathonf/+archive/ubuntu/gcc
+# https://askubuntu.com/questions/732985/force-update-from-unsigned-repository
+# https://ubuntu.pkgs.org/18.04/ubuntu-universe-amd64/gcc-5_5.5.0-12ubuntu1_amd64.deb.html
+# https://linuxconfig.org/how-to-list-and-remove-ppa-repository-on-ubuntu-18-04-bionic-beaver-linux
+# https://gist.github.com/application2000/73fd6f4bf1be6600a2cf9f56315a2d91
+# https://askubuntu.com/questions/1166599/install-gcc-5-under-ubuntu-19-04
+# https://medium.com/make-it-easy/how-to-install-cacti-on-ubuntu-20-04-b6290c2b3158
+# https://www.tecmint.com/install-different-php-versions-in-ubuntu/
+# https://mitblog.pixnet.net/blog/post/43827108-%5Bmysql%5D-%E7%82%BA%E4%BB%80%E9%BA%BC-mysql-%E8%A6%81%E8%A8%AD%E5%AE%9A%E7%94%A8-utf8mb4-%E7%B7%A8%E7%A2%BC-utf8mb4_
+# https://matthung0807.blogspot.com/2018/05/mysql-schemacollation.html
+# https://github.com/php/php-src/blob/PHP-7.4/UPGRADING#L761-L770
+# https://www.howtoforge.com/tutorial/how-to-compile-and-install-php-7.4-on-ubuntu-18-04/
+# https://github.com/Cacti/cacti/issues/2831
 #####################
 
 say_goodbye() {
@@ -346,9 +385,8 @@ remove_previous_install() {
              systemctl disable apache2.service
              systemctl stop apache2.service
              # try to remove binary package
-             apt-get purge -y apache2 apache2-bin apache2-data apache2-utils libaprutil1-dbd-sqlite3 libaprutil1-ldap liblua5.1-0
-             apt-get purge -y libapache2-mod-php libapache2-mod-php7.0 libmcrypt4 php php-common php-mcrypt php-mysql php7.0
-             apt-get purge -y php7.0-cli php7.0-common php7.0-json php7.0-mbstring php7.0-mcrypt php7.0-mysql php7.0-opcache php7.0-readline
+             apt-get purge -y apache2* libaprutil*
+             apt-get purge -y libapache2* libmcrypt* php7.4* php7* php*
              apt autoremove -y
              rm -rf /var/lib/apache2/
              rm -rf /var/lib/php/
@@ -358,13 +396,12 @@ remove_previous_install() {
         fi
 
         # remove php-fpm if it has been installed
-        if [ -f /lib/systemd/system/php7.2-fpm.service ]; then
+        if [ -f /lib/systemd/system/php7.4-fpm.service ]; then
              # stop/disable service
-             systemctl disable php7.2-fpm.service
-             systemctl stop php7.2-fpm.service
+             systemctl disable php7.4-fpm.service
+             systemctl stop php7.4-fpm.service
              # try to remove binary package
-             apt-get purge -y php-common php7.0-cli php7.0-common php7.0-fpm php7.0-json php7.0-opcache php7.0-readline
-             apt-get purge -y php-pear php-mysql php7.0-mysql
+	     apt-get purge -y php7.4* php7* php*
              apt autoremove -y
              rm -rf /etc/php/
              rm -rf /var/lib/php/
@@ -399,15 +436,21 @@ install_prerequisite() {
         apt-get install -y libtool
         # php-fpm will requre these
         apt-get install -y libldap2-dev libtool-bin libzip-dev lbzip2 libxml2 libxml2-dev re2c libreadline-dev libpcre3 libpcre3-dev
-        apt-get install -y libbz2-dev libjpeg-dev libxpm-dev libgmp-dev libgmp3-dev libxpm-dev libpspell-dev librecode-dev
+        apt-get install -y libbz2-dev libjpeg-dev libxpm-dev libgmp-dev libgmp3-dev libpspell-dev librecode-dev
         apt-get install -y libcurl4 libcurl4-openssl-dev pkg-config libssl-dev libgdbm-dev libpng-dev libmcrypt-dev
-        apt-get install -y libpam0g-dev libkrb5-dev curl libdb-dev libdb++-dev libdb5.3++-dev libgdbm-dev libpng-dev
-	#apt-get install -y libcurl3 libcurl3-gnutls
-	#apt-get install -y libmariadb-dev* libdb-dev libdb4.8
-        #apt-get install -y libc-client2007e libc-client2007e-dev libglib2.0-dev libfcgi-dev libfcgi0ldbl libjpeg62-dbg
+        apt-get install -y libpam0g-dev libkrb5-dev curl libdb-dev libdb++-dev libdb5.3++-dev libgdbm-dev libpng-dev 
+	apt-get install -y sqlite3 libsqlite3-dev libonig-dev
+	#
+	apt-get install -y libcurl3-gnutls
+	apt-get install -y libmariadb-dev* libdb-dev libdb5.3
+	# dont install below two packages, these will be confused with later imap-2007f that one
+        #apt-get install -y libc-client2007e libc-client2007e-dev
+        apt-get install -y libglib2.0-dev libfcgi-dev libfcgi0ldbl libjpeg62 libjpeg62-dev
         # php-memcached require these
-        apt-get install -y php7.2-dev git pkg-config build-essential autoconf
-	apt-get install -y libmemcached-dev
+        apt-get install -y git pkg-config build-essential autoconf
+	apt-get install -y libmemcached-dev libmemcached11
+	# imap-2007 may require this for compile it from source
+	apt-get install -y libssl1.1 libssl-dev
         # php snmp module require these
         apt-get install -y libsnmp-base libsnmp-dev
         if [ "$DEPLOY_CACTI" == "yes" ] ; then
@@ -415,21 +458,17 @@ install_prerequisite() {
             apt-get install -y snmp snmpd rrdtool
         fi
 
-        # need to to this on ubuntu 17.04
+        # make a symbolic link for curl header files
         if [ ! -e "/usr/include/curl" ] && [ -e "/usr/include/x86_64-linux-gnu/curl" ]; then
                ln -s /usr/include/x86_64-linux-gnu/curl /usr/include/curl
-        fi
-
-        # for php-imap compilation
-        if [ ! -e "/usr/lib/x86_64-linux-gnu/libc-client.a" ] && [ -e "/usr/lib/libc-client.a" ]; then
-               ln -s /usr/lib/libc-client.a /usr/lib/x86_64-linux-gnu/libc-client.a
         fi
 }
 
 configure_snmpd_service(){
         [ "$DEPLOY_CACTI" != "yes" ] && echo "skip configuring snmpd" && return || echo "configure snmpd service"
+	sed -i -- 's|agentaddress  127.0.0.1,\[::1\]|agentaddress  127.0.0.1:161|g' /etc/snmp/snmpd.conf
         sed -i -- 's|^view   systemonly  included   .1.3.6.1.2.1.1$|view   systemonly  included   .1.3.6.1.2.1|g' /etc/snmp/snmpd.conf
-        systemctl restart snmpd
+        systemctl restart snmpd.service
 }
 
 install_nginx() {
@@ -451,25 +490,25 @@ install_nginx() {
         rm -rf ./zlib-*
 
         # download the source tar.gz then verify their integrity
-        wget http://nginx.org/download/nginx-1.15.2.tar.gz
-        wget http://nginx.org/download/nginx-1.15.2.tar.gz.asc
-        PUBLIC_KEY_1="$(gpg nginx-1.15.2.tar.gz.asc 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
+        wget http://nginx.org/download/nginx-1.18.0.tar.gz
+        wget http://nginx.org/download/nginx-1.18.0.tar.gz.asc
+        PUBLIC_KEY_1="$(gpg nginx-1.18.0.tar.gz.asc 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
         IMPORT_KEY_RESULT_1="$(gpg --keyserver keyserver.ubuntu.com --recv-key $PUBLIC_KEY_1 2>&1 | grep 'mdounin@mdounin.ru' | wc -l)"
-        VERIFY_SIGNATURE_RESULT_1="$(gpg ./nginx-1.15.2.tar.gz.asc 2>&1 | tr -s ' ' | grep 'B0F4 2533 73F8 F6F5 10D4 2178 520A 9993 A1C0 52F8' | wc -l)"
+        VERIFY_SIGNATURE_RESULT_1="$(gpg ./nginx-1.18.0.tar.gz.asc 2>&1 | tr -s ' ' | grep 'B0F4 2533 73F8 F6F5 10D4 2178 520A 9993 A1C0 52F8' | wc -l)"
         [ "$IMPORT_KEY_RESULT_1" -gt 0 ] && echo "pubkey $PUBLIC_KEY_1 imported successfuly" ||  exit 2
         [ "$VERIFY_SIGNATURE_RESULT_1" -gt 0 ] && echo "verify signature successfully" || exit 2
 
-        wget https://www.openssl.org/source/openssl-1.1.0i.tar.gz
-        wget https://www.openssl.org/source/openssl-1.1.0i.tar.gz.sha256
-        SHA256SUM="$(cat ./openssl-1.1.0i.tar.gz.sha256)"
-        SHA256SUM_COMPUTE="$(sha256sum ./openssl-1.1.0i.tar.gz | cut -d ' ' -f 1)"
+        wget https://www.openssl.org/source/openssl-1.1.1g.tar.gz
+        wget https://www.openssl.org/source/openssl-1.1.1g.tar.gz.sha256
+        SHA256SUM="$(cat ./openssl-1.1.1g.tar.gz.sha256)"
+        SHA256SUM_COMPUTE="$(sha256sum ./openssl-1.1.1g.tar.gz | cut -d ' ' -f 1)"
         [ "$SHA256SUM" == "$SHA256SUM_COMPUTE" ] && echo "openssl sha256sum matched." || exit 2
 
-        wget https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz
-        wget https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz.sig
-        PUBLIC_KEY_2="$(gpg ./pcre-8.42.tar.gz.sig 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
+        wget https://ftp.pcre.org/pub/pcre/pcre-8.44.tar.gz
+        wget https://ftp.pcre.org/pub/pcre/pcre-8.44.tar.gz.sig
+        PUBLIC_KEY_2="$(gpg ./pcre-8.44.tar.gz.sig 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
         IMPORT_KEY_RESULT_2="$(gpg --keyserver keyserver.ubuntu.com --recv-key $PUBLIC_KEY_2 2>&1 | grep 'ph10@hermes.cam.ac.uk' | wc -l)"
-        VERIFY_SIGNATURE_RESULT_2="$(gpg ./pcre-8.42.tar.gz.sig 2>&1 | tr -s ' ' | grep '45F6 8D54 BBE2 3FB3 039B 46E5 9766 E084 FB0F 43D8' | wc -l)"
+        VERIFY_SIGNATURE_RESULT_2="$(gpg ./pcre-8.44.tar.gz.sig 2>&1 | tr -s ' ' | grep '45F6 8D54 BBE2 3FB3 039B 46E5 9766 E084 FB0F 43D8' | wc -l)"
         [ "$IMPORT_KEY_RESULT_2" -gt 0 ] && echo "pubkey $PUBLIC_KEY_2 imported successfuly" || exit 2
         [ "$VERIFY_SIGNATURE_RESULT_2" -gt 0 ] && echo "verify signature successfully" || exit 2
 
@@ -482,43 +521,43 @@ install_nginx() {
         [ "$VERIFY_SIGNATURE_RESULT_3" -gt 0 ] && echo "verify signature successfully" || exit 2
 
         # extract all of tar.gz files and configure nginx
-        tar -zxvf ./nginx-1.15.2.tar.gz
-        tar -zxvf ./openssl-1.1.0i.tar.gz
-        tar -zxvf ./pcre-8.42.tar.gz
+        tar -zxvf ./nginx-1.18.0.tar.gz
+        tar -zxvf ./openssl-1.1.1g.tar.gz
+        tar -zxvf ./pcre-8.44.tar.gz
         tar -zxvf ./zlib-1.2.11.tar.gz
         rm -rf *.tar.gz*
 
         # change directories owner and group
-        chown -R root:root ./nginx-1.15.2
-        chown -R root:root ./openssl-1.1.0i
-        chown -R root:root ./pcre-8.42
+        chown -R root:root ./nginx-1.18.0
+        chown -R root:root ./openssl-1.1.1g
+        chown -R root:root ./pcre-8.44
         chown -R root:root ./zlib-1.2.11
 
         # configure then make then install
-        cd ./nginx-1.15.2
-	./configure --prefix=/usr/local/nginx-1.15.2 \
+        cd ./nginx-1.18.0
+	./configure --prefix=/usr/local/nginx-1.18.0 \
                     --user=nginx \
                     --group=nginx \
                     --with-http_v2_module \
                     --with-http_ssl_module \
-                    --with-pcre=/usr/local/src/pcre-8.42 \
+                    --with-pcre=/usr/local/src/pcre-8.44 \
                     --with-zlib=/usr/local/src/zlib-1.2.11 \
-                    --with-openssl=/usr/local/src/openssl-1.1.0i \
+                    --with-openssl=/usr/local/src/openssl-1.1.1g \
                     --with-http_stub_status_module
 
         make
         make install
 
         # backup default nginx.conf
-        if [ -f /usr/local/nginx-1.15.2/conf/nginx.conf.default ]; then
-           rm -rf /usr/local/nginx-1.15.2/conf/nginx.conf
+        if [ -f /usr/local/nginx-1.18.0/conf/nginx.conf.default ]; then
+           rm -rf /usr/local/nginx-1.18.0/conf/nginx.conf
         else
-           mv /usr/local/nginx-1.15.2/conf/nginx.conf /usr/local/nginx-1.15.2/conf/nginx.conf.default
+           mv /usr/local/nginx-1.18.0/conf/nginx.conf /usr/local/nginx-1.18.0/conf/nginx.conf.default
         fi
 
         # create sub-directories
-        mkdir /usr/local/nginx-1.15.2/conf.d/
-        mkdir /usr/local/nginx-1.15.2/run/
+        mkdir /usr/local/nginx-1.18.0/conf.d/
+        mkdir /usr/local/nginx-1.18.0/run/
 
         # create systemd unit file for nginx.service
         cat > /lib/systemd/system/nginx.service << "EOF"
@@ -617,19 +656,20 @@ phpinfo();
 ?>
 EOF
 
-        # create index.html for www.bubu.com
-	mkdir -p /var/www/www.bubu.com
-	cat > /var/www/www.bubu.com/index.html << "EOF"
+        # create test.html for $WORDPRESS_FQDN
+	mkdir -p /var/www/$WORDPRESS_FQDN
+	cat > /var/www/$WORDPRESS_FQDN/test.html << "EOF"
 <!DOCTYPE html>
 <html>
 <body>
 
-<h1>www.bubu.com</h1>
-<p>Hello World! bu</p>
+<h1>WORDPRESS_FQDN</h1>
+<p>Hello World! </p>
 
 </body>
 </html>
 EOF
+	sed -i -- "s|WORDPRESS_FQDN|$WORDPRESS_FQDN|g" /var/www/$WORDPRESS_FQDN/test.html
 
 }
 
@@ -641,7 +681,8 @@ install_imap2007f() {
         rm -rf ./imap-2007*
 
         #
-        ln -s /usr/lib/x86_64-linux-gnu/openssl-1.0.0/engines /usr/local/ssl
+        #ln -s /usr/lib/x86_64-linux-gnu/openssl-1.0.0/engines /usr/local/ssl
+        mkdir -p /usr/local/ssl
         ln -s /usr/include /usr/local/ssl/include
 
         # download the source tar.gz, extract it then configure it
@@ -666,6 +707,14 @@ install_imap2007f() {
         mv /usr/local/src/imap-2007f /usr/local
         rm -rf /usr/local/src/imap-2007f.tar.gz
         chown -R root:root /usr/local/imap-2007f
+        # for php-imap compilation
+        if [ ! -e "/usr/lib/x86_64-linux-gnu/libc-client.a" ] && [ -e "/usr/local/imap-2007f/lib/libc-client.a" ]; then
+               ln -s /usr/local/imap-2007f/lib/libc-client.a /usr/lib/x86_64-linux-gnu/libc-client.a
+        fi
+	
+        if [ ! -e "/usr/lib/libc-client.a" ] && [ -e "/usr/local/imap-2007f/lib/libc-client.a" ]; then
+               ln -s /usr/local/imap-2007f/lib/libc-client.a /usr/lib/libc-client.a
+        fi
 }
 
 install_phpfpm() {
@@ -680,15 +729,15 @@ install_phpfpm() {
         rm -rf ./php-*
 
         # download the source tar.gz, extract it then configure it
-        wget -O php-7.2.8.tar.gz http://jp2.php.net/get/php-7.2.8.tar.gz/from/this/mirror
-        SHA256SUM_SHOULD_BE="a0cb9bf2f78498fc090eb553df03cdacc198785dec0818efa7a1804c2b7a8722"
-	SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./php-7.2.8.tar.gz | cut -d " " -f 1)"
+        wget -O php-7.4.7.tar.gz http://jp2.php.net/get/php-7.4.7.tar.gz/from/this/mirror
+        SHA256SUM_SHOULD_BE="a554a510190e726ebe7157fb00b4aceabdb50c679430510a3b93cbf5d7546e44"
+	SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./php-7.4.7.tar.gz | cut -d " " -f 1)"
 	[ "$SHA256SUM_SHOULD_BE" != "$SHA256SUM_COMPUTED" ] && echo "oops...sha256 checksum doesnt match." && exit 2 || echo "sha256 checksum matched."
-        tar zxvf ./php-7.2.8.tar.gz
-        chown -R root:root ./php-7.2.8
-        rm -rf ./php-7.2.8.tar.gz
-        cd ./php-7.2.8
-        ./configure --prefix=/usr/local/php-7.2.8    \
+        tar zxvf ./php-7.4.7.tar.gz
+        chown -R root:root ./php-7.4.7
+        rm -rf ./php-7.4.7.tar.gz
+        cd ./php-7.4.7
+        ./configure --prefix=/usr/local/php-7.4.7    \
                     --enable-fpm                      \
                     --enable-opcache                  \
                     --with-fpm-user=nginx             \
@@ -718,7 +767,7 @@ install_phpfpm() {
                     --with-mcrypt                     \
                     --with-iconv                      \
                     --with-pspell                     \
-                    --with-gd                         \
+                    --enable-gd                       \
                     --enable-gd-native-ttf            \
                     --enable-gd-jis-conv              \
                     --with-openssl                    \
@@ -735,40 +784,41 @@ install_phpfpm() {
         make
         #make test
         make install
-        cp /usr/local/src/php-7.2.8/php.ini-production /usr/local/php-7.2.8/lib/php.ini
-        cp /usr/local/php-7.2.8/etc/php-fpm.conf.default /usr/local/php-7.2.8/etc/php-fpm.conf
+        cp /usr/local/src/php-7.4.7/php.ini-production /usr/local/php-7.4.7/lib/php.ini
+        cp /usr/local/php-7.4.7/etc/php-fpm.conf.default /usr/local/php-7.4.7/etc/php-fpm.conf
 
         # php.ini setting
-        sed -i -- "/\[opcache\]/a zend_extension=/usr/local/php-7.2.8/lib/php/extensions/no-debug-non-zts-20170718/opcache.so" /usr/local/php-7.2.8/lib/php.ini
-        sed -i -- "s|;opcache.enable=1|opcache.enable=1|g" /usr/local/php-7.2.8/lib/php.ini
-        sed -i -- "s|;opcache.enable_cli=1|opcache.enable_cli=1|g" /usr/local/php-7.2.8/lib/php.ini
-        sed -i -- "s|;opcache.memory_consumption=128|opcache.memory_consumption=128|g" /usr/local/php-7.2.8/lib/php.ini
-        sed -i -- "s|;opcache.interned_strings_buffer=8|opcache.interned_strings_buffer=8|g" /usr/local/php-7.2.8/lib/php.ini
-        sed -i -- "s|;opcache.max_accelerated_files=10000|opcache.max_accelerated_files=10000|g" /usr/local/php-7.2.8/lib/php.ini
-        sed -i -- "s|;opcache.use_cwd=1|opcache.use_cwd=0|g" /usr/local/php-7.2.8/lib/php.ini
-        sed -i -- "s|;opcache.validate_timestamps=1|opcache.validate_timestamps=0|g" /usr/local/php-7.2.8/lib/php.ini
-        sed -i -- "s|;opcache.save_comments=1|opcache.save_comments=0|g" /usr/local/php-7.2.8/lib/php.ini
-        sed -i -- "s|;opcache.enable_file_override=0|opcache.enable_file_override=1|g" /usr/local/php-7.2.8/lib/php.ini
-        sed -i -- 's/.*;date.timezone =.*/date.timezone = \"Asia\/Taipei\"/g' /usr/local/php-7.2.8/lib/php.ini
-        echo "safe_mode = Off" >> /usr/local/php-7.2.8/lib/php.ini
-        sed -i -- 's|memory_limit = 128M|memory_limit = 256M|g' /usr/local/php-7.2.8/lib/php.ini
+        sed -i -- "/\[opcache\]/a zend_extension=/usr/local/php-7.4.7/lib/php/extensions/no-debug-non-zts-20190902/opcache.so" /usr/local/php-7.4.7/lib/php.ini
+        sed -i -- "s|;opcache.enable=1|opcache.enable=1|g" /usr/local/php-7.4.7/lib/php.ini
+        sed -i -- "s|;opcache.enable_cli=1|opcache.enable_cli=1|g" /usr/local/php-7.4.7/lib/php.ini
+        sed -i -- "s|;opcache.memory_consumption=128|opcache.memory_consumption=128|g" /usr/local/php-7.4.7/lib/php.ini
+        sed -i -- "s|;opcache.interned_strings_buffer=8|opcache.interned_strings_buffer=8|g" /usr/local/php-7.4.7/lib/php.ini
+        sed -i -- "s|;opcache.max_accelerated_files=10000|opcache.max_accelerated_files=10000|g" /usr/local/php-7.4.7/lib/php.ini
+        sed -i -- "s|;opcache.use_cwd=1|opcache.use_cwd=0|g" /usr/local/php-7.4.7/lib/php.ini
+        sed -i -- "s|;opcache.validate_timestamps=1|opcache.validate_timestamps=0|g" /usr/local/php-7.4.7/lib/php.ini
+        sed -i -- "s|;opcache.save_comments=1|opcache.save_comments=0|g" /usr/local/php-7.4.7/lib/php.ini
+        sed -i -- "s|;opcache.enable_file_override=0|opcache.enable_file_override=1|g" /usr/local/php-7.4.7/lib/php.ini
+        sed -i -- 's/.*;date.timezone =.*/date.timezone = \"Asia\/Taipei\"/g' /usr/local/php-7.4.7/lib/php.ini
+        echo "safe_mode = Off" >> /usr/local/php-7.4.7/lib/php.ini
+        sed -i -- 's|memory_limit = 128M|memory_limit = 512M|g' /usr/local/php-7.4.7/lib/php.ini
+        sed -i -- 's|max_execution_time = 30|max_execution_time = 60|g' /usr/local/php-7.4.7/lib/php.ini
 
         # php-fpm.conf setting
-        sed -i -- '/^include/s/include/;include/' /usr/local/php-7.2.8/etc/php-fpm.conf
-        sed -i -- 's|;pid = run/php-fpm.pid|pid = run/php-fpm.pid|g' /usr/local/php-7.2.8/etc/php-fpm.conf
-        echo "[www]" >> /usr/local/php-7.2.8/etc/php-fpm.conf
-        echo "listen = /usr/local/php-7.2.8/var/run/php-fpm.sock" >> /usr/local/php-7.2.8/etc/php-fpm.conf
-        echo "listen.backlog = -1" >> /usr/local/php-7.2.8/etc/php-fpm.conf
-        echo "listen.owner = nginx" >> /usr/local/php-7.2.8/etc/php-fpm.conf
-        echo "listen.group = nginx" >> /usr/local/php-7.2.8/etc/php-fpm.conf
-        echo "listen.mode=0660" >> /usr/local/php-7.2.8/etc/php-fpm.conf
-        echo "user = nginx" >> /usr/local/php-7.2.8/etc/php-fpm.conf
-        echo "group = nginx" >> /usr/local/php-7.2.8/etc/php-fpm.conf
-        echo "pm = dynamic" >> /usr/local/php-7.2.8/etc/php-fpm.conf
-        echo "pm.max_children = 20" >> /usr/local/php-7.2.8/etc/php-fpm.conf
-        echo "pm.start_servers = 10" >> /usr/local/php-7.2.8/etc/php-fpm.conf
-        echo "pm.min_spare_servers = 5" >> /usr/local/php-7.2.8/etc/php-fpm.conf
-        echo "pm.max_spare_servers = 20" >> /usr/local/php-7.2.8/etc/php-fpm.conf
+        sed -i -- '/^include/s/include/;include/' /usr/local/php-7.4.7/etc/php-fpm.conf
+        sed -i -- 's|;pid = run/php-fpm.pid|pid = run/php-fpm.pid|g' /usr/local/php-7.4.7/etc/php-fpm.conf
+        echo "[www]" >> /usr/local/php-7.4.7/etc/php-fpm.conf
+        echo "listen = /usr/local/php-7.4.7/var/run/php-fpm.sock" >> /usr/local/php-7.4.7/etc/php-fpm.conf
+        echo "listen.backlog = -1" >> /usr/local/php-7.4.7/etc/php-fpm.conf
+        echo "listen.owner = nginx" >> /usr/local/php-7.4.7/etc/php-fpm.conf
+        echo "listen.group = nginx" >> /usr/local/php-7.4.7/etc/php-fpm.conf
+        echo "listen.mode=0660" >> /usr/local/php-7.4.7/etc/php-fpm.conf
+        echo "user = nginx" >> /usr/local/php-7.4.7/etc/php-fpm.conf
+        echo "group = nginx" >> /usr/local/php-7.4.7/etc/php-fpm.conf
+        echo "pm = dynamic" >> /usr/local/php-7.4.7/etc/php-fpm.conf
+        echo "pm.max_children = 20" >> /usr/local/php-7.4.7/etc/php-fpm.conf
+        echo "pm.start_servers = 10" >> /usr/local/php-7.4.7/etc/php-fpm.conf
+        echo "pm.min_spare_servers = 5" >> /usr/local/php-7.4.7/etc/php-fpm.conf
+        echo "pm.max_spare_servers = 20" >> /usr/local/php-7.4.7/etc/php-fpm.conf
 
         # setup logrotate
 cat > /etc/logrotate.d/php-fpm << EOF
@@ -784,7 +834,7 @@ cat > /etc/logrotate.d/php-fpm << EOF
 EOF
 
         # create systemd unit file
-        cat > /lib/systemd/system/php7.2-fpm.service << "EOF"
+        cat > /lib/systemd/system/php7.4-fpm.service << "EOF"
 [Unit]
 Description=PHP FastCGI process manager
 After=local-fs.target network.target nginx.service
@@ -798,39 +848,60 @@ WantedBy=multi-user.target
 EOF
 
         # set files/directories owner and group
-        chown -R nginx:nginx /usr/local/php-7.2.8
+        chown -R nginx:nginx /usr/local/php-7.4.7
         chown root:root /etc/logrotate.d/php-fpm
         chmod 644 /etc/logrotate.d/php-fpm
-        chown root:root /lib/systemd/system/php7.2-fpm.service
-        chmod 644 /lib/systemd/system/php7.2-fpm.service
+        chown root:root /lib/systemd/system/php7.4-fpm.service
+        chmod 644 /lib/systemd/system/php7.4-fpm.service
+
+	# change multiple php binaries priority
+	update-alternatives --install /usr/bin/php php /usr/local/php-7.4.7/bin/php 99
+	update-alternatives --display php
+	# if u wanna set priority manually , use this command:
+	# update-alternatives --config php
 }
 
 install_php-memcached() {
-        cd /usr/local/src
+
+	cd /usr/local/src
+	## install libmemcached first
+	#wget https://launchpad.net/libmemcached/1.0/1.0.18/+download/libmemcached-1.0.18.tar.gz
+	#wget -O libmemcached-1.0.18.tar.gz.md5 https://launchpad.net/libmemcached/1.0/1.0.18/+download/libmemcached-1.0.18.tar.gz/+md5
+        #MD5SUM_IN_FILE="$(cat ./libmemcached-1.0.18.tar.gz.md5 | cut -d " " -f 1)"
+        #MD5SUM_COMPUTED="$(/usr/bin/md5sum ./libmemcached-1.0.18.tar.gz | cut -d " " -f 1)"
+        #[ "$MD5SUM_IN_FILE" != "$MD5SUM_COMPUTED" ] && echo "oops...md5 checksum doesnt match." && exit 2 || echo "md5 checksum matched."
+	#tar zxvf ./libmemcached-1.0.18.tar.gz
+	#cd libmemcached-1.0.18
+	#./configure
+	#make
+	#make install
+
         git clone https://github.com/php-memcached-dev/php-memcached.git
         cd php-memcached
-        git checkout php7
-        /usr/local/php-7.2.8/bin/phpize
-        ./configure --disable-memcached-sasl --with-php-config=/usr/local/php-7.2.8/bin/php-config
+	# dont use php7 branch, switch to master branch
+        #git checkout php7
+	git checkout master
+        /usr/local/php-7.4.7/bin/phpize
+        ./configure --disable-memcached-sasl --with-php-config=/usr/local/php-7.4.7/bin/php-config
         make && make install
-        chown nginx:nginx /usr/local/php-7.2.8/lib/php/extensions/no-debug-non-zts-20170718/memcached.so
-        echo 'extension=/usr/local/php-7.2.8/lib/php/extensions/no-debug-non-zts-20170718/memcached.so' >> /usr/local/php-7.2.8/lib/php.ini
-        sed -i -- 's|session.save_handler = files|session.save_handler = memcached|g' /usr/local/php-7.2.8/lib/php.ini
-        sed -i -- "s|;session.save_path = \"/tmp\"|session.save_path = \"$SESSION_SAVE_PATH\"|g" /usr/local/php-7.2.8/lib/php.ini
+        chown nginx:nginx /usr/local/php-7.4.7/lib/php/extensions/no-debug-non-zts-20190902/memcached.so
+        echo 'extension=/usr/local/php-7.4.7/lib/php/extensions/no-debug-non-zts-20190902/memcached.so' >> /usr/local/php-7.4.7/lib/php.ini
+        sed -i -- 's|session.save_handler = files|session.save_handler = memcached|g' /usr/local/php-7.4.7/lib/php.ini
+        sed -i -- "s|;session.save_path = \"/tmp\"|session.save_path = \"$SESSION_SAVE_PATH\"|g" /usr/local/php-7.4.7/lib/php.ini
 }
 
 deploy_phpmyadmin() {
         [ "$DEPLOY_PHPMYADMIN" != "yes" ] && echo "skip phpmyadmin deployment." && return || echo "deploy phpmyadmin ---> yes"
         [ -d "/var/www/$SERVER_FQDN/phpmyadmin/" ] && echo "seems like phpmyadmin already existed." && return || echo "ready to deploy phpmyadmin."
         cd /var/www/$SERVER_FQDN/
-        wget https://files.phpmyadmin.net/phpMyAdmin/4.8.2/phpMyAdmin-4.8.2-all-languages.tar.gz.sha256
-        wget https://files.phpmyadmin.net/phpMyAdmin/4.8.2/phpMyAdmin-4.8.2-all-languages.tar.gz
-        SHA256SUM_IN_FILE="$(cat ./phpMyAdmin-4.8.2-all-languages.tar.gz.sha256 | cut -d " " -f 1)"
-        SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./phpMyAdmin-4.8.2-all-languages.tar.gz | cut -d " " -f 1)"
+	wget https://files.phpmyadmin.net/snapshots/phpMyAdmin-5.1+snapshot-all-languages.tar.gz
+	wget https://files.phpmyadmin.net/snapshots/phpMyAdmin-5.1+snapshot-all-languages.tar.gz.sha256
+        SHA256SUM_IN_FILE="$(cat ./phpMyAdmin-5.1+snapshot-all-languages.tar.gz.sha256 | cut -d " " -f 1)"
+        SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./phpMyAdmin-5.1+snapshot-all-languages.tar.gz | cut -d " " -f 1)"
         [ "$SHA256SUM_IN_FILE" != "$SHA256SUM_COMPUTED" ] && echo "oops...sha256 checksum doesnt match." && exit 2 || echo "sha256 checksum matched."
-        tar zxvf ./phpMyAdmin-4.8.2-all-languages.tar.gz
-        rm -rf ./phpMyAdmin-4.8.2-all-languages.tar.gz*
-	mv phpMyAdmin-4.8.2-all-languages phpmyadmin
+        tar zxvf ./phpMyAdmin-5.1+snapshot-all-languages.tar.gz
+        rm -rf ./phpMyAdmin-5.1+snapshot-all-languages.tar.gz*
+	mv phpMyAdmin-5.1+snapshot-all-languages phpmyadmin
         cd ./phpmyadmin/
         cat > /var/www/$SERVER_FQDN/phpmyadmin/config.inc.php << "EOF"
 <?php
@@ -854,17 +925,18 @@ EOF
 }
 
 deploy_wordpress() {
-        [ "$DEPLOY_WORDPRESS" != "yes" ] && echo "skip wordpress deployment." && return || echo "deploy wordpress ---> yes"
-        [ -d "/var/www/$SERVER_FQDN/wordpress/" ] && echo "seems like wordpress already installed." && return || echo "ready to deploy wordpress."
-        cd /var/www/$SERVER_FQDN/
-        wget https://wordpress.org/wordpress-4.9.8.tar.gz.md5
-        wget https://wordpress.org/wordpress-4.9.8.tar.gz
-        MD5SUM_IN_FILE="$(cat ./wordpress-4.9.8.tar.gz.md5)"
-        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./wordpress-4.9.8.tar.gz | cut -d " " -f 1)"
+        [ "$DEPLOY_WORDPRESS" != "yes" -o -z "$WORDPRESS_FQDN" ] && echo "skip wordpress deployment." && return || echo "deploy wordpress ---> yes"
+        [ -f "/var/www/$WORDPRESS_FQDN/wp-config.php" ] && echo "seems like wordpress already installed." && return || echo "ready to deploy wordpress"
+        cd /var/www/$WORDPRESS_FQDN/
+        wget https://wordpress.org/wordpress-5.4.2.tar.gz.md5
+        wget https://wordpress.org/wordpress-5.4.2.tar.gz
+        MD5SUM_IN_FILE="$(cat ./wordpress-5.4.2.tar.gz.md5)"
+        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./wordpress-5.4.2.tar.gz | cut -d " " -f 1)"
         [ "$MD5SUM_IN_FILE" != "$MD5SUM_COMPUTED" ] && echo "oops...md5 checksum doesnt match." && exit 2 || echo "md5 checksum matched."
-        tar zxvf ./wordpress-4.9.8.tar.gz
-        rm -rf ./wordpress-4.9.8.tar.gz*
-        cd ./wordpress
+        tar zxvf ./wordpress-5.4.2.tar.gz
+	mv ./wordpress/* /var/www/$WORDPRESS_FQDN/
+        rm -rf ./wordpress-5.4.2.tar.gz*
+	rm -rf ./wordpress/
 # Hint: salt hash must the same at every backend nodes
         cat > wp-config.php << "EOF"
 <?php
@@ -914,10 +986,10 @@ deploy_cacti() {
         [ "$DEPLOY_CACTI" != "yes" ] && echo "skip cacti deployment." && return || echo "deploy cacti ---> yes"
         [ -d "/var/www/$SERVER_FQDN/cacti/" ] && echo "seems like cacti already existed." && return || echo "ready to deploy cacti"
         cd /var/www/$SERVER_FQDN/
-        wget https://www.cacti.net/downloads/cacti-1.1.38.tar.gz
-        tar zxvf ./cacti-1.1.38.tar.gz
-        rm -rf ./cacti-1.1.38.tar.gz*
-        cd ./cacti-1.1.38/
+        wget https://www.cacti.net/downloads/cacti-1.2.12.tar.gz
+        tar zxvf ./cacti-1.2.12.tar.gz
+        rm -rf ./cacti-1.2.12.tar.gz*
+        cd ./cacti-1.2.12/
         mv ./include/config.php ./include/config.php.default
         cat > ./include/config.php << "EOF"
 <?php
@@ -938,7 +1010,7 @@ EOF
        sed -i -- "s|CACTI_DB_USER|$CACTI_DB_USER|g" ./include/config.php
        sed -i -- "s|CACTI_DB_PASS|$CACTI_DB_PASS|g" ./include/config.php
        sed -i -- "s|CACTI_DB_PORT|$CACTI_DB_PORT|g" ./include/config.php
-       ln -s /var/www/$SERVER_FQDN/cacti-1.1.38 /var/www/$SERVER_FQDN/cacti
+       ln -s /var/www/$SERVER_FQDN/cacti-1.2.12 /var/www/$SERVER_FQDN/cacti
        touch /var/www/$SERVER_FQDN/cacti/log/cacti.log
        # put cron job in /etc/cron.d/
        cat > /etc/cron.d/cacti << "EOF"
@@ -968,11 +1040,12 @@ deploy_cacti_spine() {
         [ "$DEPLOY_CACTI" != "yes" ] && echo "skip cacti spine deployment." && return || echo "deploy cacti spine ---> yes"
         [ -f "/usr/local/spine/bin/spine" ] && echo "seems like cacti spine already existed." && return || echo "ready to deploy cacti spine"
         apt-get update
-        apt-get install libmysqlclient-dev libssl-dev libmysqlclient-dev libsnmp-dev help2man dos2unix -y
+        apt-get install libmysqlclient-dev libssl-dev libsnmp-dev help2man dos2unix -y
 
         cd /usr/local/src
         git clone https://github.com/Cacti/spine
         cd ./spine
+	chmod +x ./bootstrap
         ./bootstrap
         ./configure
         make
@@ -998,7 +1071,7 @@ start_nginx_service() {
         # set DocumentRoot owner and group
         chown -R nginx:nginx /var/www/localhost
         chown -R nginx:nginx /var/www/$SERVER_FQDN
-        chown -R nginx:nginx /var/www/www.bubu.com
+        chown -R nginx:nginx /var/www/$WORDPRESS_FQDN
 
         systemctl daemon-reload
 
@@ -1010,7 +1083,7 @@ start_nginx_service() {
         if [ -L /usr/local/nginx ] && [ -d /usr/local/nginx ]; then
              rm -rf /usr/local/nginx
         fi
-        ln -s /usr/local/nginx-1.15.2 /usr/local/nginx
+        ln -s /usr/local/nginx-1.18.0 /usr/local/nginx
         systemctl enable nginx.service
         systemctl start nginx.service
         systemctl status nginx.service
@@ -1018,16 +1091,16 @@ start_nginx_service() {
         # start php-fpm and make it as autostart service
         OLD_PHPFPM_PROCESS_EXISTED="$(netstat -anp | grep php-fpm | wc -l)"
         if [ "$OLD_PHPFPM_PROCESS_EXISTED" -gt 0 ]; then
-             systemctl stop php7.2-fpm.service
+             systemctl stop php7.4-fpm.service
         fi
         if [ -L /usr/local/php ] && [ -d /usr/local/php ]; then
              rm -rf /usr/local/php
         fi
 
-        ln -s /usr/local/php-7.2.8 /usr/local/php
-        systemctl enable php7.2-fpm.service
-        systemctl start php7.2-fpm.service
-        systemctl status php7.2-fpm.service
+        ln -s /usr/local/php-7.4.7 /usr/local/php
+        systemctl enable php7.4-fpm.service
+        systemctl start php7.4-fpm.service
+        systemctl status php7.4-fpm.service
 }
 
 main() {

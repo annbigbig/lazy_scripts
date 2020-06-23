@@ -1,25 +1,25 @@
 #!/bin/bash
 #
 # This script will configure a Bind9 server as secondary DNS server with chroot environment
-# (tested on Ubuntu mate 18.04 LTS)
+# (tested on Ubuntu mate 20.04 LTS)
 # before running this script, please set some parameters below:
 #
 ##########################################################################################################
 #
 DOMAIN_NAME="dq5rocks.com"
-FIRST_OCTET="172"
-SECOND_OCTET="28"
-THIRD_OCTET="117"
+FIRST_OCTET="192"
+SECOND_OCTET="168"
+THIRD_OCTET="0"
 #
-TRUSTED_LOCAL_SUBNET="172.28.117.0/24"
+TRUSTED_LOCAL_SUBNET="192.168.0.0/24"
 TRUSTED_VPN_SUBNET="10.8.0.0/24"
-PRIMARY_DNS_IP_ADDRESS="172.28.117.131"
+PRIMARY_DNS_IP_ADDRESS="192.168.0.107"
 #
 ##########################################################################################################
 # *** Hint ***
-# how to query a specifc DNS server (ex: 172.28.117.132) ? use this command : 
-#  $ nslookup www.dq5rocks.com 172.28.117.132
-#  $ nslookup 172.28.117.160 172.28.117.132
+# how to query a specifc DNS server (ex: 192.168.0.132) ? use this command : 
+#  $ nslookup www.dq5rocks.com 192.168.0.132
+#  $ nslookup 192.168.0.160 192.168.0.132
 #
 ##########################################################################################################
 # *** SPECIAL THANKS ***
@@ -29,7 +29,9 @@ PRIMARY_DNS_IP_ADDRESS="172.28.117.131"
 # https://stackoverflow.com/questions/23929235/multi-line-string-with-extra-space-preserved-indentation
 # http://3108485.blog.51cto.com/3098485/1911116
 # http://blog.chinaunix.net/uid-21142030-id-5673064.html
-#
+# http://www.unixwiz.net/techtips/bind9-chroot.html
+# https://blog.apnic.net/2019/05/23/how-to-deploying-dnssec-with-bind-and-ubuntu-server/
+# https://tecadmin.net/configure-rndc-for-bind9/
 ##########################################################################################################
 
 
@@ -64,25 +66,28 @@ remove_previous_version() {
 
 install_dependencies() {
         apt-get install -y libcap-dev libxml2 libkrb5-dev libssl-dev
+	apt-get install -y libuv1 libuv1-dev python3 python3-all python3-ply python3-plyvel
 }
+
 
 install_bind_server() {
         cd /usr/local/src/
-        wget ftp://ftp.isc.org/isc/bind9/9.12.2-P1/bind-9.12.2-P1.tar.gz
-        wget ftp://ftp.isc.org/isc/bind9/9.12.2-P1/bind-9.12.2-P1.tar.gz.sha512.asc
+        wget https://downloads.isc.org/isc/bind9/9.16.4/bind-9.16.4.tar.xz
+        wget https://downloads.isc.org/isc/bind9/9.16.4/bind-9.16.4.tar.xz.sha512.asc
 
-        # how to verify the integrity of downloaded tar.gz file ? see here:
-        # https://kb.isc.org/article/AA-01225/0/Verifying-the-Integrity-of-ISC-Downloads-using-PGP-GPG.html
+        # how to verify the integrity of downloaded tar.xz file ? see here:
+        # https://kb.isc.org/docs/aa-01225
 
-        PUBLIC_KEY="$(gpg --verify ./bind-9.12.2-P1.tar.gz.sha512.asc ./bind-9.12.2-P1.tar.gz 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
+        PUBLIC_KEY="$(gpg --verify ./bind-9.16.4.tar.xz.sha512.asc ./bind-9.16.4.tar.xz 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
         IMPORT_KEY_RESULT="$(gpg --keyserver keyserver.ubuntu.com --recv $PUBLIC_KEY 2>&1 | grep 'codesign@isc.org' | wc -l)"
-        VERIFY_SIGNATURE_RESULT="$(gpg --verify ./bind-9.12.2-P1.tar.gz.sha512.asc ./bind-9.12.2-P1.tar.gz 2>&1 | tr -s ' ' | grep 'BE0E 9748 B718 253A 28BB 89FF F1B1 1BF0 5CF0 2E57' | wc -l)"
+        VERIFY_SIGNATURE_RESULT="$(gpg --verify ./bind-9.16.4.tar.xz.sha512.asc ./bind-9.16.4.tar.xz 2>&1 | tr -s ' ' | grep 'codesign@isc.org' | wc -l)"
         [ "$IMPORT_KEY_RESULT" -gt 0 ] && echo "pubkey $PUBLIC_KEY imported successfuly" ||  exit 2
         [ "$VERIFY_SIGNATURE_RESULT" -gt 0 ] && echo "verify signature successfully" || exit 2
 
-        tar zxvf ./bind-9.12.2-P1.tar.gz
-        cd bind-9.12.2-P1
-        ./configure --prefix=/usr/local/bind-9.12.2-P1           \
+
+        tar xvf ./bind-9.16.4.tar.xz
+        cd bind-9.16.4
+        ./configure --prefix=/usr/local/bind-9.16.4           \
                     --sysconfdir=/etc                         \
                     --localstatedir=/var                      \
                     --mandir=/usr/share/man                   \
@@ -93,11 +98,11 @@ install_bind_server() {
                     --with-randomdev=/dev/urandom
         make
         make install
-        ln -s /usr/local/bind-9.12.2-P1 /usr/local/bind9
-        install -v -m755 -d /usr/share/doc/bind-9.12.2-P1/{arm,misc}
-        install -v -m644 doc/arm/*.html /usr/share/doc/bind-9.12.2-P1/arm
-        install -v -m644 doc/misc/{dnssec,ipv6,migrat*,options,rfc-compliance,roadmap,sdb} /usr/share/doc/bind-9.12.2-P1/misc
+        ln -s /usr/local/bind-9.16.4 /usr/local/bind9
+        install -v -m755 -d /usr/share/doc/bind-9.16.4/{arm,misc}
+        install -v -m644 doc/misc/{options,rfc-compliance} /usr/share/doc/bind-9.16.4/misc
 }
+
 
 export_sbin_dir_to_path() {
         cat > /etc/profile.d/named.sh << EOF
@@ -124,25 +129,19 @@ create_necessary_directories() {
 	#          |           +-- pz
         #          +-- usr
         #          |    +-- lib
-	#          |         +-- x86_64-linux-gnu 
-        #          |                        +-- openssl-1.0.0
-        #          |                                    +-- engines 
+        #          |           +-- engines 
 	#          |
         #          +-- var
         #               +-- run
-        #          
-	#          
         #
+          
         install -d -m770 -o named -g named /srv/named
         cd /srv/named
-        mkdir -p dev etc/namedb/{slave,pz} var/run/named
-	mkdir -p usr/lib/x86_64-linux-gnu/openssl-1.0.0/engines
+        mkdir -p dev etc/namedb/{slave,pz} usr/lib/engines var/run/named
         mknod /srv/named/dev/null c 1 3
         mknod /srv/named/dev/urandom c 1 9
         chmod 666 /srv/named/dev/{null,urandom}
         cp /etc/localtime etc
-        touch /srv/named/managed-keys.bind
-	cp /usr/lib/x86_64-linux-gnu/openssl-1.0.0/engines/*.so /srv/named/usr/lib/x86_64-linux-gnu/openssl-1.0.0/engines
 }
 
 edit_rsyslog_config_and_restart_it() {
@@ -169,9 +168,9 @@ ExecStop=/usr/local/bind9/sbin/rndc stop
 WantedBy=multi-user.target
 EOF
 
-        # /etc/rndc.conf and /srv/named/etc/named.conf
-	rndc-confgen -r /dev/urandom -b 512 > /etc/rndc.conf &&
-	sed '/conf/d;/^#/!d;s:^# ::' /etc/rndc.conf > /srv/named/etc/named.conf
+        # generate /srv/named/etc/rndc.key and /srv/named/etc/named.conf
+        /usr/local/bind9/sbin/rndc-confgen -a -b 512 -t /srv/named
+        cat /srv/named/etc/rndc.key > /srv/named/etc/named.conf
 
         # append to /srv/named/etc/named.conf
 cat >> /srv/named/etc/named.conf << "EOF"
@@ -195,8 +194,9 @@ options {
 	                8.8.4.4;
         };
 
-        dnssec-enable no;     # write this line only when host Internal(private) DNS server
-        dnssec-validation no; # 'no' if used in Internal(private) DNS server, or 'auto' if used in normal situation
+	                       # option 'dnssec-enable' is obsolete and should be removed
+        #dnssec-enable no;     # write this line only when host Internal(private) DNS server
+        dnssec-validation auto; # 'no' if used in Internal(private) DNS server, or 'auto' if used in normal situation
         auth-nxdomain no;    # conform to RFC1035
         listen-on-v6 { none; };
 };
@@ -396,7 +396,7 @@ EOF
         chown -R named:named /srv/named
 
         # check if there are syntax error in config files / zone files or not
-	named-checkconf -t /srv/named
+	/usr/local/bind9/sbin/named-checkconf -t /srv/named
 }
 
 start_bind_service() {

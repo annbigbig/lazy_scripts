@@ -10,8 +10,8 @@ NAGIOS_LOGIN_PASSWORD="nagiospassword"
 ADMIN_EMAIL_ADDRESS="annbigbig@gmail.com"
 #
 read -r -d '' MONITORED_HOSTS << EOV
-vhostu01 172.28.117.131
-vhostu02 172.28.117.132
+vhost07 192.168.0.107
+vhost08 192.168.0.108
 EOV
 #
 read -r -d '' MONITORED_SERVICES << EOV
@@ -28,6 +28,7 @@ EOV
 # https://www.howtoforge.com/tutorial/ubuntu-nagios/#step-install-nrpe-service
 # https://linuxconfig.org/install-nagios-on-ubuntu-18-04-bionic-beaver-linux
 # https://serverfault.com/questions/849507/systemctl-doesnt-recognize-my-service-default-start-contains-no-runlevels-abo
+# https://kifarunix.com/install-and-setup-nagios-core-on-ubuntu-20-04/
 ##########################################################################################################
 # *** HINT ***
 # after running this script , then you could open broweser , link to URL
@@ -57,9 +58,9 @@ remove_previous_installation() {
 
 install_prerequisites() {
         apt-get update
-        apt-get install wget build-essential apache2 php php-gd libgd-dev sendmail unzip -y
-        apt-get install mailutils -y
-        ln -s /usr/bin/mail /bin/mail
+        apt-get install -y wget build-essential apache2 php php-gd libgd-dev sendmail unzip
+        apt-get install -y mailutils
+	apt-get install -y autoconf libc6 make libapache2-mod-php
 }
 
 add_users_and_groups() {
@@ -72,9 +73,9 @@ add_users_and_groups() {
 install_nagios() {
         # Install Nagios Core
         cd /usr/local/src/
-        wget https://assets.nagios.com/downloads/nagioscore/releases/nagios-4.4.2.tar.gz
+        wget https://assets.nagios.com/downloads/nagioscore/releases/nagios-4.4.6.tar.gz
         tar -xzf nagios*.tar.gz
-        cd nagios-4.4.2
+        cd nagios-4.4.6
         ./configure --with-nagios-group=nagios --with-command-group=nagcmd
         make all
         make install
@@ -87,18 +88,17 @@ install_nagios() {
 
         # Install the Nagios Plugins
         cd /usr/local/src/
-        wget https://nagios-plugins.org/download/nagios-plugins-2.2.1.tar.gz
+	wget https://nagios-plugins.org/download/nagios-plugins-2.3.3.tar.gz
         tar -xzf nagios-plugins*.tar.gz
-        cd ./nagios-plugins-2.2.1/
+        cd ./nagios-plugins-2.3.3/
         ./configure --with-nagios-user=nagios --with-nagios-group=nagios --with-openssl
         make
         make install
 
         # Download all of the service checkers
         cd /tmp
-        wget https://github.com/dduenasd/check_tomcat.py/archive/v2.2.tar.gz
-        tar zxvf /tmp/v2.2.tar.gz
-        mv /tmp/check_tomcat.py-2.2/check_tomcat.py /usr/local/nagios/libexec/
+	wget https://raw.githubusercontent.com/dduenasd/check_tomcat.py/master/check_tomcat.py
+	mv /tmp/check_tomcat.py /usr/local/nagios/libexec/
         chown nagios:nagios /usr/local/nagios/libexec/check_tomcat.py
         chmod 755 /usr/local/nagios/libexec/check_tomcat.py
 
@@ -149,8 +149,8 @@ define command{
 EOF
 
         # enable Apache modules
-        a2enmod rewrite
-        a2enmod cgi
+        /usr/sbin/a2enmod rewrite
+        /usr/sbin/a2enmod cgi
 
         # set login username and passwords
         echo $NAGIOS_LOGIN_PASSWORD | htpasswd -i -c /usr/local/nagios/etc/htpasswd.users $NAGIOS_LOGIN_USERNAME
@@ -158,16 +158,32 @@ EOF
         # enable the Nagios virtualhost
         ln -s /etc/apache2/sites-available/nagios.conf /etc/apache2/sites-enabled/
 
-        # for supressing Error: 'Starting nagios (via systemctl): nagios.serviceFailed'
-        mv /etc/init.d/nagios /tmp
-        cp /etc/init.d/skeleton /etc/init.d/nagios
-        sed -i -- 's|DESC="Description of the service"|DESC="Nagios"|g' /etc/init.d/nagios
-        sed -i '/DAEMON=\/usr\/sbin\/daemonexecutablename/d' /etc/init.d/nagios
-        echo "NAME=nagios" >> /etc/init.d/nagios
-        echo 'DAEMON=/usr/local/nagios/bin/$NAME' >> /etc/init.d/nagios
-        echo 'DAEMON_ARGS="-d /usr/local/nagios/etc/nagios.cfg"' >> /etc/init.d/nagios
-        echo 'PIDFILE=/usr/local/nagios/var/$NAME.lock' >> /etc/init.d/nagios
-        chmod +x /etc/init.d/nagios
+	# /etc/init.d/nagios   ----->   for supressing error messages when nagios service start at first time
+	cat > /etc/init.d/nagios << "EOF"
+DESC="Nagios"
+NAME=nagios
+DAEMON=/usr/local/nagios/bin/$NAME
+DAEMON_ARGS="-d /usr/local/nagios/etc/nagios.cfg"
+PIDFILE=/usr/local/nagios/var/$NAME.lock
+EOF
+	chmod 755 /etc/init.d/nagios
+	chown root:root /etc/init.d/nagios
+
+	# systemd unit file
+	cat > /lib/systemd/system/nagios.service << "EOF"
+[Unit]
+Description=Nagios
+BindTo=network.target
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=simple
+User=nagios
+Group=nagios
+ExecStart=/usr/local/nagios/bin/nagios /usr/local/nagios/etc/nagios.cfg
+EOF
 
         # configure hosts you wanna monitor in LAN
         while read -r lineX; do
@@ -226,6 +242,7 @@ EOF
 start_nagios_service() {
 	# move daemon file to /etc/systemd/system/
 	mv /etc/init.d/nagios /etc/systemd/system/
+	systemctl daemon-reload
 
         # make nagios service autostart and start it now
 	systemctl enable nagios.service
@@ -233,7 +250,7 @@ start_nagios_service() {
 
         # make apache2 service autostart and start it now
         systemctl enable apache2
-        systemctl start apache2
+        systemctl restart apache2
 }
 
 main() {

@@ -1,5 +1,9 @@
 # Lazy Scripts
-these shell scripts will help you setup and configure LEMP stack && Tomcat on Ubuntu 18.04 with less painful, after executing all of the shell scripts provided here, you will have a ready-to-use PHP/JavaEE deployment environment for your webapps.
+these shell scripts will help you setup and configure LEMP stack && Tomcat on Ubuntu 20.04 LTS with less painful,  
+after executing all of the shell scripts provided here, you will have a ready-to-use PHP/JavaEE deployment environment for your webapps.  
+ > <font color=0000FF>使用這裡的shell scripts快速建立LEMP stack + JavaEE/Tomcat開發環境, 不用再被學長姐嫌棄連開發環境都搞不定 (ノ▼Д▼)ノ  
+   可使用於Ubuntu 20.04 LTS AMD64架構</font>  
+
 
 ## How to use it?
 clone this repo and make all of them executable
@@ -16,7 +20,7 @@ modify the parameters on top of shell script to suite your needs <br />
 each script has their own specific parameters that have to be configure before use, <br />
 change these to your own parameter values then save file and exit text editor
 ```
-LAN="172.28.117.0/24" # The local network that you allow packets come in from there  
+LAN="192.168.0.0/24" # The local network that you allow packets come in from there  
 VPN="10.8.0.0/24" # The VPN network that you allow packets come in from there
 ```
 then just call their names (with root privilege), the shell script been called will begin to work :-)
@@ -53,53 +57,78 @@ so my deployment environment would look like this :
     - [install nagios server](70-install_nagios_server.sh)
 
 ## More questions you might insterested in
-here are some search results that might be helpful
-* [where to buy domain name](https://www.google.com.tw/search?q=where+to+buy+domain+name)
-* [best vps providers](https://www.google.com.tw/search?q=best+vps+providers)
-* [how to set NS record for my domain](https://www.google.com.tw/search?q=how+to+set+ns+record+for+my+domain)
-* [where to buy cheap SSL certificate](https://www.google.com.tw/search?q=where+to+buy+cheap+ssl+certificate)
-* [where to find free SSL certificate](https://www.google.com.tw/search?q=where+to+find+free+ssl+certificate)
+here are some search results that might be helpful  
+* [where to buy domain name](https://www.google.com.tw/search?q=where+to+buy+domain+name)  
+* [best vps providers](https://www.google.com.tw/search?q=best+vps+providers)  
+* [how to set NS record for my domain](https://www.google.com.tw/search?q=how+to+set+ns+record+for+my+domain)  
+* [where to buy cheap SSL certificate](https://www.google.com.tw/search?q=where+to+buy+cheap+ssl+certificate)  
+* [where to find free SSL certificate](https://www.google.com.tw/search?q=where+to+find+free+ssl+certificate)  
 
 and my domain (dq5rocks.com) was bought at GoDaddy,  
 vps nodes were rent at Vultr, i have a wordpress blog running at  
  https://www.dq5rocks.com/wordpress/  
 but that's my personal choice, you could buy domain/vps from other providers you preferred.
 
-## Disclaimer Clause
+## Disclaimer Clause  
+<font size=4 color=888888>不管發生什麼事，都不是我幹的，我什麼都不知道  ∠( ᐛ 」∠)＿ </font>  
 i don't guarantee these shell scripts would work properly as you expected,  
-review the code and set the proper parameters on top of the shell scripts
+review the code and set the proper parameters on top of the shell scripts  
 carefully,  
 every single node in cluster should have their own specific configuration,  
 and sometimes these shell scripts may fail due to network connectivity  
 or just the software package tar balls were updated to newer version  
 and old ones were removed from URL links i wrote,  
-you should know the risk and i have no resposibilities for that.
+you should know the risk and i have no resposibilities for that.  
 
-## Contact me
+## Contact me  
+<font size=4 color=00FF00>沒有要叫我去上班，不要寫信給我，很忙，可能在忙著撿資源回收物換錢 (๑•́ ₃ •̀๑)</font>  
 my E-mail address : [annbigbig@gmail.com](mailto:annbigbig@gmail.com)  
 and my preferred language is Traditional Chinese (繁體中文),  
 i could use English either but with very limited-skills.
 
 ## Donate to me
-if these shell scripts actually help you a lot, you could buy me a beer :-D
+<font size=4>if these shell scripts actually help you a lot, you could buy me a beer :-D  
+如果這裡的代碼，實質上幫助了你，比如說讓你<font color=#FF0000>保住了工作</font>之類的，請不吝於打賞  
+或是幫我介紹工作，之類的，您的實質鼓勵，是我持續耕耘的原動力，萬分感謝</font>  
 
-   - [Alipay(支付寶)](#alipay) annbigbig@gmail.com  
-   - [BitCoin](#bitcoin)  ![BitcoinIcon](images/bitcoindonate.png?raw=true "Thank you") 1FGEtWkZpo3WHzQqDw6aJvsaDyxNmX4H9  
-   - [Dogecoin](#dogecoin) ![DogecoinIcon](images/doge.png?raw=true "Thank you")
-   DJEZGrRP9BY6nnJJuFXoPFXzQdJZMe6n5d  
+   - [國泰世華銀行收款帳號](#CathayBank) **銀行代碼 013 帳號 001-50-235346-9 戶名 KUN AN HSU 館前分行**  
+
+
+   - [Alipay(支付寶)](#alipay) **annbigbig@gmail.com**  
+
+
+   - [BitCoin](#Bitcoin)  ![BitcoinIcon](images/Bitcoin.png?raw=true "Thank you")  
+
+      **1FGEtWkZpo3WHzQqDw6aJvsaDyxNmX4H9**  
+
+      (If this address can accumulate 1 bitcoin, I will write a CentOS version)  
+       此地址累積到一個比特幣，我就寫一個給CentOS版本用的lazy_script  
+
+
+   - [BitCoin Cash](#BitcoinCash)  ![BitcoinCashIcon](images/BitcoinCash.png?raw=true "Thank you")  
+      **bitcoincash:qqrkre3qlz858x8zaq7ndykucldlve2lpc9lvvzgja**  
+
+
+   - [Ethereum](#Ethereum)  ![EthereeumIcon](images/Ethereum.png?raw=true "Thank you")  
+      **0x36077A217819cf747F938EbFad26Ec50e44cDC48**
+
+
+   - [Dogecoin](#dogecoin) ![DogecoinIcon](images/doge.png?raw=true "Thank you")  
+     **DJEZGrRP9BY6nnJJuFXoPFXzQdJZMe6n5d**  
 
 ## Hire me
-if u don't care my very limited poor English skill  
-and u believe i could do system admin works very well  
-u could hire me
-i wish i deserve 350 NTD dollars per hour  
-and i expect receive payment after every daily work  
-basically a regular vps node i drawn at previous picture will need 2 hours for it could be setup/configure properly
 
-如果你不在意我的拙劣英文技巧  
-而且你覺得我可以勝任系統管理工作  
-歡迎你雇用我  
-我希望我值得時薪350新台幣  
-而且我喜歡薪水每日結算  
-基本上我畫在上面的每個常規vps節點  
-會需要兩個小時的時間來完成設定/配置
+<font size=4>
+可以叫我去上班喔，很缺錢  
+寄信到[annbigbig@gmail.com](mailto:annbigbig@gmail.com)
+告訴我您是那家公司  
+我把104的履歷寄給您  
+
+能力值大概是這樣  
+系維運維：🌑🌑🌑🌑🌕  
+Java/Spring 後端Restful API開發：🌑🌑🌓🌕🌕  
+系統設計UML模型圖導出：🌑🌑🌑🌑🌕  
+UI：🌑🌓🌕🌕🌕  
+文件整理：🌑🌑🌑🌕🌕  
+</font>
+

@@ -1,10 +1,10 @@
 #!/bin/bash
-# This script will perform lots of work for optimizing Ubuntu 18.04 LTS you've just installed
+# This script will perform lots of work for optimizing Ubuntu 20.04 LTS you've just installed
 # before you run this script , please specify some parameters here:
 #
 # these parameters will be used in firewall rules:
 #####################################################################################
-LAN="172.28.117.0/24" # The local network that you allow packets come in from there
+LAN="192.168.0.0/24" # The local network that you allow packets come in from there
 VPN="10.8.0.0/24" # The VPN network that you allow packets come in from there
 #####################################################################################
 
@@ -22,10 +22,9 @@ modify_network_config() {
         NETWORK_CONFIG_FILE="/etc/network/interfaces"
         rm -rf $NETWORK_CONFIG_FILE
         cat >> $NETWORK_CONFIG_FILE << "EOF"
-# ifupdown has been replaced by netplan(5) on this system.  See
-# /etc/netplan for current configuration.
-# To re-enable ifupdown on this system, you can run:
-#    sudo apt install ifupdown
+# interfaces(5) file used by ifup(8) and ifdown(8)
+# Include files from /etc/network/interfaces.d:
+# source-directory /etc/network/interfaces.d
 auto lo
 iface lo inet loopback
 
@@ -44,8 +43,8 @@ disable_ipv6_entirely() {
 }
 
 disable_dnssec() {
-	# you need these commands if your Ubuntu version is 17.04
-	echo 'DNSSEC=off' >> /etc/systemd/resolved.conf
+	# turn off DNSSEC for speed up the dns query
+	sed -i -- 's|#DNSSEC=no|DNSSEC=no|g' /etc/systemd/resolved.conf
 	systemctl restart systemd-resolved.service
 }
 
@@ -80,7 +79,7 @@ iptables=/sbin/iptables
 loopback=127.0.0.1
 local="\$(/sbin/ip addr show eth0 | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
 #local="\$(/sbin/ip addr show wlan0 | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
-#local=10.1.1.170
+#local=192.168.0.107
 lan=$LAN
 vpn=$VPN
 # =================================================================================================
@@ -94,8 +93,8 @@ if [ -n \$local ] ; then
   \$iptables -t filter -A INPUT -s \$lan -d \$local -p all -j ACCEPT
   \$iptables -t filter -A INPUT -s \$vpn -d \$local -p all -j ACCEPT
   \$iptables -t filter -A INPUT -p udp --dport 53 -j ACCEPT
-  \$iptables -t filter -A INPUT -s \$lan -p tcp --dport 36000 --syn -m state --state NEW -m limit --limit 10/s --limit-burst 20 -j ACCEPT
-  \$iptables -t filter -A INPUT -s \$lan -p tcp --dport 36000 --syn -m state --state NEW -j DROP
+  \$iptables -t filter -A INPUT -d \$local -p tcp --dport 36000 --syn -m state --state NEW -m limit --limit 10/s --limit-burst 20 -j ACCEPT
+  \$iptables -t filter -A INPUT -d \$local -p tcp --dport 36000 --syn -m state --state NEW -j DROP
   \$iptables -t filter -A INPUT -d \$local -p tcp --dport 80 --syn -m state --state NEW -m limit --limit 160/s --limit-burst 200 -j ACCEPT
   \$iptables -t filter -A INPUT -d \$local -p tcp --dport 80 --syn -m state --state NEW -j DROP
   \$iptables -t filter -A INPUT -d \$local -p tcp --dport 443 --syn -m state --state NEW -m limit --limit 160/s --limit-burst 200 -j ACCEPT
@@ -143,7 +142,7 @@ add_swap_space(){
 
 install_softwares(){
         apt-get update
-	string="build-essential:git:htop:memtester:vim:subversion:synaptic:vinagre:seahorse:fcitx:fcitx-table-boshiamy:fcitx-chewing:ifupdown"
+	string="build-essential:git:htop:memtester:vim:subversion:synaptic:vinagre:seahorse:fcitx:fcitx-table-boshiamy:fcitx-chewing:net-tools:ifupdown"
 	IFS=':' read -r -a array <<< "$string"
 	for index in "${!array[@]}"
 	do
@@ -170,8 +169,8 @@ remove_ugly_fonts() {
 }
 
 downgrade_gcc_version() {
-        apt-get install -y gcc-5 g++-5
-        update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 50 --slave /usr/bin/g++ g++ /usr/bin/g++-5
+        apt-get install -y gcc-7 g++-7
+        update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 70 --slave /usr/bin/g++ g++ /usr/bin/g++-7
         # update-alternatives --config gcc
 }
 
@@ -210,7 +209,7 @@ main(){
 	fix_too_many_authentication_failures
 	firewall_setting
 	delete_route_to_169_254_0_0
-	#add_swap_space
+	add_swap_space
 	install_softwares
 	#install_chrome_browser
 	remove_ugly_fonts
@@ -234,7 +233,7 @@ echo -e "  11.add swap space with 4096MB \n"
 echo -e "  12.install softwares you need \n"
 echo -e "  13.install chrome browser \n"
 echo -e "  14.remove ugly fonts \n"
-echo -e "  15.downgrade gcc/g++ version to 5.5 \n"
+echo -e "  15.downgrade gcc/g++ version to 7.x \n"
 
 read -p "Are you sure (y/n)?" sure
 case $sure in

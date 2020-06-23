@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# This script will install MariaDB server 10.3.x galera cluster on Ubuntu mate 18.04 LTS
+# This script will install MariaDB server 10.5.x galera cluster on Ubuntu mate 20.04 LTS
 #
 ######################################################################
 INSTALL_MARIADB_AS_MULTIPLE_NODES_GALERA_CLUSTER="yes"               # 'galera.cnf' would be generated only when its value is 'yes'
@@ -9,16 +9,29 @@ FIRST_NODE="yes"                                                     # if this n
 FIRST_NODES_DEBIAN_SYS_MAINT_PASSWD=""                               # set this value only when you are NOT installing first node
 MYSQL_ROOT_PASSWD="root"                                             # mariadb root password you specify for first node
 WSREP_CLUSTER_NAME="kashu_cluster"                                   # name of galera cluster you preffered
-WSREP_CLUSTER_ADDRESS="172.28.117.131,172.28.117.132"                # IP addresses list seperated by comma of all cluster nodes
+WSREP_CLUSTER_ADDRESS="192.168.0.107,192.168.0.108"                  # IP addresses list seperated by comma of all cluster nodes
 SERVER_ID_MANUAL=""                                                  # server id u specify here has higher priority than $SERVER_ID_AUTO
 #########################################################################################################################################
 SERVER_ID_AUTO="$(/sbin/ifconfig eth0 | grep -v 'inet6' | grep 'inet' | tr -s ' ' | cut -d ' ' -f 3 | cut -d ':' -f 2 | cut -d '.' -f 4)"
 #########################################################################################################################################
 # *** SPECIAL THANKS ***
-# mysql_secure_installation part was inspired by this link:
-# https://gist.github.com/Mins/4602864
-# and install MariaDB without user interaction was inspired by this link:
-# https://dba.stackexchange.com/questions/59317/install-mariadb-10-on-ubuntu-without-prompt-and-no-root-password
+# install mariadb 10.3/10.4 on Ubuntu 20.04 LTS
+# https://www.itzgeek.com/post/how-to-install-mariadb-on-ubuntu-20-04/
+#
+# install mariadb 10.5 on Ubuntu 20.04 LTS
+# https://computingforgeeks.com/how-to-install-mariadb-on-ubuntu-focal-fossa/
+#
+# workaround for strange 'Could not increase number of max_open_files to more than 16364 ' problem
+# https://mariadb.com/kb/en/could-not-increase-number-of-max_open_files-to-more-than-1024-request-1835/
+#
+# user and privileges management after version 10.4
+# https://mariadb.com/kb/en/authentication-from-mariadb-104/
+# https://mariadb.com/kb/en/create-user/
+#
+# utf8 settings
+# https://www.jianshu.com/p/61113953ceff
+# https://mitblog.pixnet.net/blog/post/43827108-%5Bmysql%5D-%E7%82%BA%E4%BB%80%E9%BA%BC-mysql-%E8%A6%81%E8%A8%AD%E5%AE%9A%E7%94%A8-utf8mb4-%E7%B7%A8%E7%A2%BC-utf8mb4_
+# https://matthung0807.blogspot.com/2018/05/mysql-schemacollation.html
 #
 # *** ATTENTION ***
 # extra db-users and databases and permissions would be created for webapp's requirements
@@ -38,44 +51,22 @@ remove_mysql_if_it_exists() {
 		systemctl stop mysql > /dev/null 2>&1
 		systemctl disable mysql > /dev/null 2>&1
 		apt-get remove --purge -y mysql-server mysql-client mysql-common
-		apt-get autoremove
-		apt-get autoclean
+		apt-get autoremove -y
+		apt-get autoclean -y
 		rm -rf /var/lib/mysql/
 		rm -rf /etc/mysql/
         fi
 }
 
 install_mariadb_server() {
-	MARIADB_SERVER_HAS_BEEN_INSTALL="$(dpkg --get-selections | grep mariadb-server)"
-	[ -n "$MARIADB_SERVER_HAS_BEEN_INSTALL" ] && echo "mariadb already has been installed." && exit 2 || echo "ready to install mariadb..."
-	apt-get install -y software-properties-common
-	apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
-
-	UBUNTU_VERSION_NAME="$(/usr/bin/lsb_release -a 2>/dev/null | tail -1 | tr -d ' \t' | cut -d ':' -f 2)"
-	if [ "$UBUNTU_VERSION_NAME" == "bionic" ] ; then
-		add-apt-repository 'deb [arch=amd64,arm64,ppc64el] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.3/ubuntu bionic main'
-		cat >> /etc/apt/sources.list.d/mariadb.list << "EOF"
-# MariaDB 10.3 repository list - created 2018-08-13 17:14 UTC
-# http://downloads.mariadb.org/mariadb/repositories/
-deb [arch=amd64,arm64,ppc64el] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.3/ubuntu bionic main
-deb-src http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.3/ubuntu bionic main
-EOF
-	else
-		add-apt-repository 'deb [arch=amd64,arm64,i386,ppc64el] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.3/ubuntu xenial main'
-		cat >> /etc/apt/sources.list.d/mariadb.list << "EOF"
-# MariaDB 10.3 repository list - created 2018-08-13 17:55 UTC
-# http://downloads.mariadb.org/mariadb/repositories/
-deb [arch=amd64,arm64,i386,ppc64el] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.3/ubuntu xenial main
-deb-src http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.3/ubuntu xenial main
-EOF
-	fi
-
-		apt-get update
-                export DEBIAN_FRONTEND=noninteractive
-                debconf-set-selections <<< 'mariadb-server-10.3 mysql-server/root_password password PASS'
-                debconf-set-selections <<< 'mariadb-server-10.3 mysql-server/root_password_again password PASS'
-		apt-get install -y mariadb-server
-                echo -e "done"
+	MARIADB_SERVER_HAS_BEEN_INSTALLED="$(dpkg --get-selections | grep mariadb-server)"
+	[ -n "$MARIADB_SERVER_HAS_BEEN_INSTALLED" ] && echo "mariadb already has been installed." && exit 2 || echo "ready to install mariadb..."
+	apt-get update
+	apt-get install -y software-properties-common apt-transport-https ca-certificates
+	apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc'
+	add-apt-repository 'deb [arch=amd64] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.5/ubuntu focal main'
+	apt-get install -y mariadb-server mariadb-client
+        echo -e "done"
 }
 
 generate_config_file() {
@@ -93,7 +84,7 @@ generate_config_file() {
 #password       = your_password
 port            = 3306
 socket          = /var/run/mysqld/mysqld.sock
-default-character-set=utf8
+default-character-set=utf8mb4
 
 # The MySQL server
 [mysqld]
@@ -111,13 +102,13 @@ myisam_sort_buffer_size = 8M
 max_heap_table_size = 128M
 max_allowed_packet = 16M
 tmp_table_size = 64M
-join_buffer_size = 64M
+join_buffer_size = 128M
 
 # utf8 settings
-collation-server=utf8_unicode_ci
-init_connect='SET collation_connection = utf8_unicode_ci'
-init-connect='SET NAMES utf8'
-character-set-server=utf8
+collation-server=utf8mb4_unicode_ci
+init_connect='SET collation_connection = utf8mb4_unicode_ci'
+init_connect='SET NAMES utf8mb4'
+character_set_server=utf8mb4
 skip-character-set-client-handshake
 
 # log settings
@@ -146,27 +137,31 @@ server-id = 1
 # InnoDB tables are now used by default
 innodb_data_home_dir = /var/lib/mysql
 innodb_data_file_path = ibdata1:10M:autoextend
+innodb_file_format = "Barracuda"
+innodb_large_prefix = 1
 innodb_log_group_home_dir = /var/lib/mysql
-# You can set .._buffer_pool_size up to 50 - 80 %
-# of RAM but beware of setting memory usage too high
-innodb_buffer_pool_size = 512M
-#####innodb_additional_mem_pool_size = 2M######dont use it 10.2.x doesnt recognize it
-# Set .._log_file_size to 25 % of buffer pool size
 innodb_log_file_size = 5M
 innodb_log_buffer_size = 8M
 innodb_flush_log_at_trx_commit = 1
 innodb_lock_wait_timeout = 50
-innodb_doublewrite = off
+innodb_doublewrite = on
 innodb_flush_log_at_timeout = 3
 innodb_read_io_threads = 32
 innodb_write_io_threads = 16
+innodb_flush_method = O_DIRECT
+innodb_buffer_pool_instances = 9
+# You can set .._buffer_pool_size up to 50 - 80 %
+# of RAM but beware of setting memory usage too high
+innodb_buffer_pool_size = 1G
+innodb_io_capacity = 5000
+innodb_io_capacity_max = 10000
 
 [mysqldump]
 quick
 max_allowed_packet = 16M
 
 [mysql]
-default-character-set=utf8
+default-character-set=utf8mb4
 no-auto-rehash
 # Remove the next comment character if you are not familiar with SQL
 #safe-updates
@@ -257,34 +252,10 @@ EOF
        echo "done."
 }
 
-sync_debian_sys_maint_passwd() {
-
-        if [ "$FIRST_NODE" == "yes" ] || [ "$INSTALL_MARIADB_AS_MULTIPLE_NODES_GALERA_CLUSTER" != "yes" ] ; then
-            echo "no need to do this on first node"
-        else
-            cat > /etc/mysql/debian.cnf << "EOF"
-[client]
-host     = localhost
-user     = debian-sys-maint
-password = 0123456789abcdef
-socket   = /var/run/mysqld/mysqld.sock
-[mysql_upgrade]
-host     = localhost
-user     = debian-sys-maint
-password = 0123456789abcdef
-socket   = /var/run/mysqld/mysqld.sock
-basedir  = /usr
-EOF
-
-            sed -i -- "s|0123456789abcdef|$FIRST_NODES_DEBIAN_SYS_MAINT_PASSWD|g" /etc/mysql/debian.cnf
-
-        fi
-
-}
-
 restart_mariadb_service() {
+	sed -i -- "s|LimitNOFILE=16364|LimitNOFILE=infinity|g" /lib/systemd/system/mariadb.service
+	systemctl daemon-reload
 
-	#UBUNTU_VERSION_NAME="$(/usr/bin/lsb_release -a 2>/dev/null | tail -1 | tr -d ' \t' | cut -d ':' -f 2)"
 	if [ "$FIRST_NODE" == "yes" ] && [ "$INSTALL_MARIADB_AS_MULTIPLE_NODES_GALERA_CLUSTER" == "yes" ]; then
                 systemctl stop mariadb.service
                 /usr/bin/galera_new_cluster
@@ -298,24 +269,23 @@ restart_mariadb_service() {
 
 }
 
-run_mysql_secure_installation() {
+set_mariadb_root_passwd() {
         if [ "$FIRST_NODE" == "yes" ] || [ "$INSTALL_MARIADB_AS_MULTIPLE_NODES_GALERA_CLUSTER" != "yes" ]; then
-	    #mysql_secure_installation
-            cat > /tmp/mysql_secure_installation << "EOF"
-UPDATE mysql.user SET Password=PASSWORD('MYSQL_ROOT_PASSWD') WHERE User='root';
-DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
-DELETE FROM mysql.user WHERE User='';
-DELETE FROM mysql.db WHERE Db='test' OR Db='test_%';
+	    # no need to do mysql_secure_installation anymore after mariadb 10.4
+            # just change root password on first-node
+            cat > /tmp/set_mariadb_root_passwd << "EOF"
+ALTER USER root@localhost IDENTIFIED VIA unix_socket OR mysql_native_password USING PASSWORD("MYSQL_ROOT_PASSWD");
 FLUSH PRIVILEGES;
 EOF
-            sed -i -- "s|MYSQL_ROOT_PASSWD|$MYSQL_ROOT_PASSWD|g" /tmp/mysql_secure_installation
-            mysql -h localhost --port 3306 -u root -pPASS < /tmp/mysql_secure_installation
+            sed -i -- "s|MYSQL_ROOT_PASSWD|$MYSQL_ROOT_PASSWD|g" /tmp/set_mariadb_root_passwd
+            mysql -h localhost --port 3306 -u root < /tmp/set_mariadb_root_passwd
         else
-            echo "msyql_secure_installaion only need to run on the first node."
+            echo " only set root password for mariadb on the first node."
         fi
 }
 
 setup_logrotate_config() {
+        rm -rf /etc/logrotate.d/mysql-server
 	cat > /etc/logrotate.d/mariadb << "EOF"
 /var/log/mysql/*.log {
 	weekly
@@ -333,24 +303,16 @@ EOF
 
 create_users_and_db_for_webapps() {
 
-        if [ "$FIRST_NODE" == "yes" ] || [ "$INSTALL_MARIADB_AS_MULTIPLE_NODES_GALERA_CLUSTER" != "yes" ]; then
-# remove plugin unix socket
-mysql -h localhost --port 3306 -u root -p$MYSQL_ROOT_PASSWD << "EOF"
-use mysql;
-update user set plugin='' where User='root';
-flush privileges;
-EOF
+if [ "$FIRST_NODE" == "yes" ] || [ "$INSTALL_MARIADB_AS_MULTIPLE_NODES_GALERA_CLUSTER" != "yes" ]; then
 
 # create superuser who has the same permission with root
 mysql -h localhost --port 3306 -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 create user 'superuser'@'localhost' identified by 'superpassword';
 create user 'superuser'@'127.0.0.1' identified by 'superpassword';
-create user 'superuser'@'172.28.117.%' identified by 'superpassword';
-create user 'superuser'@'172.17.205.%' identified by 'superpassword';
+create user 'superuser'@'192.168.0.%' identified by 'superpassword';
 grant all on *.* to 'superuser'@'localhost' with grant option;
 grant all on *.* to 'superuser'@'127.0.0.1' with grant option;
-grant all on *.* to 'superuser'@'172.28.117.%' with grant option;
-grant all on *.* to 'superuser'@'172.17.205.%' with grant option;
+grant all on *.* to 'superuser'@'192.168.0.%' with grant option;
 flush privileges;
 EOF
 
@@ -359,12 +321,10 @@ mysql -h localhost --port 3306 -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 drop database if exists phpmyadmin;
 create user 'pmauser'@'localhost' identified by 'pmapassword';
 create user 'pmauser'@'127.0.0.1' identified by 'pmapassword';
-create user 'pmauser'@'172.28.117.%' identified by 'pmapassword';
-create user 'pmauser'@'172.17.205.%' identified by 'pmapassword';
+create user 'pmauser'@'192.168.0.%' identified by 'pmapassword';
 grant all on phpmyadmin.* to 'pmauser'@'localhost';
 grant all on phpmyadmin.* to 'pmauser'@'127.0.0.1';
-grant all on phpmyadmin.* to 'pmauser'@'172.28.117.%';
-grant all on phpmyadmin.* to 'pmauser'@'172.17.205.%';
+grant all on phpmyadmin.* to 'pmauser'@'192.168.0.%';
 flush privileges;
 EOF
 
@@ -374,19 +334,17 @@ drop database if exists wpdb;
 create database wpdb;
 create user 'wpuser'@'localhost' identified by 'wppassword';
 create user 'wpuser'@'127.0.0.1' identified by 'wppassword';
-create user 'wpuser'@'172.28.117.%' identified by 'wppassword';
-create user 'wpuser'@'172.17.205.%' identified by 'wppassword';
+create user 'wpuser'@'192.168.0.%' identified by 'wppassword';
 grant all on wpdb.* to 'wpuser'@'localhost';
 grant all on wpdb.* to 'wpuser'@'127.0.0.1';
-grant all on wpdb.* to 'wpuser'@'172.28.117.%';
-grant all on wpdb.* to 'wpuser'@'172.17.205.%';
+grant all on wpdb.* to 'wpuser'@'192.168.0.%';
 flush privileges;
 EOF
 
 # create users and database for cacti
         cd /tmp
-        wget https://www.cacti.net/downloads/cacti-1.1.38.tar.gz
-        tar zxvf /tmp/cacti-1.1.38.tar.gz
+        wget https://www.cacti.net/downloads/cacti-1.2.12.tar.gz
+        tar zxvf /tmp/cacti-1.2.12.tar.gz
 mysql -h localhost --port 3306 -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 drop database if exists cacti_db;
 create database cacti_db;
@@ -398,7 +356,7 @@ grant select on mysql.time_zone_name to 'cactiuser'@'localhost';
 grant select on mysql.time_zone_name to 'cactiuser'@'127.0.0.1';
 flush privileges;
 use cacti_db;
-source /tmp/cacti-1.1.38/cacti.sql;
+source /tmp/cacti-1.2.12/cacti.sql;
 EOF
         # populate timezone data from /usr/share/zoneinfo to mysql time_zone_name table
         /usr/bin/mysql_tzinfo_to_sql /usr/share/zoneinfo/ | mysql -h localhost --port 3306 -u root -p$MYSQL_ROOT_PASSWD mysql
@@ -409,12 +367,10 @@ drop database if exists db_spring;
 create database db_spring;
 create user 'spring'@'localhost' identified by 'spring';
 create user 'spring'@'127.0.0.1' identified by 'spring';
-create user 'spring'@'172.28.117.%' identified by 'spring';
-create user 'spring'@'172.17.205.%' identified by 'spring';
+create user 'spring'@'192.168.0.%' identified by 'spring';
 grant all on db_spring.* to 'spring'@'localhost';
 grant all on db_spring.* to 'spring'@'127.0.0.1';
-grant all on db_spring.* to 'spring'@'172.28.117.%';
-grant all on db_spring.* to 'spring'@'172.17.205.%';
+grant all on db_spring.* to 'spring'@'192.168.0.%';
 flush privileges;
 EOF
 
@@ -427,9 +383,8 @@ main() {
 	remove_mysql_if_it_exists
 	install_mariadb_server
 	generate_config_file
-        sync_debian_sys_maint_passwd
 	restart_mariadb_service
-	run_mysql_secure_installation
+	set_mariadb_root_passwd
 	setup_logrotate_config
         create_users_and_db_for_webapps
 }
