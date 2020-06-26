@@ -6,7 +6,6 @@
 INSTALL_MARIADB_AS_MULTIPLE_NODES_GALERA_CLUSTER="yes"               # 'galera.cnf' would be generated only when its value is 'yes'
 ######################################################################
 FIRST_NODE="yes"                                                     # if this node is first node of cluster, set this value to 'yes'
-FIRST_NODES_DEBIAN_SYS_MAINT_PASSWD=""                               # set this value only when you are NOT installing first node
 MYSQL_ROOT_PASSWD="root"                                             # mariadb root password you specify for first node
 WSREP_CLUSTER_NAME="kashu_cluster"                                   # name of galera cluster you preffered
 WSREP_CLUSTER_ADDRESS="192.168.0.107,192.168.0.108"                  # IP addresses list seperated by comma of all cluster nodes
@@ -149,7 +148,7 @@ innodb_flush_log_at_timeout = 3
 innodb_read_io_threads = 32
 innodb_write_io_threads = 16
 innodb_flush_method = O_DIRECT
-innodb_buffer_pool_instances = 9
+#innodb_buffer_pool_instances = 9
 # You can set .._buffer_pool_size up to 50 - 80 %
 # of RAM but beware of setting memory usage too high
 innodb_buffer_pool_size = 1G

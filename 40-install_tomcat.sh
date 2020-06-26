@@ -56,8 +56,7 @@ install_tomcat() {
 	echo -e "ready to install tomcat \n"
 	apt-get install -y build-essential
 	cd /usr/local
-	wget http://ftp.mirror.tw/pub/apache/tomcat/tomcat-8/v8.5.56/bin/apache-tomcat-8.5.56.tar.gz
-	wget https://www.apache.org/dist/tomcat/tomcat-8/v8.5.56/bin/apache-tomcat-8.5.56.tar.gz.sha1
+	wget http://ftp.twaren.net/Unix/Web/apache/tomcat/tomcat-8/v8.5.56/bin/apache-tomcat-8.5.56.tar.gz
 	wget https://downloads.apache.org/tomcat/tomcat-8/v8.5.56/bin/apache-tomcat-8.5.56.tar.gz.sha512
 	SHA512SUM_SHOULD_BE="$(/bin/cat ./apache-tomcat-8.5.56.tar.gz.sha512 | cut -d ' ' -f 1)"
 	SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./apache-tomcat-8.5.56.tar.gz | cut -d ' ' -f 1)"
@@ -296,8 +295,8 @@ EOF
 install_maven() {
         echo -e "ready to install maven\n"
         cd /usr/local
-        wget http://ftp.mirror.tw/pub/apache/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz
-        wget https://www.apache.org/dist/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz.sha512
+	wget http://ftp.tc.edu.tw/pub/Apache/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz
+	wget https://downloads.apache.org/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz.sha512
         SHA512SUM_SHOULD_BE="$(/bin/cat ./apache-maven-3.6.3-bin.tar.gz.sha512 | cut -d ' ' -f 1)"
         SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./apache-maven-3.6.3-bin.tar.gz | cut -d ' ' -f 1)"
         [ "$SHA512SUM_SHOULD_BE" == "$SHA512SUM_COMPUTED" ] && echo "maven sha512sum matched." || exit 2
@@ -342,7 +341,7 @@ install_spring_boot_cli() {
 
 install_jmeter(){
 	cd /usr/local/
-	wget https://www.apache.org/dist/jmeter/binaries/apache-jmeter-5.3.tgz
+	wget http://ftp.twaren.net/Unix/Web/apache//jmeter/binaries/apache-jmeter-5.3.tgz
 	wget https://www.apache.org/dist/jmeter/binaries/apache-jmeter-5.3.tgz.sha512
 	SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./apache-jmeter-5.3.tgz | tr -s ' ' | cut -d ' ' -f 1)"
 	SHA512SUM_SHOULD_BE="$(/bin/cat ./apache-jmeter-5.3.tgz.sha512 | tr -s ' ' | cut -d ' ' -f 1)"

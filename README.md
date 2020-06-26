@@ -1,7 +1,8 @@
 # Lazy Scripts
 these shell scripts will help you setup and configure LEMP stack && Tomcat on Ubuntu 20.04 LTS with less painful,  
 after executing all of the shell scripts provided here, you will have a ready-to-use PHP/JavaEE deployment environment for your webapps.  
- > <font color=0000FF>使用這裡的shell scripts快速建立LEMP stack + JavaEE/Tomcat開發環境, 不用再被學長姐嫌棄連開發環境都搞不定 (ノ▼Д▼)ノ  
+ > <font color=0000FF>使用這裡的shell scripts快速建立LEMP stack + JavaEE/Tomcat開發環境,  
+   不用再被學長姐嫌棄連開發環境都搞不定 (ノ▼Д▼)ノ  
    可使用於Ubuntu 20.04 LTS AMD64架構</font>  
 
 
@@ -66,7 +67,7 @@ here are some search results that might be helpful
 
 and my domain (dq5rocks.com) was bought at GoDaddy,  
 vps nodes were rent at Vultr, i have a wordpress blog running at  
- https://www.dq5rocks.com/wordpress/  
+ https://blog.dq5rocks.com  
 but that's my personal choice, you could buy domain/vps from other providers you preferred.
 
 ## Disclaimer Clause  
@@ -120,7 +121,7 @@ i could use English either but with very limited-skills.
 
 <font size=4>
 可以叫我去上班喔，很缺錢  
-寄信到[annbigbig@gmail.com](mailto:annbigbig@gmail.com)
+寄信到 [annbigbig@gmail.com](mailto:annbigbig@gmail.com)  
 告訴我您是那家公司  
 我把104的履歷寄給您  
 
