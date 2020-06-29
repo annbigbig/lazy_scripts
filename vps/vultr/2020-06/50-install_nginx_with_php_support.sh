@@ -4,7 +4,7 @@
 # and deploy phpmyadmin/wordpress/cacti on this web server 
 # before u run this script please confirm these parameters :
 #
-###########################################  <<Tested on Ubuntu Mate 20.04 Desktop Edition>>  #######
+###############################################  <<Tested on Ubuntu 20.04 Server Edition>>  #########
 #
 SERVER_FQDN="www.dq5rocks.com"
 ENABLE_HTTPS="yes"
@@ -14,7 +14,7 @@ SELF_SIGNED_SSL_ST="New Taipei"
 SELF_SIGNED_SSL_L="Tamsui"
 SELF_SIGNED_SSL_O="Tong-Shing, Inc."
 SELF_SIGNED_SSL_CN="*.dq5rocks.com"
-SESSION_SAVE_PATH="192.168.0.107:11211,192.168.0.108:11211"
+SESSION_SAVE_PATH="172.16.225.17:11211,172.16.225.18:11211"
 #
 #####################################################################################################
 ###     use this command to generate your own blowfish secret then fill in parameter values below 
@@ -894,14 +894,14 @@ deploy_phpmyadmin() {
         [ "$DEPLOY_PHPMYADMIN" != "yes" ] && echo "skip phpmyadmin deployment." && return || echo "deploy phpmyadmin ---> yes"
         [ -d "/var/www/localhost/phpmyadmin/" ] && echo "seems like phpmyadmin already existed." && return || echo "ready to deploy phpmyadmin."
         cd /var/www/localhost/
-        wget https://files.phpmyadmin.net/snapshots/phpMyAdmin-5.1+snapshot-all-languages.tar.gz
-        wget https://files.phpmyadmin.net/snapshots/phpMyAdmin-5.1+snapshot-all-languages.tar.gz.sha256
+	wget https://files.phpmyadmin.net/snapshots/phpMyAdmin-5.1+snapshot-all-languages.tar.gz
+	wget https://files.phpmyadmin.net/snapshots/phpMyAdmin-5.1+snapshot-all-languages.tar.gz.sha256
         SHA256SUM_IN_FILE="$(cat ./phpMyAdmin-5.1+snapshot-all-languages.tar.gz.sha256 | cut -d " " -f 1)"
         SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./phpMyAdmin-5.1+snapshot-all-languages.tar.gz | cut -d " " -f 1)"
         [ "$SHA256SUM_IN_FILE" != "$SHA256SUM_COMPUTED" ] && echo "oops...sha256 checksum doesnt match." && exit 2 || echo "sha256 checksum matched."
         tar zxvf ./phpMyAdmin-5.1+snapshot-all-languages.tar.gz
         rm -rf ./phpMyAdmin-5.1+snapshot-all-languages.tar.gz*
-        mv phpMyAdmin-5.1+snapshot-all-languages phpmyadmin
+	mv phpMyAdmin-5.1+snapshot-all-languages phpmyadmin
         cd ./phpmyadmin/
         cat > /var/www/localhost/phpmyadmin/config.inc.php << "EOF"
 <?php

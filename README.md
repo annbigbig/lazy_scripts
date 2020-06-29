@@ -89,7 +89,7 @@ i could use English either but with very limited-skills.
 
 ## Donate to me
 <font size=4>if these shell scripts actually help you a lot, you could buy me a beer :-D  
-如果這裡的代碼，實質上幫助了你，比如說讓你<font color=#FF0000>保住了工作</font>之類的，請不吝於打賞  
+如果這裡的代碼，實質上幫助了你，比如說讓你<font color=#FF0000>保住了工作</font>或節省了你的時間，請不吝於打賞  
 或是幫我介紹工作，之類的，您的實質鼓勵，是我持續耕耘的原動力，萬分感謝</font>  
 
    - [國泰世華銀行收款帳號](#CathayBank) **銀行代碼 013 帳號 001-50-235346-9 戶名 KUN AN HSU 館前分行**  
@@ -119,9 +119,9 @@ i could use English either but with very limited-skills.
 
 ## Hire me
 
-<font size=4>
+<font size=4>  
 可以叫我去上班喔，很缺錢  
-寄信到 [annbigbig@gmail.com](mailto:annbigbig@gmail.com)  
+寄信到 : [annbigbig@gmail.com](mailto:annbigbig@gmail.com)  
 告訴我您是那家公司  
 我把104的履歷寄給您  
 

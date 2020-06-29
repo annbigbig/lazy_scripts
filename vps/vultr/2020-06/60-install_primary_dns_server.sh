@@ -3,47 +3,46 @@
 # This script will configure a Bind9 server as primary DNS server with chroot environment
 # before running this script, please set some parameters below:
 #
-################################  <<Tested on Ubuntu Mate 20.04 Desktop Edition>>  #######
+##########################################  <<Tested on Ubuntu 20.04 Server Edition>>  ####
 #
 DOMAIN_NAME="dq5rocks.com"
-FIRST_OCTET="192"
-SECOND_OCTET="168"
-THIRD_OCTET="0"
+FIRST_OCTET="172"
+SECOND_OCTET="16"
+THIRD_OCTET="225"
 #
-TRUSTED_LOCAL_SUBNET="192.168.0.0/24"
+TRUSTED_LOCAL_SUBNET="172.16.225.0/24"
 TRUSTED_VPN_SUBNET="10.8.0.0/24"
-SECONDARY_DNS_IP_ADDRESS="192.168.0.108"
+SECONDARY_DNS_IP_ADDRESS="172.16.225.18"
 #
 # dont forget suffix dot . if you write a FQDN for NS/MX/A/PTR record
 # each column is seperated by space
 read -r -d '' DNS_RECORDS << EOV
-NS vhost01.dq5rocks.com.
-NS vhost02.dq5rocks.com.
-MX vhost01.dq5rocks.com. 10
-MX vhost02.dq5rocks.com. 20
-CNAME ns1 vhost01
-CNAME ns2 vhost02
-CNAME mail1 vhost01
-CNAME mail2 vhost02
-A vhost01.dq5rocks.com. 192.168.0.107
-A vhost02.dq5rocks.com. 192.168.0.108
-A www.dq5rocks.com. 192.168.0.107
-A www.dq5rocks.com. 192.168.0.108
-A dragon.dq5rocks.com. 192.168.0.100
-A x64desktop.dq5rocks.com. 192.168.0.110
-A cubietruck.dq5rocks.com. 192.168.0.160
-A bananapi.dq5rocks.com. 172.17.205.175
-PTR 100 dragon.dq5rocks.com.
-PTR 110 x64desktop.dq5rocks.com.
-PTR 107 vhost01.dq5rocks.com.
-PTR 108 vhost02.dq5rocks.com.
-PTR 160 cubietruck.dq5rocks.com.
+NS vps01.dq5rocks.com.
+NS vps02.dq5rocks.com.
+MX vps01.dq5rocks.com. 10
+MX vps02.dq5rocks.com. 20
+CNAME ns1 vps01
+CNAME ns2 vps02
+CNAME mail1 vps01
+CNAME mail2 vps02
+A vps01.dq5rocks.com. 45.32.55.60
+A vps02.dq5rocks.com. 45.77.131.215
+A www.dq5rocks.com. 45.32.55.60
+A www.dq5rocks.com. 45.77.131.215
+A blog.dq5rocks.com. 45.32.55.60
+A blog.dq5rocks.com. 45.77.131.215
+A vps01-internal.dq5rocks.com. 172.16.225.17
+A vps02-internal.dq5rocks.com. 172.16.225.18
+A vps03-internal.dq5rocks.com. 172.16.225.19
+PTR 17 vps01-internal.dq5rocks.com.
+PTR 18 vps02-internal.dq5rocks.com.
+PTR 19 vps03-internal.dq5rocks.com.
 EOV
 ##########################################################################################################
 # *** Hint ***
-# how to query a specifc DNS server (ex: 192.168.0.108) ? use this command : 
-#  $ nslookup www.dq5rocks.com 192.168.0.108
-#  $ nslookup 192.168.0.160 192.168.0.108
+# how to query a specifc DNS server (ex: 172.16.225.17) ? use this command : 
+#  $ nslookup www.dq5rocks.com 172.16.225.17
+#  $ nslookup 172.16.225.160 172.16.225.17
 #
 ##########################################################################################################
 # *** SPECIAL THANKS ***

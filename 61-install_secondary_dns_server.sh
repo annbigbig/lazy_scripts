@@ -1,10 +1,9 @@
 #!/bin/bash
 #
 # This script will configure a Bind9 server as secondary DNS server with chroot environment
-# (tested on Ubuntu mate 20.04 LTS)
 # before running this script, please set some parameters below:
 #
-##########################################################################################################
+###########################################  <<Tested on Ubuntu Mate 20.04 Desktop Edition>>  ############
 #
 DOMAIN_NAME="dq5rocks.com"
 FIRST_OCTET="192"
@@ -17,9 +16,9 @@ PRIMARY_DNS_IP_ADDRESS="192.168.0.107"
 #
 ##########################################################################################################
 # *** Hint ***
-# how to query a specifc DNS server (ex: 192.168.0.132) ? use this command : 
-#  $ nslookup www.dq5rocks.com 192.168.0.132
-#  $ nslookup 192.168.0.160 192.168.0.132
+# how to query a specifc DNS server (ex: 192.168.0.108) ? use this command : 
+#  $ nslookup www.dq5rocks.com 192.168.0.108
+#  $ nslookup 192.168.0.160 192.168.0.108
 #
 ##########################################################################################################
 # *** SPECIAL THANKS ***

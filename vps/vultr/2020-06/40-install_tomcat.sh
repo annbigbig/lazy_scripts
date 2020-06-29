@@ -2,17 +2,17 @@
 #
 # this script will install jdk 8 and tomcat 8.5.x and several tools for JavaEE developers
 # there are some parameters have to be confirmed before u run this script :
-####################################  <<Tested on Ubuntu Mate 20.04 Desktop Edition>>  ################
+#######################################################################################################
 TOMCAT_ADMIN_USERNAME="admin"                                                                         #
 TOMCAT_ADMIN_PASSWORD="admin"                                                                         #
 TOMCAT_JNDI_RESOURCE_NAME="jdbc/DB_SPRING"                                                            #
 TOMCAT_JNDI_USERNAME="spring"                                                                         #
 TOMCAT_JNDI_PASSWORD="spring"                                                                         #
 TOMCAT_JNDI_URL="jdbc:mariadb://127.0.0.1:3306/db_spring"                                             #
-TOMCAT_MEMCACHED_NODES="n1:192.168.0.107:11211,n2:192.168.0.108:11211"                                #
-MINIMAL_HEAP_MEMORY_SIZE="1024m"                                                                      #
-MAXIMUM_HEAP_MEMORY_SIZE="1536m"                                                                      #
-#######################################################################################################
+TOMCAT_MEMCACHED_NODES="n1:172.16.225.17:11211,n2:172.16.225.18:11211"                                #
+MINIMAL_HEAP_MEMORY_SIZE="192m"                                                                       #
+MAXIMUM_HEAP_MEMORY_SIZE="256m"                                                                       #
+#######################################################  <<Tested on Ubuntu 20.04 Server Edition>>  ###
 
 say_goodbye() {
         echo "goodbye everyone"

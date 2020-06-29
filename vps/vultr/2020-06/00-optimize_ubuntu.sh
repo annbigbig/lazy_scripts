@@ -2,19 +2,23 @@
 # This script will perform lots of work for optimizing Ubuntu 20.04 LTS you've just installed
 # before you run this script , please specify some parameters here:
 #
-# these parameters will be used in firewall rules:      <<Tested on Ubuntu Mate 20.04 Desktop Edition>>
-########################################################################################################
-LAN="192.168.0.0/24"                    # The local network that you allow packets come in from there
-VPN="10.8.0.0/24"                       # The VPN network that you allow packets come in from there
+# these parameters will be used in firewall rules:           <<Tested on Ubuntu 20.04 Server Edition>>
+######################################################################################################
+VULTR_INTERNAL_IP="172.16.225.17"       # set internal ip address for this node
+VULTR_INTERNAL_NETMASK="255.255.255.0"  # set internal networks netmask for this node
+VULTR_INTERNAL_LAN="172.16.225.0/24"    # The local network that you attached for this VPS node
+######################################################################################################
+MY_VPN="10.8.0.0/24"                    # The VPN network that you allow packets come in from there
 MY_TIMEZONE="Asia/Taipei"               # The timezone that you specify for this VPS node
-########################################################################################################
+MY_BROTHER="45.77.131.215/32"           # Another VPS nodes IP that will exchange data with you
+######################################################################################################
 
 say_goodbye (){
 	echo "goodbye everyone"
 }
 
 fix_network_interfaces_name(){
-        # change network interface name from ens3/ens7 to eth0/eth1 , and disable netplan
+        # change network interface name from ens3/ens7 to eth0/eth1 , and disable GOD DAMN netplan
         sed -i -- 's|GRUB_CMDLINE_LINUX=.*|GRUB_CMDLINE_LINUX="consoleblank=0 net.ifnames=0 biosdevname=0 netcfg/do_not_use_netplan=true"|g' /etc/default/grub
         update-grub
 }
@@ -31,7 +35,15 @@ iface lo inet loopback
 
 auto eth0
 iface eth0 inet dhcp
+
+auto eth1
+iface eth1 inet static
+    address VULTR_INTERNAL_IP
+    netmask VULTR_INTERNAL_NETMASK
+    mtu 1450
 EOF
+	sed -i -- "s|VULTR_INTERNAL_IP|$VULTR_INTERNAL_IP|g" $NETWORK_CONFIG_FILE
+	sed -i -- "s|VULTR_INTERNAL_NETMASK|$VULTR_INTERNAL_NETMASK|g" $NETWORK_CONFIG_FILE
         chown root:root $NETWORK_CONFIG_FILE
         chmod 644 $NETWORK_CONFIG_FILE
 }
@@ -50,10 +62,11 @@ disable_dnssec() {
 }
 
 sync_system_time() {
-        # set timezone
-        timedatectl set-timezone $MY_TIMEZONE
-        timedatectl
+	# set timezone
+	timedatectl set-timezone $MY_TIMEZONE
+	timedatectl
 
+	# get accurate time
         NTPDATE_INSTALL="$(dpkg --get-selections | grep ntpdate)"
         if [ -z "$NTPDATE_INSTALL" ]; then
                 apt-get update
@@ -66,6 +79,7 @@ EOF
         fi
         ntpdate -v pool.ntp.org
 }
+
 
 fix_too_many_authentication_failures() {
         sed -e '/pam_motd/ s/^#*/#/' -i /etc/pam.d/login
@@ -80,31 +94,32 @@ firewall_setting(){
 #!/bin/bash
 # ============ Set your network parameters here ===================================================
 iptables=/sbin/iptables
-loopback=127.0.0.1
-local="\$(/sbin/ip addr show eth0 | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
-#local="\$(/sbin/ip addr show wlan0 | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
-#local=192.168.0.107
-lan=$LAN
-vpn=$VPN
+public_ip="\$(/sbin/ip addr show eth0 | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
+private_ip="\$(/sbin/ip addr show eth1 | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
+lan=$VULTR_INTERNAL_LAN
+vpn=$MY_VPN
+brother=$MY_BROTHER
 # =================================================================================================
-if [ -n \$local ] ; then
+if [ -n \$public_ip -a -n \$private_ip ] ; then
   \$iptables -t filter -F
-  \$iptables -t filter -A INPUT -i lo -s \$loopback -d \$loopback -p all -j ACCEPT
-  #\$iptables -t filter -A INPUT -i eth0 -s \$local -d \$local -p all -j ACCEPT
-  #\$iptables -t filter -A INPUT -i eth0 -s \$lan -d \$local -p all -j ACCEPT
-  #\$iptables -t filter -A INPUT -i eth0 -s \$vpn -d \$local -p all -j ACCEPT
-  \$iptables -t filter -A INPUT -s \$local -d \$local -p all -j ACCEPT
-  \$iptables -t filter -A INPUT -s \$lan -d \$local -p all -j ACCEPT
-  \$iptables -t filter -A INPUT -s \$vpn -d \$local -p all -j ACCEPT
+  \$iptables -t filter -A INPUT -i lo -p all -j ACCEPT
+  \$iptables -t filter -A INPUT -i eth0 -s \$public_ip -d \$public_ip -p all -j ACCEPT
+  \$iptables -t filter -A INPUT -i eth0 -s \$brother -d \$public_ip -p all -j ACCEPT
+  \$iptables -t filter -A INPUT -i eth0 -s \$vpn -d \$public_ip -p all -j ACCEPT
+  \$iptables -t filter -A INPUT -i eth1 -s \$private_ip -d \$private_ip -p all -j ACCEPT
+  \$iptables -t filter -A INPUT -i eth1 -s \$lan -d \$private_ip -p all -j ACCEPT
+  \$iptables -t filter -A INPUT -i eth1 -s \$vpn -d \$private_ip -p all -j ACCEPT
+  \$iptables -t filter -A INPUT -s \$public_ip -d \$private_ip -p all -j ACCEPT
+  \$iptables -t filter -A INPUT -s \$private_ip -d \$public_ip -p all -j ACCEPT
+  \$iptables -t filter -A INPUT -p tcp --dport 53 -j ACCEPT
   \$iptables -t filter -A INPUT -p udp --dport 53 -j ACCEPT
-  \$iptables -t filter -A INPUT -d \$local -p tcp --dport 36000 --syn -m state --state NEW -m limit --limit 10/s --limit-burst 20 -j ACCEPT
-  \$iptables -t filter -A INPUT -d \$local -p tcp --dport 36000 --syn -m state --state NEW -j DROP
-  \$iptables -t filter -A INPUT -d \$local -p tcp --dport 80 --syn -m state --state NEW -m limit --limit 160/s --limit-burst 200 -j ACCEPT
-  \$iptables -t filter -A INPUT -d \$local -p tcp --dport 80 --syn -m state --state NEW -j DROP
-  \$iptables -t filter -A INPUT -d \$local -p tcp --dport 443 --syn -m state --state NEW -m limit --limit 160/s --limit-burst 200 -j ACCEPT
-  \$iptables -t filter -A INPUT -d \$local -p tcp --dport 443 --syn -m state --state NEW -j DROP
-  \$iptables -t filter -A INPUT -s \$lan -d \$local -p icmp -j ACCEPT
-  \$iptables -t filter -A INPUT -s \$vpn -d \$local -p icmp -j ACCEPT
+  \$iptables -t filter -A INPUT -d \$public_ip -p tcp --dport 36000 --syn -m state --state NEW -m limit --limit 15/s --limit-burst 20 -j ACCEPT
+  \$iptables -t filter -A INPUT -d \$public_ip -p tcp --dport 36000 --syn -m state --state NEW -j DROP
+  \$iptables -t filter -A INPUT -d \$public_ip -p tcp --dport 80 --syn -m state --state NEW -m limit --limit 400/s --limit-burst 500 -j ACCEPT
+  \$iptables -t filter -A INPUT -d \$public_ip -p tcp --dport 80 --syn -m state --state NEW -j DROP
+  \$iptables -t filter -A INPUT -d \$public_ip -p tcp --dport 443 --syn -m state --state NEW -m limit --limit 400/s --limit-burst 500 -j ACCEPT
+  \$iptables -t filter -A INPUT -d \$public_ip -p tcp --dport 443 --syn -m state --state NEW -j DROP
+  \$iptables -t filter -A INPUT -p icmp -j ACCEPT
   \$iptables -t filter -A INPUT -p icmp --icmp-type 8 -m limit --limit 10/s -j ACCEPT
   \$iptables -t filter -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
   \$iptables -t filter -P INPUT DROP
@@ -118,11 +133,13 @@ EOF
 }
 
 delete_route_to_169_254_0_0(){
-	echo -e "delete route to 169.254.0.0/16 \n"
-        FILE1="/etc/network/if-up.d/avahi-autoipd"
-	sed -i -- "s|/bin/ip route add|#/bin/ip route add|g" $FILE1
-	sed -i -- "s|/sbin/route add|#/sbin/route add|g" $FILE1
-	echo -e "done.\n"
+	echo -e "i dont know how to delete route to 169.254.169.254/32 in Ubuntu 20.04 Server Edition \n"
+	echo -e "desktop version is caused by avahi daemon , but this package doenst appear in Server Edition \n"
+	#echo -e "delete route to 169.254.0.0/16 \n"
+        #FILE1="/etc/network/if-up.d/avahi-autoipd"
+	#sed -i -- "s|/bin/ip route add|#/bin/ip route add|g" $FILE1
+	#sed -i -- "s|/sbin/route add|#/sbin/route add|g" $FILE1
+	#echo -e "done.\n"
 }
 
 add_swap_space(){
@@ -146,7 +163,7 @@ add_swap_space(){
 
 install_softwares(){
         apt-get update
-	string="build-essential:git:htop:memtester:vim:subversion:synaptic:vinagre:seahorse:fcitx:fcitx-table-boshiamy:fcitx-chewing:net-tools:ifupdown:unzip"
+	string="build-essential:git:htop:memtester:vim:subversion:net-tools:ifupdown:unzip"
 	IFS=':' read -r -a array <<< "$string"
 	for index in "${!array[@]}"
 	do

@@ -1,14 +1,14 @@
 #!/bin/bash
 #
-#####################################################  <<Tested on Ubuntu Mate 20.04 Desktop Edition>>  #########
+#######################################################  <<Tested on Ubuntu 20.04 Server Edition>>  #############
 #
-MEMCACHED_RUNNING_IP_ADDRESS="192.168.0.107"   # 0.0.0.0 for running on all network interfaces or just Private IP
+MEMCACHED_RUNNING_IP_ADDRESS="172.16.225.17"   # 0.0.0.0 for running on all network interfaces or just Private IP
 MEMCACHED_RAM_SIZE="128"                       # how many RAM size that u wanna to allocate to memcached service
 #
 #################################################################################################################
 
 say_goodbye() {
-	echo "goodbye everyone"
+        echo "goodbye everyone"
 }
 
 install_memcached_server() {
@@ -21,7 +21,6 @@ install_memcached_server() {
    systemctl status memcached
 
 }
-
 
 main() {
 	install_memcached_server

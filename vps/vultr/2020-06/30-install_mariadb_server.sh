@@ -2,13 +2,13 @@
 #
 # This script will install MariaDB server 10.5.x galera cluster on Ubuntu mate 20.04 LTS
 #
-######################################################################          <<Tested on Ubuntu Mate 20.04 Desktop Edition>>
+######################################################################          <<Tested on Ubuntu 20.04 Server Edition>>
 INSTALL_MARIADB_AS_MULTIPLE_NODES_GALERA_CLUSTER="yes"               # 'galera.cnf' would be generated only when its value is 'yes'
 ######################################################################
 FIRST_NODE="yes"                                                     # if this node is first node of cluster, set this value to 'yes'
 MYSQL_ROOT_PASSWD="root"                                             # mariadb root password you specify for first node
 WSREP_CLUSTER_NAME="kashu_cluster"                                   # name of galera cluster you preffered
-WSREP_CLUSTER_ADDRESS="192.168.0.107,192.168.0.108"                  # IP addresses list seperated by comma of all cluster nodes
+WSREP_CLUSTER_ADDRESS="172.16.225.17,172.16.225.18"                  # IP addresses list seperated by comma of all cluster nodes
 SERVER_ID_MANUAL=""                                                  # server id u specify here has higher priority than $SERVER_ID_AUTO
 #########################################################################################################################################
 SERVER_ID_AUTO="$(/sbin/ifconfig eth0 | grep -v 'inet6' | grep 'inet' | tr -s ' ' | cut -d ' ' -f 3 | cut -d ':' -f 2 | cut -d '.' -f 4)"
@@ -308,10 +308,10 @@ if [ "$FIRST_NODE" == "yes" ] || [ "$INSTALL_MARIADB_AS_MULTIPLE_NODES_GALERA_CL
 mysql -h localhost --port 3306 -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 create user 'superuser'@'localhost' identified by 'superpassword';
 create user 'superuser'@'127.0.0.1' identified by 'superpassword';
-create user 'superuser'@'192.168.0.%' identified by 'superpassword';
+create user 'superuser'@'172.16.225.%' identified by 'superpassword';
 grant all on *.* to 'superuser'@'localhost' with grant option;
 grant all on *.* to 'superuser'@'127.0.0.1' with grant option;
-grant all on *.* to 'superuser'@'192.168.0.%' with grant option;
+grant all on *.* to 'superuser'@'172.16.225.%' with grant option;
 flush privileges;
 EOF
 
@@ -320,10 +320,10 @@ mysql -h localhost --port 3306 -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 drop database if exists phpmyadmin;
 create user 'pmauser'@'localhost' identified by 'pmapassword';
 create user 'pmauser'@'127.0.0.1' identified by 'pmapassword';
-create user 'pmauser'@'192.168.0.%' identified by 'pmapassword';
+create user 'pmauser'@'172.16.225.%' identified by 'pmapassword';
 grant all on phpmyadmin.* to 'pmauser'@'localhost';
 grant all on phpmyadmin.* to 'pmauser'@'127.0.0.1';
-grant all on phpmyadmin.* to 'pmauser'@'192.168.0.%';
+grant all on phpmyadmin.* to 'pmauser'@'172.16.225.%';
 flush privileges;
 EOF
 
@@ -333,10 +333,10 @@ drop database if exists wpdb;
 create database wpdb;
 create user 'wpuser'@'localhost' identified by 'wppassword';
 create user 'wpuser'@'127.0.0.1' identified by 'wppassword';
-create user 'wpuser'@'192.168.0.%' identified by 'wppassword';
+create user 'wpuser'@'172.16.225.%' identified by 'wppassword';
 grant all on wpdb.* to 'wpuser'@'localhost';
 grant all on wpdb.* to 'wpuser'@'127.0.0.1';
-grant all on wpdb.* to 'wpuser'@'192.168.0.%';
+grant all on wpdb.* to 'wpuser'@'172.16.225.%';
 flush privileges;
 EOF
 
@@ -366,10 +366,10 @@ drop database if exists db_spring;
 create database db_spring;
 create user 'spring'@'localhost' identified by 'spring';
 create user 'spring'@'127.0.0.1' identified by 'spring';
-create user 'spring'@'192.168.0.%' identified by 'spring';
+create user 'spring'@'172.16.225.%' identified by 'spring';
 grant all on db_spring.* to 'spring'@'localhost';
 grant all on db_spring.* to 'spring'@'127.0.0.1';
-grant all on db_spring.* to 'spring'@'192.168.0.%';
+grant all on db_spring.* to 'spring'@'172.16.225.%';
 flush privileges;
 EOF
 

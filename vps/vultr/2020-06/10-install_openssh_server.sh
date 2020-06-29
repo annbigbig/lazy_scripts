@@ -1,9 +1,9 @@
 #!/bin/bash
-#######################################  <<Tested on Ubuntu Mate 20.04 Desktop Edition>> #####
+###############################################################################################
 #
 # This script will install openssh-server on Ubuntu 20.04 LTS
 # it will change sshd port number from default 22 to the number you specified here
-# (range could be: 1024 to 65535)
+# (range could be: 1024 to 65535)               <<Tested on Ubuntu 20.04 Server Edition>>
 #
 SSHD_LISTENING_PORT="36000"
 #
@@ -37,42 +37,43 @@ change_sshd_settings() {
 		cp $CONFIG_FILE_PATH $BACKUP_CONFIG_FILE_PATH
 	fi
 
-        # prevent password logins
-        sed -i -- 's|#PasswordAuthentication yes|PasswordAuthentication no|g' $CONFIG_FILE_PATH
-        sed -i -- 's|#PermitEmptyPasswords no|PermitEmptyPasswords no|g' $CONFIG_FILE_PATH
+	# prevent password logins
+	sed -i -- 's|#PasswordAuthentication yes|PasswordAuthentication no|g' $CONFIG_FILE_PATH
+	sed -i -- 's|#PermitEmptyPasswords no|PermitEmptyPasswords no|g' $CONFIG_FILE_PATH
 
-        # this error found in Ubuntu 20.04 Server edition
-        # point /etc/resolv.conf to correct path for surpressing error below in /var/log/syslog
-        # [ Server returned error NXDOMAIN, mitigating potential DNS violation DVE-2018-0001 ]
-        # https://askubuntu.com/questions/1058750/new-alert-keeps-showing-up-server-returned-error-nxdomain-mitigating-potential
+	# this error found in Ubuntu 20.04 Server edition
+	# point /etc/resolv.conf to correct path for surpressing error below in /var/log/syslog
+	# [ Server returned error NXDOMAIN, mitigating potential DNS violation DVE-2018-0001 ]
+	# https://askubuntu.com/questions/1058750/new-alert-keeps-showing-up-server-returned-error-nxdomain-mitigating-potential
 
-        if [ -L /etc/resolv.conf ]; then
-                rm -rf /etc/resolv.conf
-                ln -s /run/systemd/resolve/resolv.conf /etc/resolv.conf
-        fi
+	if [ -L /etc/resolv.conf ]; then
+		rm -rf /etc/resolv.conf
+		ln -s /run/systemd/resolve/resolv.conf /etc/resolv.conf
+	fi
 
-        # and here are 3 more problems, one is telling u to find problem with '/usr/sbin/sshd -T' command, it will show possible errors clue
-        # two is telling u how to re-generate keys if u found strange error : all of your public/private keys in /etc/ssh/ were actually empty files.
-        # three is telling u how to re-generate keys for all the algorithm (dsa/rsa//ecdsa/ed25519...) with single command
-        # https://askubuntu.com/questions/1113607/failed-to-start-openbsd-secure-shell-server-error-when-i-try-to-run-apt-get-or-t
-        # https://wangxianggit.github.io/sshd%20no%20hostkeys%20available/
-        # https://serverfault.com/questions/471327/how-to-change-a-ssh-host-key
+	# and here are 3 more problems, one is telling u to find problem with '/usr/sbin/sshd -T' command, it will show possible errors clue
+	# two is telling u how to re-generate keys if u found strange error : all of your public/private keys in /etc/ssh/ were actually empty files.
+	# three is telling u how to re-generate keys for all the algorithm (dsa/rsa//ecdsa/ed25519...) with single command
+	# https://askubuntu.com/questions/1113607/failed-to-start-openbsd-secure-shell-server-error-when-i-try-to-run-apt-get-or-t
+	# https://wangxianggit.github.io/sshd%20no%20hostkeys%20available/
+	# https://serverfault.com/questions/471327/how-to-change-a-ssh-host-key
+	
+	if [ ! -s /etc/ssh/ssh_host_dsa_key -a ! -s /etc/ssh/ssh_host_dsa_key.pub ]; then
+		rm -rf /etc/ssh/ssh_host_*
+		ssh-keygen -A
+		chown root:root /etc/ssh/ssh_host_*
+		chmod 600 /etc/ssh/ssh_host_*
+		chmod 644 /etc/ssh/ssh_host_dsa_*.pub
+	fi
 
-        if [ ! -s /etc/ssh/ssh_host_dsa_key -a ! -s /etc/ssh/ssh_host_dsa_key.pub ]; then
-                rm -rf /etc/ssh/ssh_host_*
-                ssh-keygen -A
-                chown root:root /etc/ssh/ssh_host_*
-                chmod 600 /etc/ssh/ssh_host_*
-                chmod 644 /etc/ssh/ssh_host_dsa_*.pub
-        fi
 
 	if [ $SSHD_LISTENING_PORT -gt 1024 ] && [ $SSHD_LISTENING_PORT -lt 65535 ] ; then
 		echo -e "modify $CONFIG_FILE_PATH \n replace 'Port 22' with 'Port $SSHD_LISTENING_PORT' \n"
 		sed -i -- "s|#Port 22|Port 22|g" $CONFIG_FILE_PATH
 		sed -i -- "s|Port 22|Port $SSHD_LISTENING_PORT|g" $CONFIG_FILE_PATH
 		echo -e "done. \n"
-		systemctl restart ssh
-		systemctl status ssh
+		systemctl restart ssh.service
+		systemctl status ssh.service
 	fi
 }
 
