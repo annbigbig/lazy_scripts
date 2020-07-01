@@ -127,10 +127,10 @@ i could use English either but with very limited-skills.
 我把104的履歷寄給您  
 
 能力值大概是這樣  
-系維運維：🌕🌕🌕🌕🌑  
-Java/Spring 後端Restful API開發：🌕🌕🌗🌑🌑  
-系統設計UML模型圖導出：🌕🌕🌕🌑🌑 
-UI：🌕🌑🌑🌑🌑  
-文件整理：🌕🌕🌕🌗🌑    
+* 系維運維：🌕🌕🌕🌕🌑  
+* Java/Spring 後端Restful API開發：🌕🌕🌗🌑🌑  
+* 系統設計UML模型圖導出：🌕🌕🌕🌗🌑   
+* UI：🌕🌑🌑🌑🌑   
+* 文件整理：🌕🌕🌕🌗🌑    
 </font>
 
