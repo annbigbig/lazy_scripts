@@ -64,7 +64,7 @@ remove_previous_version() {
 }
 
 install_dependencies() {
-        apt-get install -y libcap-dev libxml2 libkrb5-dev libssl-dev
+        apt-get install -y libcap-dev libxml2 libkrb5-dev libssl-dev pkg-config
 	apt-get install -y libuv1 libuv1-dev python3 python3-all python3-ply python3-plyvel
 }
 

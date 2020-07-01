@@ -25,6 +25,8 @@ CNAME ns1 vhost01
 CNAME ns2 vhost02
 CNAME mail1 vhost01
 CNAME mail2 vhost02
+A dq5rocks.com. 192.168.0.107
+A dq5rocks.com. 192.168.0.108
 A vhost01.dq5rocks.com. 192.168.0.107
 A vhost02.dq5rocks.com. 192.168.0.108
 A www.dq5rocks.com. 192.168.0.107
@@ -88,7 +90,7 @@ remove_previous_version() {
 }
 
 install_dependencies() {
-	apt-get install -y libcap-dev libxml2 libkrb5-dev libssl-dev
+	apt-get install -y libcap-dev libxml2 libkrb5-dev libssl-dev pkg-config
 	apt-get install -y libuv1 libuv1-dev python3 python3-all python3-ply python3-plyvel
 }
 

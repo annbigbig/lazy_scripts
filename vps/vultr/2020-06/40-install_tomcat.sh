@@ -179,7 +179,7 @@ EOF
         rm context.xml
         cat > /usr/local/apache-tomcat-8.5.56/conf/context.xml << "EOF"
 <?xml version="1.0" encoding="UTF-8"?>
-<Context antiJARLocking="true" antiResourceLocking="true">
+<Context antiResourceLocking="true">
 
     <ResourceLink name="TOMCAT_JNDI_RESOURCE_NAME" global="TOMCAT_JNDI_RESOURCE_NAME" type="javax.sql.DataSource"/>
     <Manager className="de.javakaffee.web.msm.MemcachedBackupSessionManager"
@@ -478,7 +478,7 @@ main() {
 	install_gradle
 	install_spring_boot_cli
 	install_jmeter
-	install_eclipse_ee
+	#install_eclipse_ee
 	set_environments_variables
 	register_tomcat_as_systemd_service
 }

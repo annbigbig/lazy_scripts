@@ -66,6 +66,11 @@ change_sshd_settings() {
 		chmod 644 /etc/ssh/ssh_host_dsa_*.pub
 	fi
 
+	# check /var/run/sshd existed or not, this is also a weird bug
+	if [ ! -d /var/run/sshd ]; then
+		mkdir -p -m0755 /var/run/sshd
+		chown root:root /var/run/sshd
+	fi
 
 	if [ $SSHD_LISTENING_PORT -gt 1024 ] && [ $SSHD_LISTENING_PORT -lt 65535 ] ; then
 		echo -e "modify $CONFIG_FILE_PATH \n replace 'Port 22' with 'Port $SSHD_LISTENING_PORT' \n"

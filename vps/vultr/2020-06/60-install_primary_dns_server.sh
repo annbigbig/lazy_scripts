@@ -25,6 +25,8 @@ CNAME ns1 vps01
 CNAME ns2 vps02
 CNAME mail1 vps01
 CNAME mail2 vps02
+A dq5rocks.com. 45.32.55.60
+A dq5rocks.com. 45.77.131.215
 A vps01.dq5rocks.com. 45.32.55.60
 A vps02.dq5rocks.com. 45.77.131.215
 A www.dq5rocks.com. 45.32.55.60
@@ -87,7 +89,7 @@ remove_previous_version() {
 }
 
 install_dependencies() {
-	apt-get install -y libcap-dev libxml2 libkrb5-dev libssl-dev
+	apt-get install -y libcap-dev libxml2 libkrb5-dev libssl-dev pkg-config
 	apt-get install -y libuv1 libuv1-dev python3 python3-all python3-ply python3-plyvel
 }
 
@@ -417,7 +419,7 @@ EOF
         cat > /srv/named/etc/namedb/pz/db.$DOMAIN_NAME << "EOF"
 $TTL    604800
 @       IN      SOA     PRIMARY_DNS_SERVER_NAME admin.DOMAIN_NAME. (
-                  3     ; Serial --> increase this value then restart bind if there are any changes happend
+                  5     ; Serial --> increase this value then restart bind if there are any changes happend
              604800     ; Refresh
               86400     ; Retry
             2419200     ; Expire

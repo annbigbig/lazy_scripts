@@ -360,6 +360,7 @@ EOF
 # https://github.com/php/php-src/blob/PHP-7.4/UPGRADING#L761-L770
 # https://www.howtoforge.com/tutorial/how-to-compile-and-install-php-7.4-on-ubuntu-18-04/
 # https://github.com/Cacti/cacti/issues/2831
+# https://zerossl.com/help/installation/nginx/
 #####################
 
 say_goodbye() {
