@@ -65,9 +65,10 @@ here are some search results that might be helpful
 * [where to buy cheap SSL certificate](https://www.google.com.tw/search?q=where+to+buy+cheap+ssl+certificate)  
 * [where to find free SSL certificate](https://www.google.com.tw/search?q=where+to+find+free+ssl+certificate)  
 
+（我的部落格2020-07-01開始啟用囉，忙著求生應該沒空常寫它，付不出VPS費用的話也有可能隨時會關閉）  
 and my domain (dq5rocks.com) was bought at GoDaddy,  
 vps nodes were rent at Vultr, i have a wordpress blog running at  
- https://blog.dq5rocks.com  
+  [blog.dq5rocks.com](https://blog.dq5rocks.com)  
 but that's my personal choice, you could buy domain/vps from other providers you preferred.
 
 ## Disclaimer Clause  
@@ -117,7 +118,7 @@ i could use English either but with very limited-skills.
    - [Dogecoin](#dogecoin) ![DogecoinIcon](images/doge.png?raw=true "Thank you")  
      **DJEZGrRP9BY6nnJJuFXoPFXzQdJZMe6n5d**  
 
-## Hire me
+## Hire me 求職
   
 可以叫我去上班喔，很缺錢  
 寄信到 : [annbigbig@gmail.com](mailto:annbigbig@gmail.com)  
@@ -126,10 +127,10 @@ i could use English either but with very limited-skills.
 我把104的履歷寄給您  
 
 能力值大概是這樣  
-系維運維：🌑🌑🌑   
-Java/Spring 後端Restful API開發：🌑🌑🌓  
-系統設計UML模型圖導出：🌑🌑🌑  
-UI：🌑🌓🌕  
-文件整理：🌑🌑🌑  
+系維運維：🌕🌕🌕🌕🌑  
+Java/Spring 後端Restful API開發：🌕🌕🌗🌑🌑  
+系統設計UML模型圖導出：🌕🌕🌕🌑🌑 
+UI：🌕🌑🌑🌑🌑  
+文件整理：🌕🌕🌕🌗🌑    
 </font>
 
