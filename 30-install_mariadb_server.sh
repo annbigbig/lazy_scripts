@@ -61,7 +61,7 @@ install_mariadb_server() {
 	MARIADB_SERVER_HAS_BEEN_INSTALLED="$(dpkg --get-selections | grep mariadb-server)"
 	[ -n "$MARIADB_SERVER_HAS_BEEN_INSTALLED" ] && echo "mariadb already has been installed." && exit 2 || echo "ready to install mariadb..."
 	apt-get update
-	apt-get install -y software-properties-common apt-transport-https ca-certificates
+	apt-get install -y software-properties-common apt-transport-https ca-certificates gnupg-curl
 	apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc'
 	add-apt-repository 'deb [arch=amd64] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.5/ubuntu focal main'
 	apt-get install -y mariadb-server mariadb-client
