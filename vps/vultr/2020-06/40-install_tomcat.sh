@@ -19,25 +19,27 @@ say_goodbye() {
 }
 
 install_jdk() {
-	echo -e "ready to install jdk \n"
-	cd /usr/local/
+        echo -e "ready to install jdk \n"
+        cd /usr/local/
 
-	# https://gist.github.com/wavezhang/ba8425f24a968ec9b2a8619d7c2d86a6
-	wget --no-cookies --no-check-certificate --header "Cookie:gpw_e24=http%3A%2F%2Fwww.oracle.com%2F; oraclelicense=accept-securebackup-cookie" "https://download.oracle.com/otn-pub/java/jdk/8u251-b08/3d5a2bb8f8d4428bbe94aed7ec7ae784/jdk-8u251-linux-x64.tar.gz"
+        # https://gist.github.com/hgomez/9650687
+        # https://gist.github.com/wavezhang/ba8425f24a968ec9b2a8619d7c2d86a6
+
+        wget https://github.com/frekele/oracle-java/releases/download/8u212-b10/jdk-8u212-linux-x64.tar.gz
 
         # checksum could be found here
-        # https://www.oracle.com/webfolder/s/digest/8u251checksum.html
-        SHA256SUM_SHOULD_BE="777a8d689e863275a647ae52cb30fd90022a3af268f34fc5b9867ce32f1b374e"
-        SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./jdk-8u251-linux-x64.tar.gz | cut -d ' ' -f 1)"
+        # https://www.oracle.com/webfolder/s/digest/8u212checksum.html
+        SHA256SUM_SHOULD_BE="3160c50aa8d8e081c8c7fe0f859ea452922eca5d2ae8f8ef22011ae87e6fedfb"
+        SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./jdk-8u212-linux-x64.tar.gz | cut -d ' ' -f 1)"
         [ "$SHA256SUM_SHOULD_BE" == "$SHA256SUM_COMPUTED" ] && echo "jdk sha256sum matched." || exit 2
 
-	tar -zxvf ./jdk-8u251-linux-x64.tar.gz
-	chown -R root:root ./jdk1.8.0_251
-	rm -rf /usr/local/jdk
-	ln -s /usr/local/jdk1.8.0_251 /usr/local/jdk
-	rm -rf ./jdk-8u251-linux-x64.tar.gz
+        tar -zxvf ./jdk-8u212-linux-x64.tar.gz
+        chown -R root:root ./jdk1.8.0_212
+        rm -rf /usr/local/jdk
+        ln -s /usr/local/jdk1.8.0_212 /usr/local/jdk
+        rm -rf ./jdk-8u212-linux-x64.tar.gz
 
-	echo -e "jdk installation completed."
+        echo -e "jdk installation completed."
 }
 
 set_jdk_priority() {
