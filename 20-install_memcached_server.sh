@@ -2,8 +2,8 @@
 #
 #####################################################  <<Tested on Ubuntu Mate 20.04 Desktop Edition>>  #########
 #
-MEMCACHED_RUNNING_IP_ADDRESS="192.168.0.107"   # 0.0.0.0 for running on all network interfaces or just Private IP
-MEMCACHED_RAM_SIZE="128"                       # how many RAM size that u wanna to allocate to memcached service
+MEMCACHED_RUNNING_IP_ADDRESS="0.0.0.0"         # 0.0.0.0 for running on all network interfaces or just Private IP
+MEMCACHED_RAM_SIZE="256"                       # how many RAM size that u wanna to allocate to memcached service
 #
 #################################################################################################################
 

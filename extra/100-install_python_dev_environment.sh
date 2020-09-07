@@ -9,7 +9,7 @@ say_goodbye() {
 
 install_prerequisite() {
 	apt-get update
-	apt-get install -y zlib1g-dev
+	apt-get install -y zlib1g-dev tk-dev
 }
 
 install_python() {
@@ -31,15 +31,19 @@ install_python() {
 	make install
 
 	ln -s /usr/local/Python-3.8.5 /usr/local/Python3
-	rm -rf ././Python-3.8.5.tgz
+	rm -rf /usr/local/src/Python-3.8.5.tgz
 }
 
 set_python_priority() {
         echo -e "set python3 priority \n"
         update-alternatives --install "/usr/bin/python3" "python3" "/usr/local/Python3/bin/python3" 385
-        update-alternatives --install "/usr/bin/python3" "python3" "/usr/bin/python3.5" 352
+        update-alternatives --install "/usr/bin/python3" "python3" "/usr/bin/python3.8" 382
         update-alternatives --set python3 /usr/local/Python3/bin/python3
         update-alternatives --list python3
+	# to adjust priority manually , use this command below :
+	# update-alternatives --config python3
+	# to remove alternative option , use this command , if it cause any problem on your system , don't forget delete /etc/profile.d/python_environments.sh too
+	# update-alternatives --remove "python3" "/usr/local/Python3/bin/python3"
         echo -e "python3 priority changed. \n"
 }
 
@@ -58,11 +62,24 @@ EOF
         echo -e "environments variables settings completed."
 }
 
+fix_error() {
+	# when u run 'apt-get update' then get following error messages:
+	#
+	# Traceback (most recent call last):
+        #   File "/usr/lib/cnf-update-db", line 8, in <module>
+        #     from CommandNotFound.db.creator import DbCreator
+        # ModuleNotFoundError: No module named 'CommandNotFound'
+        #
+        # just change python3 to python3.8 in cnf-update-db will solve this problem
+        sed -i -- 's|python3|python3.8|g' /usr/lib/cnf-update-db	
+}
+
 main() {
 	install_prerequisite
         install_python
 	set_python_priority
 	set_environments_variables
+	fix_error
 }
 
 echo -e "This script will install python 3.8.x dev environment on this host \n"

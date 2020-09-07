@@ -4,7 +4,7 @@
 #
 # these parameters will be used in firewall rules:      <<Tested on Ubuntu Mate 20.04 Desktop Edition>>
 ########################################################################################################
-LAN="192.168.0.0/24"                    # The local network that you allow packets come in from there
+LAN="172.25.169.0/24"                   # The local network that you allow packets come in from there
 VPN="10.8.0.0/24"                       # The VPN network that you allow packets come in from there
 MY_TIMEZONE="Asia/Taipei"               # The timezone that you specify for this VPS node
 ########################################################################################################
@@ -29,8 +29,8 @@ modify_network_config() {
 auto lo
 iface lo inet loopback
 
-auto eth0
-iface eth0 inet dhcp
+#auto eth0
+#iface eth0 inet dhcp
 EOF
         chown root:root $NETWORK_CONFIG_FILE
         chmod 644 $NETWORK_CONFIG_FILE
@@ -83,7 +83,7 @@ iptables=/sbin/iptables
 loopback=127.0.0.1
 local="\$(/sbin/ip addr show eth0 | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
 #local="\$(/sbin/ip addr show wlan0 | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
-#local=192.168.0.107
+#local=172.25.169.100
 lan=$LAN
 vpn=$VPN
 # =================================================================================================
@@ -166,10 +166,17 @@ install_chrome_browser() {
         sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'
         apt-get update
         apt-get install -y google-chrome-stable
+
+	# for supressing error messages like this when u run 'apt-get update'
+	#   W: Target Packages (main/binary-amd64/Packages) is configured multiple times in /etc/apt/sources.list.d/google-chrome.list:3 and /etc/apt/sources.list.d/google.list:1
+        #   W: Target Packages (main/binary-all/Packages) is configured multiple times in /etc/apt/sources.list.d/google-chrome.list:3 and /etc/apt/sources.list.d/google.list:1
+	sed -i -- 's/^/#/' /etc/apt/sources.list.d/google.list
 }
 
 remove_ugly_fonts() {
-	apt-get remove -y fonts-arphic-ukai fonts-arphic-uming
+	apt-get --purge remove fonts-arphic-ukai fonts-arphic-uming
+	# remove all of packages that were marked as 'deinstall'
+	dpkg --purge `dpkg --get-selections | grep deinstall | cut -f1`
 }
 
 downgrade_gcc_version() {
@@ -202,6 +209,21 @@ update_system() {
         chmod 755 /var/lib/update-notifier/package-data-downloads/partial
 }
 
+change_apport_settings() {
+
+	#   i don't wannt see this anymore uh uh uh      #
+	#
+	##################################################
+	#                                                #
+	#     System program problem detected            #
+	#     do you want to report the problem now ?    #
+	#                                                #
+        #     [ Cancel ]     [ Report problem... ]       #
+        #                                                #
+	##################################################
+	sed -i -- 's|enabled=1|enabled=0|g' /etc/default/apport
+}
+
 main(){
         unlock_apt_bala_bala
         update_system
@@ -218,6 +240,7 @@ main(){
 	#install_chrome_browser
 	remove_ugly_fonts
         downgrade_gcc_version
+	change_apport_settings
 	echo -e "now you should reboot your computer for configurations take affect.\n"
 	echo -e "RUN 'reboot' in your prompt # symbol\n"
 }
@@ -238,6 +261,7 @@ echo -e "  12.add swap space with 4096MB \n"
 echo -e "  13.install chrome browser \n"
 echo -e "  14.remove ugly fonts \n"
 echo -e "  15.downgrade gcc/g++ version to 7.x \n"
+echo -e "  16.turn off apport problem report popup dialog \n"
 
 read -p "Are you sure (y/n)?" sure
 case $sure in

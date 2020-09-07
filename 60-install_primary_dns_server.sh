@@ -6,46 +6,46 @@
 ################################  <<Tested on Ubuntu Mate 20.04 Desktop Edition>>  #######
 #
 DOMAIN_NAME="dq5rocks.com"
-FIRST_OCTET="192"
-SECOND_OCTET="168"
-THIRD_OCTET="0"
+FIRST_OCTET="172"
+SECOND_OCTET="25"
+THIRD_OCTET="169"
 #
-TRUSTED_LOCAL_SUBNET="192.168.0.0/24"
+TRUSTED_LOCAL_SUBNET="172.25.169.0/24"
 TRUSTED_VPN_SUBNET="10.8.0.0/24"
-SECONDARY_DNS_IP_ADDRESS="192.168.0.108"
+SECONDARY_DNS_IP_ADDRESS="172.25.169.202"
 #
 # dont forget suffix dot . if you write a FQDN for NS/MX/A/PTR record
 # each column is seperated by space
 read -r -d '' DNS_RECORDS << EOV
-NS vhost01.dq5rocks.com.
-NS vhost02.dq5rocks.com.
-MX vhost01.dq5rocks.com. 10
-MX vhost02.dq5rocks.com. 20
-CNAME ns1 vhost01
-CNAME ns2 vhost02
-CNAME mail1 vhost01
-CNAME mail2 vhost02
-A dq5rocks.com. 192.168.0.107
-A dq5rocks.com. 192.168.0.108
-A vhost01.dq5rocks.com. 192.168.0.107
-A vhost02.dq5rocks.com. 192.168.0.108
-A www.dq5rocks.com. 192.168.0.107
-A www.dq5rocks.com. 192.168.0.108
-A dragon.dq5rocks.com. 192.168.0.100
-A x64desktop.dq5rocks.com. 192.168.0.110
-A cubietruck.dq5rocks.com. 192.168.0.160
+NS vhost201.dq5rocks.com.
+NS vhost202.dq5rocks.com.
+MX vhost201.dq5rocks.com. 10
+MX vhost202.dq5rocks.com. 20
+CNAME ns1 vhost201
+CNAME ns2 vhost202
+CNAME mail1 vhost201
+CNAME mail2 vhost202
+A dq5rocks.com. 172.25.169.201
+A dq5rocks.com. 172.25.169.202
+A vhost201.dq5rocks.com. 172.25.169.201
+A vhost202.dq5rocks.com. 172.25.169.202
+A www.dq5rocks.com. 172.25.169.201
+A www.dq5rocks.com. 172.25.169.202
+A dragon.dq5rocks.com. 172.25.169.100
+A x64desktop.dq5rocks.com. 172.25.169.110
+A cubietruck.dq5rocks.com. 172.25.169.160
 A bananapi.dq5rocks.com. 172.17.205.175
 PTR 100 dragon.dq5rocks.com.
 PTR 110 x64desktop.dq5rocks.com.
-PTR 107 vhost01.dq5rocks.com.
-PTR 108 vhost02.dq5rocks.com.
+PTR 201 vhost201.dq5rocks.com.
+PTR 202 vhost202.dq5rocks.com.
 PTR 160 cubietruck.dq5rocks.com.
 EOV
 ##########################################################################################################
 # *** Hint ***
-# how to query a specifc DNS server (ex: 192.168.0.108) ? use this command : 
-#  $ nslookup www.dq5rocks.com 192.168.0.108
-#  $ nslookup 192.168.0.160 192.168.0.108
+# how to query a specifc DNS server (ex: 172.25.169.202) ? use this command : 
+#  $ nslookup www.dq5rocks.com 172.25.169.202
+#  $ nslookup 172.25.169.160 172.25.169.202
 #
 ##########################################################################################################
 # *** SPECIAL THANKS ***
@@ -96,22 +96,22 @@ install_dependencies() {
 
 install_bind_server() {
 	cd /usr/local/src/
-	wget https://downloads.isc.org/isc/bind9/9.16.4/bind-9.16.4.tar.xz
-	wget https://downloads.isc.org/isc/bind9/9.16.4/bind-9.16.4.tar.xz.sha512.asc
+	wget https://downloads.isc.org/isc/bind9/9.16.6/bind-9.16.6.tar.xz
+	wget https://downloads.isc.org/isc/bind9/9.16.6/bind-9.16.6.tar.xz.sha512.asc
 
         # how to verify the integrity of downloaded tar.xz file ? see here:
 	# https://kb.isc.org/docs/aa-01225
 
-        PUBLIC_KEY="$(gpg --verify ./bind-9.16.4.tar.xz.sha512.asc ./bind-9.16.4.tar.xz 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
+        PUBLIC_KEY="$(gpg --verify ./bind-9.16.6.tar.xz.sha512.asc ./bind-9.16.6.tar.xz 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
         IMPORT_KEY_RESULT="$(gpg --keyserver keyserver.ubuntu.com --recv $PUBLIC_KEY 2>&1 | grep 'codesign@isc.org' | wc -l)"
-        VERIFY_SIGNATURE_RESULT="$(gpg --verify ./bind-9.16.4.tar.xz.sha512.asc ./bind-9.16.4.tar.xz 2>&1 | tr -s ' ' | grep 'codesign@isc.org' | wc -l)"
+        VERIFY_SIGNATURE_RESULT="$(gpg --verify ./bind-9.16.6.tar.xz.sha512.asc ./bind-9.16.6.tar.xz 2>&1 | tr -s ' ' | grep 'codesign@isc.org' | wc -l)"
         [ "$IMPORT_KEY_RESULT" -gt 0 ] && echo "pubkey $PUBLIC_KEY imported successfuly" ||  exit 2
         [ "$VERIFY_SIGNATURE_RESULT" -gt 0 ] && echo "verify signature successfully" || exit 2
 
 
-	tar xvf ./bind-9.16.4.tar.xz
-	cd bind-9.16.4
-        ./configure --prefix=/usr/local/bind-9.16.4           \
+	tar xvf ./bind-9.16.6.tar.xz
+	cd bind-9.16.6
+        ./configure --prefix=/usr/local/bind-9.16.6           \
 	            --sysconfdir=/etc                         \
 	            --localstatedir=/var                      \
 	            --mandir=/usr/share/man                   \
@@ -122,9 +122,9 @@ install_bind_server() {
 	            --with-randomdev=/dev/urandom
 	make
 	make install
-        ln -s /usr/local/bind-9.16.4 /usr/local/bind9
-	install -v -m755 -d /usr/share/doc/bind-9.16.4/{arm,misc}
-	install -v -m644 doc/misc/{options,rfc-compliance} /usr/share/doc/bind-9.16.4/misc
+        ln -s /usr/local/bind-9.16.6 /usr/local/bind9
+	install -v -m755 -d /usr/share/doc/bind-9.16.6/{arm,misc}
+	install -v -m644 doc/misc/{options,rfc-compliance} /usr/share/doc/bind-9.16.6/misc
 }
 
 export_sbin_dir_to_path() {

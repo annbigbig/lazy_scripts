@@ -10,8 +10,8 @@ NAGIOS_LOGIN_PASSWORD="nagiospassword"
 ADMIN_EMAIL_ADDRESS="annbigbig@gmail.com"
 #
 read -r -d '' MONITORED_HOSTS << EOV
-vhost07 192.168.0.107
-vhost08 192.168.0.108
+vhost07 172.25.169.201
+vhost08 172.25.169.202
 EOV
 #
 read -r -d '' MONITORED_SERVICES << EOV
