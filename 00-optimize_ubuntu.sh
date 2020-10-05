@@ -8,6 +8,10 @@ LAN="172.25.169.0/24"                   # The local network that you allow packe
 VPN="10.8.0.0/24"                       # The VPN network that you allow packets come in from there
 MY_TIMEZONE="Asia/Taipei"               # The timezone that you specify for this VPS node
 ########################################################################################################
+# useful links: 
+# https://www.tecmint.com/set-permanent-dns-nameservers-in-ubuntu-debian/
+#
+########################################################################################################
 
 say_goodbye (){
 	echo "goodbye everyone"
@@ -34,6 +38,24 @@ iface lo inet loopback
 EOF
         chown root:root $NETWORK_CONFIG_FILE
         chmod 644 $NETWORK_CONFIG_FILE
+}
+
+enable_resolvconf_service() {
+	# if your network use static ip settings , u need this to let it function normally (save it from dxxn-low dns query time)
+	apt-get install resolvconf -y
+	cp /etc/resolvconf/resolv.conf.d/head /etc/resolvconf/resolv.conf.d/head.default
+	rm /etc/resolvconf/resolv.conf.d/head
+	cat >> /etc/resolvconf/resolv.conf.d/head << "EOF"
+nameserver 8.8.4.4
+nameserver 8.8.8.8
+nameserver 168.95.192.1
+nameserver 168.95.1.1
+
+options single-request-reopen
+EOF
+	systemctl enable resolvconf.service
+	systemctl restart resolvconf.service
+	# cat /etc/resolv.conf u will know what it did for u
 }
 
 disable_ipv6_entirely() {
@@ -181,7 +203,11 @@ remove_ugly_fonts() {
 
 downgrade_gcc_version() {
         apt-get install -y gcc-7 g++-7
+        apt-get install -y gcc-8 g++-8
         update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 70 --slave /usr/bin/g++ g++ /usr/bin/g++-7
+        update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 80 --slave /usr/bin/g++ g++ /usr/bin/g++-8
+	update-alternatives --set gcc /usr/bin/gcc-8
+	gcc -v && g++ -v
         # update-alternatives --config gcc
 }
 
@@ -229,6 +255,7 @@ main(){
         update_system
 	install_softwares
 	fix_network_interfaces_name
+	enable_resolvconf_service
 	modify_network_config
 	disable_ipv6_entirely
 	disable_dnssec
@@ -250,18 +277,19 @@ echo -e "  1.unlock apt package manager \n"
 echo -e "  2.update packages to newest version \n"
 echo -e "  3.install softwares you need \n"
 echo -e "  4.Fix network interfaces name (To conventional 'eth0' and 'wlan0') \n"
-echo -e "  5.modify network config /etc/network/interfaces \n"
-echo -e "  6.disable ipv6 entirely \n"
-echo -e "  7.disable DNSSEC for systemd-resolved.service \n"
-echo -e "  8.install ntpdate and sync system time \n"
-echo -e "  9.fix too many authentication failures problem \n"
-echo -e "  10.Firewall rule setting (Write firewall rules in /etc/network/if-up.d/firewall) \n"
-echo -e "  11.delete route to 169.254.0.0 \n"
-echo -e "  12.add swap space with 4096MB \n"
-echo -e "  13.install chrome browser \n"
-echo -e "  14.remove ugly fonts \n"
-echo -e "  15.downgrade gcc/g++ version to 7.x \n"
-echo -e "  16.turn off apport problem report popup dialog \n"
+echo -e "  5.Enable resolvconf service \n"
+echo -e "  6.modify network config /etc/network/interfaces \n"
+echo -e "  7.disable ipv6 entirely \n"
+echo -e "  8.disable DNSSEC for systemd-resolved.service \n"
+echo -e "  9.install ntpdate and sync system time \n"
+echo -e "  10.fix too many authentication failures problem \n"
+echo -e "  11.Firewall rule setting (Write firewall rules in /etc/network/if-up.d/firewall) \n"
+echo -e "  12.delete route to 169.254.0.0 \n"
+echo -e "  13.add swap space with 4096MB \n"
+echo -e "  14.install chrome browser \n"
+echo -e "  15.remove ugly fonts \n"
+echo -e "  16.downgrade gcc/g++ version to 7.x \n"
+echo -e "  17.turn off apport problem report popup dialog \n"
 
 read -p "Are you sure (y/n)?" sure
 case $sure in

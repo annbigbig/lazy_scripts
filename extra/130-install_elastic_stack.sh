@@ -12,9 +12,9 @@ ELK_USER_PASSWORD="elk"
 ##################################################################################################################################
 #
 OPENJDK_11_DOWNLOAD_LINK="https://download.java.net/java/GA/jdk11/9/GPL/openjdk-11.0.2_linux-x64_bin.tar.gz"
-OPENJDK_11_SHA256SUM="b2e7ac8741ac5eb95b0d074568b3f2691a3913488a9f96b7b7957e22f424a5a1"
-OPENJDK_11_MINIMAL_HEAP_MEMORY_SIZE="2048m"
-OPENJDK_11_MAXIMUM_HEAP_MEMORY_SIZE="3072m"
+OPENJDK_11_SHA256SUM="99be79935354f5c0df1ad293620ea36d13f48ec3ea870c838f20c504c9668b57"
+OPENJDK_11_MINIMAL_HEAP_MEMORY_SIZE="4g"
+OPENJDK_11_MAXIMUM_HEAP_MEMORY_SIZE="4g"
 #
 ##################################################################################################################################
 #
@@ -75,7 +75,7 @@ EOV
 #
 ##################################################################################################################################
 #
-IP_ADDRESS="$(/sbin/ip addr show $MY_NETWORK_INTERFACE | grep dynamic | grep -v inet6 | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
+IP_ADDRESS="$(/sbin/ip addr show $MY_NETWORK_INTERFACE | grep inet | grep -v inet6 | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
 #
 ##################################################################################################################################
 #
@@ -203,6 +203,7 @@ FILEBEAT_BASE_PATH="$ELK_INSTALL_PATH/filebeat-7.9.1-linux-x86_64"
 # https://stackoverflow.com/questions/46338286/why-cant-i-install-phantomjs-error-eacces-permission-denied
 # https://github.com/npm/npm/issues/2481
 # https://www.twblogs.net/a/5b8db6182b71771883401903?lang=zh-cn
+# https://zhang0peter.com/2020/02/07/linux-chrome-bug/
 #
 ##################################################################################################################################
 
@@ -213,6 +214,7 @@ say_goodbye() {
 install_prerequisite() {
         apt-get update
         apt-get install -y curl wget git fontconfig
+        apt-get install -y libnss3-dev libxss1 libasound2
 
 	# create installation base directory
 	mkdir -p $ELK_INSTALL_PATH
@@ -313,12 +315,15 @@ install_elastic_search() {
 	sed -i -- "s|#node.name: node-1|node.name: $ELASTIC_NODE_NAME|g" $ELASTIC_CONFIG_PATH/elasticsearch.yml
         sed -i -- "s|#path.data: /path/to/data|path.data: $ELASTIC_DATA_PATH|g" $ELASTIC_CONFIG_PATH/elasticsearch.yml
         sed -i -- "s|#path.logs: /path/to/logs|path.logs: $ELASTIC_LOGS_PATH|g" $ELASTIC_CONFIG_PATH/elasticsearch.yml
-        sed -i -- "s|#bootstrap.memory_lock: true|bootstrap.memory_lock: false|g" $ELASTIC_CONFIG_PATH/elasticsearch.yml
-        sed -i -- "/bootstrap.memory_lock: false/a bootstrap.system_call_filter: false" $ELASTIC_CONFIG_PATH/elasticsearch.yml
+	# https://stackoverflow.com/questions/58800603/java-heap-space-problem-with-elastic-search
+        sed -i -- "s|#bootstrap.memory_lock: true|bootstrap.memory_lock: true|g" $ELASTIC_CONFIG_PATH/elasticsearch.yml
+        sed -i -- "/bootstrap.memory_lock: true/a bootstrap.system_call_filter: false" $ELASTIC_CONFIG_PATH/elasticsearch.yml
         sed -i -- "s|#network.host: 192.168.0.1|network.host: 127.0.0.1 , $IP_ADDRESS|g" $ELASTIC_CONFIG_PATH/elasticsearch.yml
 	sed -i -- "s|#http.port: 9200|http.port: $ELASTIC_HTTP_PORT|g" $ELASTIC_CONFIG_PATH/elasticsearch.yml
 	sed -i -- "s|#discovery.seed_hosts: \[\"host1\", \"host2\"\]|discovery.seed_hosts: \[$ELASTIC_IP_LIST\]|g" $ELASTIC_CONFIG_PATH/elasticsearch.yml
 	sed -i -- "s|#cluster.initial_master_nodes: \[\"node-1\", \"node-2\"\]|cluster.initial_master_nodes: \[$ELASTIC_IP_LIST\]|g" $ELASTIC_CONFIG_PATH/elasticsearch.yml
+	sed -i -- "s|#action.destructive_requires_name: true|action.destructive_requires_name: true|g" $ELASTIC_CONFIG_PATH/elasticsearch.yml
+
 	echo "http.cors.enabled: true" >> $ELASTIC_CONFIG_PATH/elasticsearch.yml
 	echo 'http.cors.allow-origin: "*" ' >> $ELASTIC_CONFIG_PATH/elasticsearch.yml
 
@@ -331,9 +336,22 @@ install_elastic_search() {
 }
 
 start_elastic_search() {
+	# place a start-up script
+	cat >> $ELASTIC_BASE_PATH/start_elastic.sh << "EOF"
+#!/bin/bash
+
+ELK_USER_NAME="@ELK_USER_NAME"
+ELASTIC_BIN_PATH="@ELASTIC_BIN_PATH"
+
+HOME=/home/@ELK_USER_NAME su - @ELK_USER_NAME -c "@ELASTIC_BIN_PATH/elasticsearch &"
+EOF
+	sed -i -- "s|@ELK_USER_NAME|$ELK_USER_NAME|g" $ELASTIC_BASE_PATH/start_elastic.sh
+	sed -i -- "s|@ELASTIC_BIN_PATH|$ELASTIC_BIN_PATH|g" $ELASTIC_BASE_PATH/start_elastic.sh
+	chown $ELK_USER_NAME:$ELK_USER_NAME $ELASTIC_BASE_PATH/start_elastic.sh
+	chmod +x $ELASTIC_BASE_PATH/start_elastic.sh
 
 	# start elastic-search with user elk's permission
-	HOME=/home/$ELK_USER_NAME su - $ELK_USER_NAME -c "$ELASTIC_BIN_PATH/elasticsearch"
+	HOME=/home/$ELK_USER_NAME su - $ELK_USER_NAME -c "$ELASTIC_BIN_PATH/elasticsearch &"
 
 	# test it whether it is running ?
 	curl -X GET "http://localhost:$ELASTIC_HTTP_PORT"
@@ -383,13 +401,26 @@ install_kibana() {
 	sed -i -- "s|#server.port: 5601|server.port: $KIBANA_HTTP_PORT|g" $KIBANA_CONFIG_PATH/kibana.yml
 	sed -i -- "s|#server.host: \"localhost\"|server.host: \"$IP_ADDRESS\"|g" $KIBANA_CONFIG_PATH/kibana.yml
 	sed -i -- "s|#elasticsearch.hosts: \[\"http://localhost:9200\"\]|elasticsearch.hosts: \[$KIBANA_INPUT_LIST\]|g" $KIBANA_CONFIG_PATH/kibana.yml
+	sed -i -- 's|#kibana.index: ".kibana"|kibana.index: ".kibana"|g' $KIBANA_CONFIG_PATH/kibana.yml
 }
 
 start_kibana() {
-	# Change Directory
-	cd $KIBANA_BIN_PATH
+	# place a start-up script
+	cat >> $KIBANA_BASE_PATH/start_kibana.sh << "EOF"
+#!/bin/bash
+
+ELK_USER_NAME="@ELK_USER_NAME"
+KIBANA_BIN_PATH="@KIBANA_BIN_PATH"
+
+HOME=/home/@ELK_USER_NAME su - @ELK_USER_NAME -c "@KIBANA_BIN_PATH/kibana &"
+EOF
+	sed -i -- "s|@ELK_USER_NAME|$ELK_USER_NAME|g" $KIBANA_BASE_PATH/start_kibana.sh
+	sed -i -- "s|@KIBANA_BIN_PATH|$KIBANA_BIN_PATH|g" $KIBANA_BASE_PATH/start_kibana.sh
+	chown $ELK_USER_NAME:$ELK_USER_NAME $KIBANA_BASE_PATH/start_kibana.sh
+	chmod +x $KIBANA_BASE_PATH/start_kibana.sh
+
 	# Start kibana with user elk's permission
-	HOME=/home/$ELK_USER_NAME su - $ELK_USER_NAME -c "$KIBANA_BIN_PATH/kibana"
+	HOME=/home/$ELK_USER_NAME su - $ELK_USER_NAME -c "$KIBANA_BIN_PATH/kibana &"
 }
 
 install_logstash() {
@@ -436,11 +467,24 @@ EOF
 }
 
 start_logstash() {
-	# Change Directory
-	cd $LOGSTASH_BIN_PATH
+	# Place a start-up script
+	cat >> $LOGSTASH_BASE_PATH/start_logstash.sh << "EOF"
+#!/bin/bash
+
+ELK_USER_NAME="@ELK_USER_NAME"
+LOGSTASH_BIN_PATH="@LOGSTASH_BIN_PATH"
+LOGSTASH_CONFIG_PATH="@LOGSTASH_CONFIG_PATH"
+
+HOME=/home/@ELK_USER_NAME su - @ELK_USER_NAME -c "@LOGSTASH_BIN_PATH/logstash -f @LOGSTASH_CONFIG_PATH/logstash-es.conf &"
+EOF
+        sed -i -- "s|@ELK_USER_NAME|$ELK_USER_NAME|g" $LOGSTASH_BASE_PATH/start_logstash.sh
+        sed -i -- "s|@LOGSTASH_BIN_PATH|$LOGSTASH_BIN_PATH|g" $LOGSTASH_BASE_PATH/start_logstash.sh
+        sed -i -- "s|@LOGSTASH_CONFIG_PATH|$LOGSTASH_CONFIG_PATH|g" $LOGSTASH_BASE_PATH/start_logstash.sh
+        chown $ELK_USER_NAME:$ELK_USER_NAME $LOGSTASH_BASE_PATH/start_logstash.sh
+        chmod +x $LOGSTASH_BASE_PATH/start_logstash.sh
 
 	# Start logstash with user elk's permission
-	HOME=/home/$ELK_USER_NAME su - $ELK_USER_NAME -c "$LOGSTASH_BIN_PATH/logstash -f $LOGSTASH_CONFIG_PATH/logstash-es.conf"
+	HOME=/home/$ELK_USER_NAME su - $ELK_USER_NAME -c "$LOGSTASH_BIN_PATH/logstash -f $LOGSTASH_CONFIG_PATH/logstash-es.conf &"
 }
 
 install_filebeat() {
@@ -481,9 +525,48 @@ start_filebeat() {
 	curl -X GET "http://localhost:$ELASTIC_HTTP_PORT/filebeat-*/_search?pretty"
 }
 
+install_rally() {
+	apt-get update
+	apt-get install gcc python3-pip python3-dev -y
+	pip3 install esrally
+	# esrally configure
+	# esrally list tracks
+	# esrally --track=pmc --target-hosts=172.25.169.201:9200,172.25.169.202:9200 --pipeline=benchmark-only
+}	
+
 test_it() {
 	echo "hi"
 }
+
+error_fix() {
+	# fix this error when elastic-search start
+	# ERROR: [2] bootstrap checks failed
+        # [1]: max file descriptors [4096] for elasticsearch process is too low, increase to at least [65535]
+        # [2]: max number of threads [1024] for user [elk] is too low, increase to at least [4096]
+        # ERROR: Elasticsearch did not exit normally - check the logs at /usr/local/app/elasticsearch-7.9.1/logs/logger.log
+	
+	cp /etc/security/limits.conf /etc/security/limits.conf.default
+	echo "* soft nofile 65536" >> /etc/security/limits.conf
+	echo "* hard nofile 65536" >> /etc/security/limits.conf
+	echo "* soft nproc 32000" >> /etc/security/limits.conf
+	echo "* hard nproc 32000" >> /etc/security/limits.conf
+	echo "* hard memlock unlimited" >> /etc/security/limits.conf
+	echo "* soft memlock unlimited" >> /etc/security/limits.conf
+
+	# see user elk's resource limit on this machine
+	#su elk -c 'ulimit -Hn'
+
+	# someone's suggestion
+	# https://www.twblogs.net/a/5ca0b862bd9eee5b1a069eb8
+	cp /etc/systemd/system.conf /etc/systemd/system.conf.default
+	sed -i -- "s|#DefaultLimitNOFILE=1024:524288|DefaultLimitNOFILE=65536|g" /etc/systemd/system.conf
+	sed -i -- "s|#DefaultLimitNPROC=|DefaultLimitNPROC=32000|g" /etc/systemd/system.conf
+	sed -i -- "s|#DefaultLimitMEMLOCK=|DefaultLimitMEMLOCK=infinity|g" /etc/systemd/system.conf
+	systemctl daemon-reload
+
+	# dont forget turn off swap , command below just for this time , edit /etc/fstab and comment out swap that line
+	swapoff -a
+}	
 
 change_dir_owner_group() {
 
@@ -506,8 +589,10 @@ main() {
 	install_kibana
 	install_logstash
 	install_filebeat
+	install_rally
 	change_dir_owner_group
 	#test_it
+	error_fix
 	start_elastic_search
 	start_elastic_search_head
 	start_kibana
