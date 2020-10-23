@@ -11,10 +11,10 @@ ELK_USER_PASSWORD="elk"
 #
 ##################################################################################################################################
 #
-OPENJDK_11_DOWNLOAD_LINK="https://download.java.net/java/GA/jdk11/9/GPL/openjdk-11.0.2_linux-x64_bin.tar.gz"
-OPENJDK_11_SHA256SUM="99be79935354f5c0df1ad293620ea36d13f48ec3ea870c838f20c504c9668b57"
-OPENJDK_11_MINIMAL_HEAP_MEMORY_SIZE="4g"
-OPENJDK_11_MAXIMUM_HEAP_MEMORY_SIZE="4g"
+OPENJDK_14_DOWNLOAD_LINK="https://download.java.net/java/GA/jdk14.0.1/664493ef4a6946b186ff29eb326336a2/7/GPL/openjdk-14.0.1_linux-x64_bin.tar.gz"
+OPENJDK_14_SHA256SUM="22ce248e0bd69f23028625bede9d1b3080935b68d011eaaf9e241f84d6b9c4cc"
+OPENJDK_14_MINIMAL_HEAP_MEMORY_SIZE="10g"
+OPENJDK_14_MAXIMUM_HEAP_MEMORY_SIZE="10g"
 #
 ##################################################################################################################################
 #
@@ -79,7 +79,7 @@ IP_ADDRESS="$(/sbin/ip addr show $MY_NETWORK_INTERFACE | grep inet | grep -v ine
 #
 ##################################################################################################################################
 #
-FILENAME_OPENJDK_11="${OPENJDK_11_DOWNLOAD_LINK##*/}"
+FILENAME_OPENJDK_14="${OPENJDK_14_DOWNLOAD_LINK##*/}"
 FILENAME_ELASTICSEARCH="${TAR_GZ_PATH_ELASTICSEARCH##*/}"
 FILENAME_KIBANA="${TAR_GZ_PATH_KIBANA##*/}"
 FILENAME_LOGSTASH="${TAR_GZ_PATH_LOGSTASH##*/}"
@@ -89,9 +89,9 @@ FILENAME_PHANTOM_JS="${PHANTOM_JS_DOWNLOAD_LINK##*/}"
 #
 ##################################################################################################################################
 #
-OPENJDK_11_BASE_PATH="$ELK_INSTALL_PATH/jdk-11.0.2"
-OPENJDK_11_BIN_PATH="$OPENJDK_11_BASE_PATH/bin"
-OPENJDK_11_SYMBLIC_LINK_PATH="$ELK_INSTALL_PATH/jdk"
+OPENJDK_14_BASE_PATH="$ELK_INSTALL_PATH/jdk-11.0.2"
+OPENJDK_14_BIN_PATH="$OPENJDK_14_BASE_PATH/bin"
+OPENJDK_14_SYMBLIC_LINK_PATH="$ELK_INSTALL_PATH/jdk"
 #
 ##################################################################################################################################
 #
@@ -219,15 +219,15 @@ install_prerequisite() {
 	# create installation base directory
 	mkdir -p $ELK_INSTALL_PATH
 
-	# Install OpenJDK 11
+	# Install OpenJDK 14
 	cd $ELK_INSTALL_PATH
-	wget "$OPENJDK_11_DOWNLOAD_LINK"
-        SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./$FILENAME_OPENJDK_11 | cut -d ' ' -f 1)"
-        [ "$OPENJDK_11_SHA256SUM" == "$SHA256SUM_COMPUTED" ] && echo "OpenJDK tar.gz file sha256sum Matched." || exit 2
-	tar zxvf ./$FILENAME_OPENJDK_11
-	chown -R root:root $OPENJDK_11_BASE_PATH
+	wget "$OPENJDK_14_DOWNLOAD_LINK"
+        SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./$FILENAME_OPENJDK_14 | cut -d ' ' -f 1)"
+        [ "$OPENJDK_14_SHA256SUM" == "$SHA256SUM_COMPUTED" ] && echo "OpenJDK tar.gz file sha256sum Matched." || exit 2
+	tar zxvf ./$FILENAME_OPENJDK_14
+	chown -R root:root $OPENJDK_14_BASE_PATH
         rm -rf $ELK_INSTALL_PATH/jdk
-        ln -s $OPENJDK_11_BASE_PATH $ELK_INSTALL_PATH/jdk
+        ln -s $OPENJDK_14_BASE_PATH $ELK_INSTALL_PATH/jdk
 
 	# OpenJDK env variable settings
         echo -e "setting environments variables\n"
@@ -235,15 +235,15 @@ install_prerequisite() {
         rm -rf $ENVIRONMENTS_FILE
         touch $ENVIRONMENTS_FILE
         cat >> $ENVIRONMENTS_FILE << EOF
-export JAVA_HOME=OPENJDK_11_SYMBLIC_LINK_PATH
+export JAVA_HOME=OPENJDK_14_SYMBLIC_LINK_PATH
 export JRE_HOME=\$JAVA_HOME/jre
-export JVM_ARGS="-XmsOPENJDK_11_MINIMAL_HEAP_MEMORY_SIZE -XmxOPENJDK_11_MAXIMUM_HEAP_MEMORY_SIZE"
+export JVM_ARGS="-XmsOPENJDK_14_MINIMAL_HEAP_MEMORY_SIZE -XmxOPENJDK_14_MAXIMUM_HEAP_MEMORY_SIZE"
 export CLASSPATH=.:\$JAVA_HOME/lib:\$JRE_HOME/lib
 export PATH=\$JAVA_HOME/bin:\$JRE_HOME/bin:\$PATH
 EOF
-        sed -i -- "s|OPENJDK_11_SYMBLIC_LINK_PATH|$OPENJDK_11_SYMBLIC_LINK_PATH|g" $ENVIRONMENTS_FILE
-        sed -i -- "s|OPENJDK_11_MINIMAL_HEAP_MEMORY_SIZE|$OPENJDK_11_MINIMAL_HEAP_MEMORY_SIZE|g" $ENVIRONMENTS_FILE
-        sed -i -- "s|OPENJDK_11_MAXIMUM_HEAP_MEMORY_SIZE|$OPENJDK_11_MAXIMUM_HEAP_MEMORY_SIZE|g" $ENVIRONMENTS_FILE
+        sed -i -- "s|OPENJDK_14_SYMBLIC_LINK_PATH|$OPENJDK_14_SYMBLIC_LINK_PATH|g" $ENVIRONMENTS_FILE
+        sed -i -- "s|OPENJDK_14_MINIMAL_HEAP_MEMORY_SIZE|$OPENJDK_14_MINIMAL_HEAP_MEMORY_SIZE|g" $ENVIRONMENTS_FILE
+        sed -i -- "s|OPENJDK_14_MAXIMUM_HEAP_MEMORY_SIZE|$OPENJDK_14_MAXIMUM_HEAP_MEMORY_SIZE|g" $ENVIRONMENTS_FILE
         source /etc/profile
         which java
         java -version
@@ -463,7 +463,7 @@ EOF
 	# change jvm.options settings
 	cp $LOGSTASH_CONFIG_PATH/jvm.options $LOGSTASH_CONFIG_PATH/jvm.options.default
 	sed -i -- "s|-Xms1g|-Xms$LOGSTASH_MINIMAL_HEAP_MEMORY_SIZE|g" $LOGSTASH_CONFIG_PATH/jvm.options
-	sed -i -- "s|-Xmx1g|-Xms$LOGSTASH_MAXIMUM_HEAP_MEMORY_SIZE|g" $LOGSTASH_CONFIG_PATH/jvm.options
+	sed -i -- "s|-Xmx1g|-Xmx$LOGSTASH_MAXIMUM_HEAP_MEMORY_SIZE|g" $LOGSTASH_CONFIG_PATH/jvm.options
 }
 
 start_logstash() {
@@ -503,7 +503,7 @@ install_filebeat() {
 	# Edit config file
 	cd $FILEBEAT_BASE_PATH
 	cp $FILEBEAT_BASE_PATH/filebeat.yml $FILEBEAT_BASE_PATH/filebeat.yml.default
-	chown root:root $FILEBEAT_BASE_PATH/filebeat.yml*
+	chown -R root:root $FILEBEAT_BASE_PATH
 	
 	sed -i -- 's|- type: log|- type: log|g' $FILEBEAT_BASE_PATH/filebeat.yml
 	sed -i -- 's|  enabled: false|  enabled: true|g' $FILEBEAT_BASE_PATH/filebeat.yml
@@ -512,6 +512,11 @@ install_filebeat() {
 	sed -i -- 's|hosts: \["localhost:9200"\]|#hosts: \["localhost:9200"\]|g' $FILEBEAT_BASE_PATH/filebeat.yml
 	sed -i -- 's|#output.logstash:|output.logstash:|g' $FILEBEAT_BASE_PATH/filebeat.yml
 	sed -i -- "s|#hosts: \[\"localhost:5044\"\]|hosts: \[$FILEBEAT_OUTPUT_LIST\]|g" $FILEBEAT_BASE_PATH/filebeat.yml
+
+	# List and Enable system module
+	$FILEBEAT_BASE_PATH/filebeat modules list
+	$FILEBEAT_BASE_PATH/filebeat modules enable system
+	$FILEBEAT_BASE_PATH/filebeat test output
 }
 
 start_filebeat() {
@@ -575,11 +580,11 @@ change_dir_owner_group() {
 	cd $ELK_INSTALL_PATH
         find . -type d -exec chmod 755 {} \;
 
-	# For this strange error messages , u have to change all of filebeat-xxx.yml owned by root user and group
+	# For this strange error messages , u have to change all of filebeat's xxx.yml , let them owned by root user and root group
 	# ??? Exiting: error loading config file: config file ("filebeat.yml") must be owned by the user identifier (uid=0) or root
 	cd $FILEBEAT_BASE_PATH
-	chown root:root *.yml
-	chown 644 $FILEBEAT_BASE_PATH/filebeat.yml*
+	find . -name "*.yml" -exec chown root:root {} \;
+	find . -name "*.yml" -exec chmod 644 {} \;
 }
 
 main() {
