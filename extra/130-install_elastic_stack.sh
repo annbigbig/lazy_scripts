@@ -71,6 +71,22 @@ EOV
 #
 ##################################################################################################################################
 #
+ZOOKEEPER_HEAP_OPTS="-Xms4g -Xmx4g"
+#
+##################################################################################################################################
+KAFKA_BASE_PATH="/opt/kafka"
+KAFKA_DATA_PATH="/opt/kafka/data"
+KAFKA_HEAP_OPTS="-Xms4g -Xmx4g"
+KAFKA_DOWNLOAD_LINK="https://downloads.apache.org/kafka/2.6.0/kafka_2.13-2.6.0.tgz"
+KAFKA_SHA512SUM="d884e4df7d85b4fff54ca9cd987811c58506ad7871b9ed7114bbafa6fee2e79f43d04c550eea471f508b08ea34b4316ea1e529996066fd9b93fcf912f41f6165"
+KAFKA_TOPIC_NAME="traffic"
+KAFKA_CONFIG_FILE_PATH="/opt/kafka/config/server.properties"
+KAFKA_BROKER_ID="701"
+KAFKA_HOST="127.0.0.1"
+KAFKA_LISTENING_PORT="9092"
+#
+##################################################################################################################################
+#
 # most of parameters below are auto calculated , no need to change this block except XXXX_BASE_PATH
 #
 ##################################################################################################################################
@@ -86,10 +102,11 @@ FILENAME_LOGSTASH="${TAR_GZ_PATH_LOGSTASH##*/}"
 FILENAME_FILEBEAT="${TAR_GZ_PATH_FILEBEAT##*/}"
 FILENAME_NODE_JS="${NODE_JS_DOWNLOAD_LINK##*/}"
 FILENAME_PHANTOM_JS="${PHANTOM_JS_DOWNLOAD_LINK##*/}"
+FILENAME_KAFKA="${KAFKA_DOWNLOAD_LINK##*/}"
 #
 ##################################################################################################################################
 #
-OPENJDK_14_BASE_PATH="$ELK_INSTALL_PATH/jdk-11.0.2"
+OPENJDK_14_BASE_PATH="$ELK_INSTALL_PATH/jdk-14.0.1"
 OPENJDK_14_BIN_PATH="$OPENJDK_14_BASE_PATH/bin"
 OPENJDK_14_SYMBLIC_LINK_PATH="$ELK_INSTALL_PATH/jdk"
 #
@@ -204,6 +221,7 @@ FILEBEAT_BASE_PATH="$ELK_INSTALL_PATH/filebeat-7.9.1-linux-x86_64"
 # https://github.com/npm/npm/issues/2481
 # https://www.twblogs.net/a/5b8db6182b71771883401903?lang=zh-cn
 # https://zhang0peter.com/2020/02/07/linux-chrome-bug/
+# https://www.fosstechnix.com/how-to-install-apache-kafka-on-ubuntu-20-04-lts/
 #
 ##################################################################################################################################
 
@@ -240,10 +258,12 @@ export JRE_HOME=\$JAVA_HOME/jre
 export JVM_ARGS="-XmsOPENJDK_14_MINIMAL_HEAP_MEMORY_SIZE -XmxOPENJDK_14_MAXIMUM_HEAP_MEMORY_SIZE"
 export CLASSPATH=.:\$JAVA_HOME/lib:\$JRE_HOME/lib
 export PATH=\$JAVA_HOME/bin:\$JRE_HOME/bin:\$PATH
+export KAFKA_HEAP_OPTS=@KAFKA_HEAP_OPTS@
 EOF
         sed -i -- "s|OPENJDK_14_SYMBLIC_LINK_PATH|$OPENJDK_14_SYMBLIC_LINK_PATH|g" $ENVIRONMENTS_FILE
         sed -i -- "s|OPENJDK_14_MINIMAL_HEAP_MEMORY_SIZE|$OPENJDK_14_MINIMAL_HEAP_MEMORY_SIZE|g" $ENVIRONMENTS_FILE
         sed -i -- "s|OPENJDK_14_MAXIMUM_HEAP_MEMORY_SIZE|$OPENJDK_14_MAXIMUM_HEAP_MEMORY_SIZE|g" $ENVIRONMENTS_FILE
+        sed -i -- "s|@KAFKA_HEAP_OPTS@|$KAFKA_HEAP_OPTS|g" $ENVIRONMENTS_FILE
         source /etc/profile
         which java
         java -version
@@ -494,7 +514,7 @@ install_filebeat() {
 	# Install Filebeat
 	wget "$TAR_GZ_PATH_FILEBEAT"
 	wget "$TAR_GZ_PATH_FILEBEAT.sha512"
-	FILENAME_FILEBEAT="${TAR_GZ_PATH_FILEBEAT##*/}"
+
 	SHA512SUM_SHOULD_BE="$(/bin/cat $FILENAME_FILEBEAT.sha512 | cut -d ' ' -f 1)"
         SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./$FILENAME_FILEBEAT | cut -d ' ' -f 1)"
         [ "$SHA512SUM_SHOULD_BE" == "$SHA512SUM_COMPUTED" ] && echo "Filebeat tar.gz file sha512sum Matched." || exit 2
@@ -537,7 +557,89 @@ install_rally() {
 	# esrally configure
 	# esrally list tracks
 	# esrally --track=pmc --target-hosts=172.25.169.201:9200,172.25.169.202:9200 --pipeline=benchmark-only
-}	
+}
+
+install_kafka() {
+
+	# install kafka from tgz file
+	cd /usr/local/src
+	wget $KAFKA_DOWNLOAD_LINK
+        SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./$FILENAME_KAFKA | cut -d ' ' -f 1)"
+        [ "$KAFKA_SHA512SUM" == "$SHA512SUM_COMPUTED" ] && echo "Kafka tgz file sha512sum Matched." || exit 2
+	tar zxvf ./$FILENAME_KAFKA
+	KAFKA_EXTRACTED_DIR_NAME=${FILENAME_KAFKA%.tgz}
+	chown -R root:root $KAFKA_EXTRACTED_DIR_NAME
+	mv $KAFKA_EXTRACTED_DIR_NAME /opt
+
+	# create zookeeper systemd unit file
+	cat >> /etc/systemd/system/zookeeper.service << "EOF"
+[Unit]
+Description=Apache Zookeeper service
+Documentation=http://zookeeper.apache.org
+Requires=network.target remote-fs.target
+After=network.target remote-fs.target
+
+[Service]
+Type=simple
+Environment="KAFKA_HEAP_OPTS=@ZOOKEEPER_HEAP_OPTS@"
+ExecStart=/opt/kafka/bin/zookeeper-server-start.sh /opt/kafka/config/zookeeper.properties
+ExecStop=/opt/kafka/bin/zookeeper-server-stop.sh
+Restart=on-abnormal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+	# create kafka systemd unit file
+	cat >> /etc/systemd/system/kafka.service << "EOF"
+[Unit]
+Description=Apache Kafka Service
+Documentation=http://kafka.apache.org/documentation.html
+Requires=zookeeper.service
+
+[Service]
+Type=simple
+Environment="JAVA_HOME=OPENJDK_14_SYMBLIC_LINK_PATH"
+Environment="KAFKA_HEAP_OPTS=@KAFKA_HEAP_OPTS@"
+ExecStart=/opt/kafka/bin/kafka-server-start.sh /opt/kafka/config/server.properties
+ExecStop=/opt/kafka/bin/kafka-server-stop.sh
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+	sed -i -- "s|OPENJDK_14_SYMBLIC_LINK_PATH|$OPENJDK_14_SYMBLIC_LINK_PATH|g" /etc/systemd/system/kafka.service
+	sed -i -- "s|@ZOOKEEPER_HEAP_OPTS@|$ZOOKEEPER_HEAP_OPTS|g" /etc/systemd/system/zookeeper.service
+	sed -i -- "s|@KAFKA_HEAP_OPTS@|$KAFKA_HEAP_OPTS|g" /etc/systemd/system/kafka.service
+
+	systemctl daemon-reload
+
+	# create data dir for kafka
+	mkdir -p $KAFKA_DATA_PATH
+	chown root:root $KAFKA_DATA_PATH
+	chmod 755 $KAFKA_DATA_PATH
+
+	# edit kafka's server.properties config file
+	cp $KAFKA_CONFIG_FILE_PATH $KAFKA_CONFIG_FILE_PATH.default
+	sed -i -- "s|broker.id=0|$KAFKA_BROKER_ID|" $KAFKA_CONFIG_FILE_PATH
+	sed -i -- "s|#listeners=PLAINTEXT://:9092|listeners=PLAINTEXT://$KAFKA_HOST:$KAFKA_LISTENING_PORT|g" $KAFKA_CONFIG_FILE_PATH
+	sed -i -- "s|#advertised.listeners=PLAINTEXT://:9092|advertised.listeners=PLAINTEXT://$KAFKA_HOST:$KAFKA_LISTENING_PORT|g" $KAFKA_CONFIG_FILE_PATH
+	sed -i -- "s|socket.send.buffer.bytes=102400|socket.send.buffer.bytes=1024000|g" $KAFKA_CONFIG_FILE_PATH
+	sed -i -- "s|socket.receive.buffer.bytes=102400|socket.receive.buffer.bytes=1024000|g" $KAFKA_CONFIG_FILE_PATH
+	sed -i -- "s|socket.request.max.bytes=104857600|socket.request.max.bytes=1048576000|g" $KAFKA_CONFIG_FILE_PATH
+	sed -i -- "s|log.dirs=/tmp/kafka-logs|log.dirs=$KAFKA_DATA_PATH|g" $KAFKA_CONFIG_FILE_PATH
+
+	# start zookeeper and kafka service
+	systemctl start zookeeper.service
+	systemctl start kafka.service
+	systemctl enable zookeeper.service
+	systemctl enable kafka.service
+
+	# creating topic in kafka
+	cd $KAFKA_BASE_PATH
+	$KAFKA_BASE_PATH/bin/kafka-topics.sh --create --zookeeper 127.0.0.1:2181 --replication-factor 1 --partitions 1 --topic $KAFKA_TOPIC_NAME
+
+}
 
 test_it() {
 	echo "hi"
@@ -595,6 +697,7 @@ main() {
 	install_logstash
 	install_filebeat
 	install_rally
+	install_kafka
 	change_dir_owner_group
 	#test_it
 	error_fix
@@ -602,6 +705,7 @@ main() {
 	start_elastic_search_head
 	start_kibana
 	start_logstash
+	start_kafka
 	start_filebeat
 }
 
