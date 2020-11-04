@@ -258,7 +258,7 @@ export JRE_HOME=\$JAVA_HOME/jre
 export JVM_ARGS="-XmsOPENJDK_14_MINIMAL_HEAP_MEMORY_SIZE -XmxOPENJDK_14_MAXIMUM_HEAP_MEMORY_SIZE"
 export CLASSPATH=.:\$JAVA_HOME/lib:\$JRE_HOME/lib
 export PATH=\$JAVA_HOME/bin:\$JRE_HOME/bin:\$PATH
-export KAFKA_HEAP_OPTS=@KAFKA_HEAP_OPTS@
+export KAFKA_HEAP_OPTS="@KAFKA_HEAP_OPTS@"
 EOF
         sed -i -- "s|OPENJDK_14_SYMBLIC_LINK_PATH|$OPENJDK_14_SYMBLIC_LINK_PATH|g" $ENVIRONMENTS_FILE
         sed -i -- "s|OPENJDK_14_MINIMAL_HEAP_MEMORY_SIZE|$OPENJDK_14_MINIMAL_HEAP_MEMORY_SIZE|g" $ENVIRONMENTS_FILE
@@ -570,6 +570,7 @@ install_kafka() {
 	KAFKA_EXTRACTED_DIR_NAME=${FILENAME_KAFKA%.tgz}
 	chown -R root:root $KAFKA_EXTRACTED_DIR_NAME
 	mv $KAFKA_EXTRACTED_DIR_NAME /opt
+	mv /opt/$KAFKA_EXTRACTED_DIR_NAME $KAFKA_BASE_PATH
 
 	# create zookeeper systemd unit file
 	cat >> /etc/systemd/system/zookeeper.service << "EOF"
@@ -581,6 +582,7 @@ After=network.target remote-fs.target
 
 [Service]
 Type=simple
+Environment="JAVA_HOME=OPENJDK_14_SYMBLIC_LINK_PATH"
 Environment="KAFKA_HEAP_OPTS=@ZOOKEEPER_HEAP_OPTS@"
 ExecStart=/opt/kafka/bin/zookeeper-server-start.sh /opt/kafka/config/zookeeper.properties
 ExecStop=/opt/kafka/bin/zookeeper-server-stop.sh
@@ -608,6 +610,7 @@ ExecStop=/opt/kafka/bin/kafka-server-stop.sh
 WantedBy=multi-user.target
 EOF
 
+	sed -i -- "s|OPENJDK_14_SYMBLIC_LINK_PATH|$OPENJDK_14_SYMBLIC_LINK_PATH|g" /etc/systemd/system/zookeeper.service
 	sed -i -- "s|OPENJDK_14_SYMBLIC_LINK_PATH|$OPENJDK_14_SYMBLIC_LINK_PATH|g" /etc/systemd/system/kafka.service
 	sed -i -- "s|@ZOOKEEPER_HEAP_OPTS@|$ZOOKEEPER_HEAP_OPTS|g" /etc/systemd/system/zookeeper.service
 	sed -i -- "s|@KAFKA_HEAP_OPTS@|$KAFKA_HEAP_OPTS|g" /etc/systemd/system/kafka.service
@@ -621,13 +624,14 @@ EOF
 
 	# edit kafka's server.properties config file
 	cp $KAFKA_CONFIG_FILE_PATH $KAFKA_CONFIG_FILE_PATH.default
-	sed -i -- "s|broker.id=0|$KAFKA_BROKER_ID|" $KAFKA_CONFIG_FILE_PATH
+	sed -i -- "s|broker.id=0|broker.id=$KAFKA_BROKER_ID|" $KAFKA_CONFIG_FILE_PATH
 	sed -i -- "s|#listeners=PLAINTEXT://:9092|listeners=PLAINTEXT://$KAFKA_HOST:$KAFKA_LISTENING_PORT|g" $KAFKA_CONFIG_FILE_PATH
-	sed -i -- "s|#advertised.listeners=PLAINTEXT://:9092|advertised.listeners=PLAINTEXT://$KAFKA_HOST:$KAFKA_LISTENING_PORT|g" $KAFKA_CONFIG_FILE_PATH
+	sed -i -- "s|#advertised.listeners=PLAINTEXT://your.host.name:9092|advertised.listeners=PLAINTEXT://$KAFKA_HOST:$KAFKA_LISTENING_PORT|g" $KAFKA_CONFIG_FILE_PATH
 	sed -i -- "s|socket.send.buffer.bytes=102400|socket.send.buffer.bytes=1024000|g" $KAFKA_CONFIG_FILE_PATH
 	sed -i -- "s|socket.receive.buffer.bytes=102400|socket.receive.buffer.bytes=1024000|g" $KAFKA_CONFIG_FILE_PATH
 	sed -i -- "s|socket.request.max.bytes=104857600|socket.request.max.bytes=1048576000|g" $KAFKA_CONFIG_FILE_PATH
 	sed -i -- "s|log.dirs=/tmp/kafka-logs|log.dirs=$KAFKA_DATA_PATH|g" $KAFKA_CONFIG_FILE_PATH
+	sed -i -- "s|log.retention.hours=168|log.retention.hours=8|g" $KAFKA_CONFIG_FILE_PATH
 
 	# start zookeeper and kafka service
 	systemctl start zookeeper.service
