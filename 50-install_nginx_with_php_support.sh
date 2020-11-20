@@ -56,6 +56,10 @@ CACTI_DB_NAME="cacti_db"
 CACTI_DB_USER="cactiuser"
 CACTI_DB_PASS="cactipass"
 #
+SNMPTRAPD_COMMUNITY_NAME="ausenior"
+SNMPTRAPD_LISTENING_IP="172.25.169.201"
+SNMPTRAPD_LISTENING_PORT="162"
+#
 #####################################################################################################
 # and please edit nginx configuration inside this function
 # your settings are different with me definitely
@@ -456,7 +460,7 @@ install_prerequisite() {
         apt-get install -y libsnmp-base libsnmp-dev
         if [ "$DEPLOY_CACTI" == "yes" ] ; then
             # cacti will require these
-            apt-get install -y snmp snmpd rrdtool
+            apt-get install -y snmp snmpd snmptt snmptrapd snmp-mibs-downloader rrdtool libdbd-mysql-perl
         fi
 
         # make a symbolic link for curl header files
@@ -466,10 +470,38 @@ install_prerequisite() {
 }
 
 configure_snmpd_service(){
+	# backup config file first
+	tar -zcvf /etc/snmp/snmp-config.tar.gz /etc/snmp/snmp*.*
+
+	# modify snmpd.conf then start snmpd service
         [ "$DEPLOY_CACTI" != "yes" ] && echo "skip configuring snmpd" && return || echo "configure snmpd service"
 	sed -i -- 's|agentaddress  127.0.0.1,\[::1\]|agentaddress  127.0.0.1:161|g' /etc/snmp/snmpd.conf
         sed -i -- 's|^view   systemonly  included   .1.3.6.1.2.1.1$|view   systemonly  included   .1.3.6.1.2.1|g' /etc/snmp/snmpd.conf
         systemctl restart snmpd.service
+
+	# modify snmptrapd.conf then start snmptrad service
+        cat >> /etc/snmp/snmptrapd.conf << "EOF"
+authCommunity log SNMPTRAPD_COMMUNITY_NAME
+snmpTrapdAddr udp:SNMPTRAPD_LISTENING_IP:SNMPTRAPD_LISTENING_PORT
+traphandle default /usr/sbin/snmptthandler
+disableAuthorization yes
+EOF
+	sed -i -- "s|SNMPTRAPD_COMMUNITY_NAME|$SNMPTRAPD_COMMUNITY_NAME|g" /etc/snmp/snmptrapd.conf
+	sed -i -- "s|SNMPTRAPD_LISTENING_IP|$SNMPTRAPD_LISTENING_IP|g" /etc/snmp/snmptrapd.conf
+	sed -i -- "s|SNMPTRAPD_LISTENING_PORT|$SNMPTRAPD_LISTENING_PORT|g" /etc/snmp/snmptrapd.conf
+	systemctl restart snmptrapd.service
+
+	# modify snmptt.ini then start snmptt service
+	sed -i -- "s|^mysql_dbi_enable = 0$|mysql_dbi_enable = 1|g" /etc/snmp/snmptt.ini
+	sed -i -- "s|^mysql_dbi_host = localhost$|mysql_dbi_host = $CACTI_DB_HOST|g" /etc/snmp/snmptt.ini
+	sed -i -- "s|^mysql_dbi_port = 3306$|mysql_dbi_port = $CACTI_DB_PORT|g" /etc/snmp/snmptt.ini
+	sed -i -- "s|^mysql_dbi_database = snmptt$|mysql_dbi_database = $CACTI_DB_NAME|g" /etc/snmp/snmptt.ini
+	sed -i -- "s|^mysql_dbi_username = snmpttuser$|mysql_dbi_username = $CACTI_DB_USER|g" /etc/snmp/snmptt.ini
+	sed -i -- "s|^mysql_dbi_password = password$|mysql_dbi_password = $CACTI_DB_PASS|g" /etc/snmp/snmptt.ini
+	sed -i -- "s|^mysql_dbi_table = snmptt$|mysql_dbi_table = plugin_camm_snmptt|g" /etc/snmp/snmptt.ini
+	sed -i -- "s|^mysql_dbi_table_unknown = snmptt_unknown$|mysql_dbi_table_unknown = plugin_camm_snmptt_unk|g" /etc/snmp/snmptt.ini
+	sed -i -- "s|^mysql_dbi_table_statistics =|mysql_dbi_table_statistics = plugin_camm_snmptt_stat|g" /etc/snmp/snmptt.ini
+	systemctl restart snmptt.service
 }
 
 install_nginx() {
@@ -499,10 +531,10 @@ install_nginx() {
         [ "$IMPORT_KEY_RESULT_1" -gt 0 ] && echo "pubkey $PUBLIC_KEY_1 imported successfuly" ||  exit 2
         [ "$VERIFY_SIGNATURE_RESULT_1" -gt 0 ] && echo "verify signature successfully" || exit 2
 
-        wget https://www.openssl.org/source/openssl-1.1.1g.tar.gz
-        wget https://www.openssl.org/source/openssl-1.1.1g.tar.gz.sha256
-        SHA256SUM="$(cat ./openssl-1.1.1g.tar.gz.sha256)"
-        SHA256SUM_COMPUTE="$(sha256sum ./openssl-1.1.1g.tar.gz | cut -d ' ' -f 1)"
+        wget https://www.openssl.org/source/openssl-1.1.1h.tar.gz
+        wget https://www.openssl.org/source/openssl-1.1.1h.tar.gz.sha256
+        SHA256SUM="$(cat ./openssl-1.1.1h.tar.gz.sha256)"
+        SHA256SUM_COMPUTE="$(sha256sum ./openssl-1.1.1h.tar.gz | cut -d ' ' -f 1)"
         [ "$SHA256SUM" == "$SHA256SUM_COMPUTE" ] && echo "openssl sha256sum matched." || exit 2
 
         wget https://ftp.pcre.org/pub/pcre/pcre-8.44.tar.gz
@@ -523,14 +555,14 @@ install_nginx() {
 
         # extract all of tar.gz files and configure nginx
         tar -zxvf ./nginx-1.18.0.tar.gz
-        tar -zxvf ./openssl-1.1.1g.tar.gz
+        tar -zxvf ./openssl-1.1.1h.tar.gz
         tar -zxvf ./pcre-8.44.tar.gz
         tar -zxvf ./zlib-1.2.11.tar.gz
         rm -rf *.tar.gz*
 
         # change directories owner and group
         chown -R root:root ./nginx-1.18.0
-        chown -R root:root ./openssl-1.1.1g
+        chown -R root:root ./openssl-1.1.1h
         chown -R root:root ./pcre-8.44
         chown -R root:root ./zlib-1.2.11
 
@@ -543,7 +575,7 @@ install_nginx() {
                     --with-http_ssl_module \
                     --with-pcre=/usr/local/src/pcre-8.44 \
                     --with-zlib=/usr/local/src/zlib-1.2.11 \
-                    --with-openssl=/usr/local/src/openssl-1.1.1g \
+                    --with-openssl=/usr/local/src/openssl-1.1.1h \
                     --with-http_stub_status_module
 
         make
@@ -730,15 +762,15 @@ install_phpfpm() {
         rm -rf ./php-*
 
         # download the source tar.gz, extract it then configure it
-        wget -O php-7.4.10.tar.gz http://jp2.php.net/get/php-7.4.10.tar.gz/from/this/mirror
-        SHA256SUM_SHOULD_BE="e720f1286f895ca37f1c75a2ca338ad2f2456664d7097298167181b25b212feb"
-	SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./php-7.4.10.tar.gz | cut -d " " -f 1)"
+        wget -O php-7.4.12.tar.gz http://jp2.php.net/get/php-7.4.12.tar.gz/from/this/mirror
+        SHA256SUM_SHOULD_BE="f056d74409a71f17218f76538c6a2d7b59ee99db9db7685fa0ab9cd0d4c0f286"
+	SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./php-7.4.12.tar.gz | cut -d " " -f 1)"
 	[ "$SHA256SUM_SHOULD_BE" != "$SHA256SUM_COMPUTED" ] && echo "oops...sha256 checksum doesnt match." && exit 2 || echo "sha256 checksum matched."
-        tar zxvf ./php-7.4.10.tar.gz
-        chown -R root:root ./php-7.4.10
-        rm -rf ./php-7.4.10.tar.gz
-        cd ./php-7.4.10
-        ./configure --prefix=/usr/local/php-7.4.10    \
+        tar zxvf ./php-7.4.12.tar.gz
+        chown -R root:root ./php-7.4.12
+        rm -rf ./php-7.4.12.tar.gz
+        cd ./php-7.4.12
+        ./configure --prefix=/usr/local/php-7.4.12    \
                     --enable-fpm                      \
                     --enable-opcache                  \
                     --with-fpm-user=nginx             \
@@ -785,41 +817,41 @@ install_phpfpm() {
         make
         #make test
         make install
-        cp /usr/local/src/php-7.4.10/php.ini-production /usr/local/php-7.4.10/lib/php.ini
-        cp /usr/local/php-7.4.10/etc/php-fpm.conf.default /usr/local/php-7.4.10/etc/php-fpm.conf
+        cp /usr/local/src/php-7.4.12/php.ini-production /usr/local/php-7.4.12/lib/php.ini
+        cp /usr/local/php-7.4.12/etc/php-fpm.conf.default /usr/local/php-7.4.12/etc/php-fpm.conf
 
         # php.ini setting
-        sed -i -- "/\[opcache\]/a zend_extension=/usr/local/php-7.4.10/lib/php/extensions/no-debug-non-zts-20190902/opcache.so" /usr/local/php-7.4.10/lib/php.ini
-        sed -i -- "s|;opcache.enable=1|opcache.enable=1|g" /usr/local/php-7.4.10/lib/php.ini
-        sed -i -- "s|;opcache.enable_cli=1|opcache.enable_cli=1|g" /usr/local/php-7.4.10/lib/php.ini
-        sed -i -- "s|;opcache.memory_consumption=128|opcache.memory_consumption=128|g" /usr/local/php-7.4.10/lib/php.ini
-        sed -i -- "s|;opcache.interned_strings_buffer=8|opcache.interned_strings_buffer=8|g" /usr/local/php-7.4.10/lib/php.ini
-        sed -i -- "s|;opcache.max_accelerated_files=10000|opcache.max_accelerated_files=10000|g" /usr/local/php-7.4.10/lib/php.ini
-        sed -i -- "s|;opcache.use_cwd=1|opcache.use_cwd=0|g" /usr/local/php-7.4.10/lib/php.ini
-        sed -i -- "s|;opcache.validate_timestamps=1|opcache.validate_timestamps=0|g" /usr/local/php-7.4.10/lib/php.ini
-        sed -i -- "s|;opcache.save_comments=1|opcache.save_comments=0|g" /usr/local/php-7.4.10/lib/php.ini
-        sed -i -- "s|;opcache.enable_file_override=0|opcache.enable_file_override=1|g" /usr/local/php-7.4.10/lib/php.ini
-        sed -i -- 's/.*;date.timezone =.*/date.timezone = \"Asia\/Taipei\"/g' /usr/local/php-7.4.10/lib/php.ini
-        echo "safe_mode = Off" >> /usr/local/php-7.4.10/lib/php.ini
-        sed -i -- 's|memory_limit = 128M|memory_limit = 512M|g' /usr/local/php-7.4.10/lib/php.ini
-        sed -i -- 's|max_execution_time = 30|max_execution_time = 60|g' /usr/local/php-7.4.10/lib/php.ini
+        sed -i -- "/\[opcache\]/a zend_extension=/usr/local/php-7.4.12/lib/php/extensions/no-debug-non-zts-20190902/opcache.so" /usr/local/php-7.4.12/lib/php.ini
+        sed -i -- "s|;opcache.enable=1|opcache.enable=1|g" /usr/local/php-7.4.12/lib/php.ini
+        sed -i -- "s|;opcache.enable_cli=1|opcache.enable_cli=1|g" /usr/local/php-7.4.12/lib/php.ini
+        sed -i -- "s|;opcache.memory_consumption=128|opcache.memory_consumption=128|g" /usr/local/php-7.4.12/lib/php.ini
+        sed -i -- "s|;opcache.interned_strings_buffer=8|opcache.interned_strings_buffer=8|g" /usr/local/php-7.4.12/lib/php.ini
+        sed -i -- "s|;opcache.max_accelerated_files=10000|opcache.max_accelerated_files=10000|g" /usr/local/php-7.4.12/lib/php.ini
+        sed -i -- "s|;opcache.use_cwd=1|opcache.use_cwd=0|g" /usr/local/php-7.4.12/lib/php.ini
+        sed -i -- "s|;opcache.validate_timestamps=1|opcache.validate_timestamps=0|g" /usr/local/php-7.4.12/lib/php.ini
+        sed -i -- "s|;opcache.save_comments=1|opcache.save_comments=0|g" /usr/local/php-7.4.12/lib/php.ini
+        sed -i -- "s|;opcache.enable_file_override=0|opcache.enable_file_override=1|g" /usr/local/php-7.4.12/lib/php.ini
+        sed -i -- 's/.*;date.timezone =.*/date.timezone = \"Asia\/Taipei\"/g' /usr/local/php-7.4.12/lib/php.ini
+        echo "safe_mode = Off" >> /usr/local/php-7.4.12/lib/php.ini
+        sed -i -- 's|memory_limit = 128M|memory_limit = 512M|g' /usr/local/php-7.4.12/lib/php.ini
+        sed -i -- 's|max_execution_time = 30|max_execution_time = 60|g' /usr/local/php-7.4.12/lib/php.ini
 
         # php-fpm.conf setting
-        sed -i -- '/^include/s/include/;include/' /usr/local/php-7.4.10/etc/php-fpm.conf
-        sed -i -- 's|;pid = run/php-fpm.pid|pid = run/php-fpm.pid|g' /usr/local/php-7.4.10/etc/php-fpm.conf
-        echo "[www]" >> /usr/local/php-7.4.10/etc/php-fpm.conf
-        echo "listen = /usr/local/php-7.4.10/var/run/php-fpm.sock" >> /usr/local/php-7.4.10/etc/php-fpm.conf
-        echo "listen.backlog = -1" >> /usr/local/php-7.4.10/etc/php-fpm.conf
-        echo "listen.owner = nginx" >> /usr/local/php-7.4.10/etc/php-fpm.conf
-        echo "listen.group = nginx" >> /usr/local/php-7.4.10/etc/php-fpm.conf
-        echo "listen.mode=0660" >> /usr/local/php-7.4.10/etc/php-fpm.conf
-        echo "user = nginx" >> /usr/local/php-7.4.10/etc/php-fpm.conf
-        echo "group = nginx" >> /usr/local/php-7.4.10/etc/php-fpm.conf
-        echo "pm = dynamic" >> /usr/local/php-7.4.10/etc/php-fpm.conf
-        echo "pm.max_children = 20" >> /usr/local/php-7.4.10/etc/php-fpm.conf
-        echo "pm.start_servers = 10" >> /usr/local/php-7.4.10/etc/php-fpm.conf
-        echo "pm.min_spare_servers = 5" >> /usr/local/php-7.4.10/etc/php-fpm.conf
-        echo "pm.max_spare_servers = 20" >> /usr/local/php-7.4.10/etc/php-fpm.conf
+        sed -i -- '/^include/s/include/;include/' /usr/local/php-7.4.12/etc/php-fpm.conf
+        sed -i -- 's|;pid = run/php-fpm.pid|pid = run/php-fpm.pid|g' /usr/local/php-7.4.12/etc/php-fpm.conf
+        echo "[www]" >> /usr/local/php-7.4.12/etc/php-fpm.conf
+        echo "listen = /usr/local/php-7.4.12/var/run/php-fpm.sock" >> /usr/local/php-7.4.12/etc/php-fpm.conf
+        echo "listen.backlog = -1" >> /usr/local/php-7.4.12/etc/php-fpm.conf
+        echo "listen.owner = nginx" >> /usr/local/php-7.4.12/etc/php-fpm.conf
+        echo "listen.group = nginx" >> /usr/local/php-7.4.12/etc/php-fpm.conf
+        echo "listen.mode=0660" >> /usr/local/php-7.4.12/etc/php-fpm.conf
+        echo "user = nginx" >> /usr/local/php-7.4.12/etc/php-fpm.conf
+        echo "group = nginx" >> /usr/local/php-7.4.12/etc/php-fpm.conf
+        echo "pm = dynamic" >> /usr/local/php-7.4.12/etc/php-fpm.conf
+        echo "pm.max_children = 20" >> /usr/local/php-7.4.12/etc/php-fpm.conf
+        echo "pm.start_servers = 10" >> /usr/local/php-7.4.12/etc/php-fpm.conf
+        echo "pm.min_spare_servers = 5" >> /usr/local/php-7.4.12/etc/php-fpm.conf
+        echo "pm.max_spare_servers = 20" >> /usr/local/php-7.4.12/etc/php-fpm.conf
 
         # setup logrotate
 cat > /etc/logrotate.d/php-fpm << EOF
@@ -849,14 +881,14 @@ WantedBy=multi-user.target
 EOF
 
         # set files/directories owner and group
-        chown -R nginx:nginx /usr/local/php-7.4.10
+        chown -R nginx:nginx /usr/local/php-7.4.12
         chown root:root /etc/logrotate.d/php-fpm
         chmod 644 /etc/logrotate.d/php-fpm
         chown root:root /lib/systemd/system/php7.4-fpm.service
         chmod 644 /lib/systemd/system/php7.4-fpm.service
 
 	# change multiple php binaries priority
-	update-alternatives --install /usr/bin/php php /usr/local/php-7.4.10/bin/php 99
+	update-alternatives --install /usr/bin/php php /usr/local/php-7.4.12/bin/php 99
 	update-alternatives --display php
 	# if u wanna set priority manually , use this command:
 	# update-alternatives --config php
@@ -882,27 +914,27 @@ install_php-memcached() {
 	# dont use php7 branch, switch to master branch
         #git checkout php7
 	git checkout master
-        /usr/local/php-7.4.10/bin/phpize
-        ./configure --disable-memcached-sasl --with-php-config=/usr/local/php-7.4.10/bin/php-config
+        /usr/local/php-7.4.12/bin/phpize
+        ./configure --disable-memcached-sasl --with-php-config=/usr/local/php-7.4.12/bin/php-config
         make && make install
-        chown nginx:nginx /usr/local/php-7.4.10/lib/php/extensions/no-debug-non-zts-20190902/memcached.so
-        echo 'extension=/usr/local/php-7.4.10/lib/php/extensions/no-debug-non-zts-20190902/memcached.so' >> /usr/local/php-7.4.10/lib/php.ini
-        sed -i -- 's|session.save_handler = files|session.save_handler = memcached|g' /usr/local/php-7.4.10/lib/php.ini
-        sed -i -- "s|;session.save_path = \"/tmp\"|session.save_path = \"$SESSION_SAVE_PATH\"|g" /usr/local/php-7.4.10/lib/php.ini
+        chown nginx:nginx /usr/local/php-7.4.12/lib/php/extensions/no-debug-non-zts-20190902/memcached.so
+        echo 'extension=/usr/local/php-7.4.12/lib/php/extensions/no-debug-non-zts-20190902/memcached.so' >> /usr/local/php-7.4.12/lib/php.ini
+        sed -i -- 's|session.save_handler = files|session.save_handler = memcached|g' /usr/local/php-7.4.12/lib/php.ini
+        sed -i -- "s|;session.save_path = \"/tmp\"|session.save_path = \"$SESSION_SAVE_PATH\"|g" /usr/local/php-7.4.12/lib/php.ini
 }
 
 deploy_phpmyadmin() {
         [ "$DEPLOY_PHPMYADMIN" != "yes" ] && echo "skip phpmyadmin deployment." && return || echo "deploy phpmyadmin ---> yes"
         [ -d "/var/www/localhost/phpmyadmin/" ] && echo "seems like phpmyadmin already existed." && return || echo "ready to deploy phpmyadmin."
         cd /var/www/localhost/
-        wget https://files.phpmyadmin.net/snapshots/phpMyAdmin-5.1+snapshot-all-languages.tar.gz
-        wget https://files.phpmyadmin.net/snapshots/phpMyAdmin-5.1+snapshot-all-languages.tar.gz.sha256
-        SHA256SUM_IN_FILE="$(cat ./phpMyAdmin-5.1+snapshot-all-languages.tar.gz.sha256 | cut -d " " -f 1)"
-        SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./phpMyAdmin-5.1+snapshot-all-languages.tar.gz | cut -d " " -f 1)"
+	wget https://files.phpmyadmin.net/phpMyAdmin/5.0.4/phpMyAdmin-5.0.4-all-languages.tar.gz
+	wget https://files.phpmyadmin.net/phpMyAdmin/5.0.4/phpMyAdmin-5.0.4-all-languages.tar.gz.sha256
+        SHA256SUM_IN_FILE="$(cat ./phpMyAdmin-5.0.4-all-languages.tar.gz.sha256 | cut -d " " -f 1)"
+        SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./phpMyAdmin-5.0.4-all-languages.tar.gz | cut -d " " -f 1)"
         [ "$SHA256SUM_IN_FILE" != "$SHA256SUM_COMPUTED" ] && echo "oops...sha256 checksum doesnt match." && exit 2 || echo "sha256 checksum matched."
-        tar zxvf ./phpMyAdmin-5.1+snapshot-all-languages.tar.gz
-        rm -rf ./phpMyAdmin-5.1+snapshot-all-languages.tar.gz*
-        mv phpMyAdmin-5.1+snapshot-all-languages phpmyadmin
+        tar zxvf ./phpMyAdmin-5.0.4-all-languages.tar.gz
+        rm -rf ./phpMyAdmin-5.0.4-all-languages.tar.gz*
+        mv phpMyAdmin-5.0.4-all-languages phpmyadmin
         cd ./phpmyadmin/
         cat > /var/www/localhost/phpmyadmin/config.inc.php << "EOF"
 <?php
@@ -929,14 +961,14 @@ deploy_wordpress() {
         [ "$DEPLOY_WORDPRESS" != "yes" -o -z "$WORDPRESS_FQDN" ] && echo "skip wordpress deployment." && return || echo "deploy wordpress ---> yes"
         [ -f "/var/www/$WORDPRESS_FQDN/wp-config.php" ] && echo "seems like wordpress already installed." && return || echo "ready to deploy wordpress"
         cd /var/www/$WORDPRESS_FQDN/
-        wget https://wordpress.org/wordpress-5.5.1.tar.gz.md5
-        wget https://wordpress.org/wordpress-5.5.1.tar.gz
-        MD5SUM_IN_FILE="$(cat ./wordpress-5.5.1.tar.gz.md5)"
-        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./wordpress-5.5.1.tar.gz | cut -d " " -f 1)"
+        wget https://wordpress.org/wordpress-5.5.3.tar.gz.md5
+        wget https://wordpress.org/wordpress-5.5.3.tar.gz
+        MD5SUM_IN_FILE="$(cat ./wordpress-5.5.3.tar.gz.md5)"
+        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./wordpress-5.5.3.tar.gz | cut -d " " -f 1)"
         [ "$MD5SUM_IN_FILE" != "$MD5SUM_COMPUTED" ] && echo "oops...md5 checksum doesnt match." && exit 2 || echo "md5 checksum matched."
-        tar zxvf ./wordpress-5.5.1.tar.gz
+        tar zxvf ./wordpress-5.5.3.tar.gz
 	mv ./wordpress/* /var/www/$WORDPRESS_FQDN/
-        rm -rf ./wordpress-5.5.1.tar.gz*
+        rm -rf ./wordpress-5.5.3.tar.gz*
 	rm -rf ./wordpress/
 # Hint: salt hash must the same at every backend nodes
         cat > wp-config.php << "EOF"
@@ -987,10 +1019,10 @@ deploy_cacti() {
         [ "$DEPLOY_CACTI" != "yes" ] && echo "skip cacti deployment." && return || echo "deploy cacti ---> yes"
         [ -d "/var/www/localhost/cacti/" ] && echo "seems like cacti already existed." && return || echo "ready to deploy cacti"
         cd /var/www/localhost/
-        wget https://www.cacti.net/downloads/cacti-1.2.14.tar.gz
-        tar zxvf ./cacti-1.2.14.tar.gz
-        rm -rf ./cacti-1.2.14.tar.gz*
-        cd ./cacti-1.2.14/
+        wget https://www.cacti.net/downloads/cacti-1.2.15.tar.gz
+        tar zxvf ./cacti-1.2.15.tar.gz
+        rm -rf ./cacti-1.2.15.tar.gz*
+        cd ./cacti-1.2.15/
         mv ./include/config.php ./include/config.php.default
         cat > ./include/config.php << "EOF"
 <?php
@@ -1011,8 +1043,18 @@ EOF
        sed -i -- "s|CACTI_DB_USER|$CACTI_DB_USER|g" ./include/config.php
        sed -i -- "s|CACTI_DB_PASS|$CACTI_DB_PASS|g" ./include/config.php
        sed -i -- "s|CACTI_DB_PORT|$CACTI_DB_PORT|g" ./include/config.php
-       ln -s /var/www/localhost/cacti-1.2.14 /var/www/localhost/cacti
+       ln -s /var/www/localhost/cacti-1.2.15 /var/www/localhost/cacti
        touch /var/www/localhost/cacti/log/cacti.log
+
+       # download camm and extract it
+       cd ./plugins/
+       git clone https://github.com/Susanin63/plugin_camm
+       #wget https://docs.cacti.net/_media/userplugin:cacti_plugin_camm_v1.5.3.zip
+       #unzip ./userplugin:cacti_plugin_camm_v1.5.3.zip
+       mv ./plugin_camm ./Camm
+       chown -R nginx:nginx ./Camm
+       rm -rf ./userplugin\:cacti_plugin_camm_v1.5.3.zip
+
        # put cron job in /etc/cron.d/
        cat > /etc/cron.d/cacti << "EOF"
 */5 * * * * nginx /usr/local/php/bin/php /var/www/localhost/cacti/poller.php > /tmp/cacti_poller_by_nginx.log 2>&1
@@ -1096,7 +1138,7 @@ start_nginx_service() {
              rm -rf /usr/local/php
         fi
 
-        ln -s /usr/local/php-7.4.10 /usr/local/php
+        ln -s /usr/local/php-7.4.12 /usr/local/php
         systemctl enable php7.4-fpm.service
         systemctl start php7.4-fpm.service
         systemctl status php7.4-fpm.service
