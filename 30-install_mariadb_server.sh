@@ -3,13 +3,13 @@
 # This script will install MariaDB server 10.5.x galera cluster on Ubuntu mate 20.04 LTS
 #
 ######################################################################          <<Tested on Ubuntu Mate 20.04 Desktop Edition>>
-INSTALL_MARIADB_AS_MULTIPLE_NODES_GALERA_CLUSTER="yes"               # 'galera.cnf' would be generated only when its value is 'yes'
+INSTALL_MARIADB_AS_MULTIPLE_NODES_GALERA_CLUSTER="no"                # 'galera.cnf' would be generated only when its value is 'yes'
 ######################################################################
 FIRST_NODE="yes"                                                     # if this node is first node of cluster, set this value to 'yes'
 MYSQL_ROOT_PASSWD="root"                                             # mariadb root password you specify for first node
 WSREP_CLUSTER_NAME="kashu_cluster"                                   # name of galera cluster you preffered
-WSREP_CLUSTER_ADDRESS="172.25.169.201,172.25.169.202"                # IP addresses list seperated by comma of all cluster nodes
-SERVER_ID_MANUAL=""                                                  # server id u specify here has higher priority than $SERVER_ID_AUTO
+WSREP_CLUSTER_ADDRESS="192.168.21.231,192.168.21.242"                # IP addresses list seperated by comma of all cluster nodes
+SERVER_ID_MANUAL="100"                                               # server id u specify here has higher priority than $SERVER_ID_AUTO
 #########################################################################################################################################
 SERVER_ID_AUTO="$(/sbin/ifconfig eth0 | grep -v 'inet6' | grep 'inet' | tr -s ' ' | cut -d ' ' -f 3 | cut -d ':' -f 2 | cut -d '.' -f 4)"
 #########################################################################################################################################
@@ -309,9 +309,11 @@ mysql -h localhost --port 3306 -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 create user 'superuser'@'localhost' identified by 'superpassword';
 create user 'superuser'@'127.0.0.1' identified by 'superpassword';
 create user 'superuser'@'172.25.169.%' identified by 'superpassword';
+create user 'superuser'@'192.168.21.%' identified by 'superpassword';
 grant all on *.* to 'superuser'@'localhost' with grant option;
 grant all on *.* to 'superuser'@'127.0.0.1' with grant option;
 grant all on *.* to 'superuser'@'172.25.169.%' with grant option;
+grant all on *.* to 'superuser'@'192.168.21.%' with grant option;
 flush privileges;
 EOF
 
@@ -321,9 +323,11 @@ drop database if exists phpmyadmin;
 create user 'pmauser'@'localhost' identified by 'pmapassword';
 create user 'pmauser'@'127.0.0.1' identified by 'pmapassword';
 create user 'pmauser'@'172.25.169.%' identified by 'pmapassword';
+create user 'pmauser'@'192.168.21.%' identified by 'pmapassword';
 grant all on phpmyadmin.* to 'pmauser'@'localhost';
 grant all on phpmyadmin.* to 'pmauser'@'127.0.0.1';
 grant all on phpmyadmin.* to 'pmauser'@'172.25.169.%';
+grant all on phpmyadmin.* to 'pmauser'@'192.168.21.%';
 flush privileges;
 EOF
 
@@ -334,16 +338,18 @@ create database wpdb;
 create user 'wpuser'@'localhost' identified by 'wppassword';
 create user 'wpuser'@'127.0.0.1' identified by 'wppassword';
 create user 'wpuser'@'172.25.169.%' identified by 'wppassword';
+create user 'wpuser'@'192.168.21.%' identified by 'wppassword';
 grant all on wpdb.* to 'wpuser'@'localhost';
 grant all on wpdb.* to 'wpuser'@'127.0.0.1';
 grant all on wpdb.* to 'wpuser'@'172.25.169.%';
+grant all on wpdb.* to 'wpuser'@'192.168.21.%';
 flush privileges;
 EOF
 
 # create users and database for cacti
         cd /tmp
-        wget https://www.cacti.net/downloads/cacti-1.2.14.tar.gz
-        tar zxvf /tmp/cacti-1.2.14.tar.gz
+        wget https://www.cacti.net/downloads/cacti-1.2.16.tar.gz
+        tar zxvf /tmp/cacti-1.2.16.tar.gz
 mysql -h localhost --port 3306 -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 drop database if exists cacti_db;
 create database cacti_db;
@@ -355,7 +361,7 @@ grant select on mysql.time_zone_name to 'cactiuser'@'localhost';
 grant select on mysql.time_zone_name to 'cactiuser'@'127.0.0.1';
 flush privileges;
 use cacti_db;
-source /tmp/cacti-1.2.14/cacti.sql;
+source /tmp/cacti-1.2.16/cacti.sql;
 EOF
         # populate timezone data from /usr/share/zoneinfo to mysql time_zone_name table
         /usr/bin/mysql_tzinfo_to_sql /usr/share/zoneinfo/ | mysql -h localhost --port 3306 -u root -p$MYSQL_ROOT_PASSWD mysql
@@ -367,9 +373,11 @@ create database db_spring;
 create user 'spring'@'localhost' identified by 'spring';
 create user 'spring'@'127.0.0.1' identified by 'spring';
 create user 'spring'@'172.25.169.%' identified by 'spring';
+create user 'spring'@'192.168.21.%' identified by 'spring';
 grant all on db_spring.* to 'spring'@'localhost';
 grant all on db_spring.* to 'spring'@'127.0.0.1';
 grant all on db_spring.* to 'spring'@'172.25.169.%';
+grant all on db_spring.* to 'spring'@'192.168.21.%';
 flush privileges;
 EOF
 

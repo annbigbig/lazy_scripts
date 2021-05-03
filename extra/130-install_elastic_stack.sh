@@ -363,7 +363,7 @@ start_elastic_search() {
 ELK_USER_NAME="@ELK_USER_NAME"
 ELASTIC_BIN_PATH="@ELASTIC_BIN_PATH"
 
-HOME=/home/@ELK_USER_NAME su - @ELK_USER_NAME -c "@ELASTIC_BIN_PATH/elasticsearch &"
+HOME=/home/@ELK_USER_NAME su - @ELK_USER_NAME -c "@ELASTIC_BIN_PATH/elasticsearch > /dev/null 2>&1 &"
 EOF
 	sed -i -- "s|@ELK_USER_NAME|$ELK_USER_NAME|g" $ELASTIC_BASE_PATH/start_elastic.sh
 	sed -i -- "s|@ELASTIC_BIN_PATH|$ELASTIC_BIN_PATH|g" $ELASTIC_BASE_PATH/start_elastic.sh
@@ -371,7 +371,7 @@ EOF
 	chmod +x $ELASTIC_BASE_PATH/start_elastic.sh
 
 	# start elastic-search with user elk's permission
-	HOME=/home/$ELK_USER_NAME su - $ELK_USER_NAME -c "$ELASTIC_BIN_PATH/elasticsearch &"
+	HOME=/home/$ELK_USER_NAME su - $ELK_USER_NAME -c "$ELASTIC_BIN_PATH/elasticsearch > /dev/null 2>&1 &"
 
 	# test it whether it is running ?
 	curl -X GET "http://localhost:$ELASTIC_HTTP_PORT"
@@ -432,7 +432,7 @@ start_kibana() {
 ELK_USER_NAME="@ELK_USER_NAME"
 KIBANA_BIN_PATH="@KIBANA_BIN_PATH"
 
-HOME=/home/@ELK_USER_NAME su - @ELK_USER_NAME -c "@KIBANA_BIN_PATH/kibana &"
+HOME=/home/@ELK_USER_NAME su - @ELK_USER_NAME -c "@KIBANA_BIN_PATH/kibana > /dev/null 2>&1 &"
 EOF
 	sed -i -- "s|@ELK_USER_NAME|$ELK_USER_NAME|g" $KIBANA_BASE_PATH/start_kibana.sh
 	sed -i -- "s|@KIBANA_BIN_PATH|$KIBANA_BIN_PATH|g" $KIBANA_BASE_PATH/start_kibana.sh
@@ -440,7 +440,7 @@ EOF
 	chmod +x $KIBANA_BASE_PATH/start_kibana.sh
 
 	# Start kibana with user elk's permission
-	HOME=/home/$ELK_USER_NAME su - $ELK_USER_NAME -c "$KIBANA_BIN_PATH/kibana &"
+	HOME=/home/$ELK_USER_NAME su - $ELK_USER_NAME -c "$KIBANA_BIN_PATH/kibana > /dev/null 2>&1 &"
 }
 
 install_logstash() {
@@ -495,7 +495,7 @@ ELK_USER_NAME="@ELK_USER_NAME"
 LOGSTASH_BIN_PATH="@LOGSTASH_BIN_PATH"
 LOGSTASH_CONFIG_PATH="@LOGSTASH_CONFIG_PATH"
 
-HOME=/home/@ELK_USER_NAME su - @ELK_USER_NAME -c "@LOGSTASH_BIN_PATH/logstash -f @LOGSTASH_CONFIG_PATH/logstash-es.conf &"
+HOME=/home/@ELK_USER_NAME su - @ELK_USER_NAME -c "@LOGSTASH_BIN_PATH/logstash -f @LOGSTASH_CONFIG_PATH/logstash-es.conf > /dev/null 2>&1 &"
 EOF
         sed -i -- "s|@ELK_USER_NAME|$ELK_USER_NAME|g" $LOGSTASH_BASE_PATH/start_logstash.sh
         sed -i -- "s|@LOGSTASH_BIN_PATH|$LOGSTASH_BIN_PATH|g" $LOGSTASH_BASE_PATH/start_logstash.sh
@@ -504,7 +504,7 @@ EOF
         chmod +x $LOGSTASH_BASE_PATH/start_logstash.sh
 
 	# Start logstash with user elk's permission
-	HOME=/home/$ELK_USER_NAME su - $ELK_USER_NAME -c "$LOGSTASH_BIN_PATH/logstash -f $LOGSTASH_CONFIG_PATH/logstash-es.conf &"
+	HOME=/home/$ELK_USER_NAME su - $ELK_USER_NAME -c "$LOGSTASH_BIN_PATH/logstash -f $LOGSTASH_CONFIG_PATH/logstash-es.conf > /dev/null 2>&1 &"
 }
 
 install_filebeat() {

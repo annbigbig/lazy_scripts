@@ -4,13 +4,16 @@
 #
 # these parameters will be used in firewall rules:      <<Tested on Ubuntu Mate 20.04 Desktop Edition>>
 ########################################################################################################
-LAN="172.25.169.0/24"                   # The local network that you allow packets come in from there
-VPN="10.8.0.0/24"                       # The VPN network that you allow packets come in from there
+VERSION="Server"                        # only two values could work well 'Desktop' or 'Server'
+LAN="192.168.21.0/24"                   # The local network that you allow packets come in from there
+VPN="172.25.169.0/24"                   # The VPN network that you allow packets come in from there
 MY_TIMEZONE="Asia/Taipei"               # The timezone that you specify for this VPS node
+ADD_SWAP="no"                           # Do u need swap space ? fill in 'yes' or 'YES' will add swap for u
 ########################################################################################################
 # useful links: 
 # https://www.tecmint.com/set-permanent-dns-nameservers-in-ubuntu-debian/
-#
+# https://linuxconfig.org/how-to-switch-back-networking-to-etc-network-interfaces-on-ubuntu-20-04-focal-fossa-linux
+# https://vitux.com/ubuntu-network-configuration/
 ########################################################################################################
 
 say_goodbye (){
@@ -18,44 +21,64 @@ say_goodbye (){
 }
 
 fix_network_interfaces_name(){
-        # change network interface name from ens3/ens7 to eth0/eth1 , and disable netplan
-        sed -i -- 's|GRUB_CMDLINE_LINUX=.*|GRUB_CMDLINE_LINUX="consoleblank=0 net.ifnames=0 biosdevname=0 netcfg/do_not_use_netplan=true"|g' /etc/default/grub
-        update-grub
+	if [ $VERSION == "Server" ] ; then
+            # change network interface name from ens3/ens7 to eth0/eth1 , and disable netplan
+            sed -i -- 's|GRUB_CMDLINE_LINUX=.*|GRUB_CMDLINE_LINUX="consoleblank=0 net.ifnames=0 biosdevname=0 netcfg/do_not_use_netplan=true"|g' /etc/default/grub
+            update-grub
+	fi
 }
 
 modify_network_config() {
-        NETWORK_CONFIG_FILE="/etc/network/interfaces"
-        rm -rf $NETWORK_CONFIG_FILE
-        cat >> $NETWORK_CONFIG_FILE << "EOF"
+	if [ $VERSION == "Server" ] ; then
+             NETWORK_CONFIG_FILE="/etc/network/interfaces"
+             rm -rf $NETWORK_CONFIG_FILE
+             cat >> $NETWORK_CONFIG_FILE << "EOF"
 # interfaces(5) file used by ifup(8) and ifdown(8)
 # Include files from /etc/network/interfaces.d:
 # source-directory /etc/network/interfaces.d
 auto lo
 iface lo inet loopback
 
+# if u get ip from DHCP service
 #auto eth0
 #iface eth0 inet dhcp
+
+# if u get ip from manual (static)
+auto eth0
+  iface eth0 inet static
+  address 192.168.21.231
+  netmask 255.255.255.0
+  gateway 192.168.21.254
+  dns-nameservers 8.8.8.8 8.8.4.4 168.95.192.1 168.95.1.1
+
 EOF
-        chown root:root $NETWORK_CONFIG_FILE
-        chmod 644 $NETWORK_CONFIG_FILE
+             chown root:root $NETWORK_CONFIG_FILE
+             chmod 644 $NETWORK_CONFIG_FILE
+        fi
 }
 
 enable_resolvconf_service() {
-	# if your network use static ip settings , u need this to let it function normally (save it from dxxn-low dns query time)
-	apt-get install resolvconf -y
-	cp /etc/resolvconf/resolv.conf.d/head /etc/resolvconf/resolv.conf.d/head.default
-	rm /etc/resolvconf/resolv.conf.d/head
-	cat >> /etc/resolvconf/resolv.conf.d/head << "EOF"
+	if [ $VERSION == "Server" ] ; then
+             # if your network use static ip settings , u need this to let it function normally (save it from dxxn-low dns query time)
+	     if [ -L /etc/resolv.conf ] ; then
+		rm -rf /etc/resolv.conf
+		touch /etc/resolv.conf
+		echo "nameserver 168.95.1.1" >> /etc/resolv.conf
+		echo "nameserver 168.95.192.1" >> /etc/resolv.conf
+	     fi
+             apt-get install resolvconf -y
+             cp /etc/resolvconf/resolv.conf.d/head /etc/resolvconf/resolv.conf.d/head.default
+             rm /etc/resolvconf/resolv.conf.d/head
+             cat >> /etc/resolvconf/resolv.conf.d/head << "EOF"
 nameserver 8.8.4.4
 nameserver 8.8.8.8
-nameserver 168.95.192.1
-nameserver 168.95.1.1
 
 options single-request-reopen
 EOF
-	systemctl enable resolvconf.service
-	systemctl restart resolvconf.service
-	# cat /etc/resolv.conf u will know what it did for u
+        systemctl enable resolvconf.service
+        systemctl restart resolvconf.service
+        # cat /etc/resolv.conf u will know what it did for u
+	fi
 }
 
 disable_ipv6_entirely() {
@@ -89,6 +112,10 @@ EOF
         ntpdate -v pool.ntp.org
 }
 
+disable_cloudinit_garbage_messages() {
+        touch /etc/cloud/cloud-init.disabled
+}
+
 fix_too_many_authentication_failures() {
         sed -e '/pam_motd/ s/^#*/#/' -i /etc/pam.d/login
         apt-get purge -y landscape-client landscape-common
@@ -105,7 +132,7 @@ iptables=/sbin/iptables
 loopback=127.0.0.1
 local="\$(/sbin/ip addr show eth0 | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
 #local="\$(/sbin/ip addr show wlan0 | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
-#local=172.25.169.100
+#local=192.168.21.231
 lan=$LAN
 vpn=$VPN
 # =================================================================================================
@@ -140,35 +167,53 @@ EOF
 }
 
 delete_route_to_169_254_0_0(){
-	echo -e "delete route to 169.254.0.0/16 \n"
-        FILE1="/etc/network/if-up.d/avahi-autoipd"
-	sed -i -- "s|/bin/ip route add|#/bin/ip route add|g" $FILE1
-	sed -i -- "s|/sbin/route add|#/sbin/route add|g" $FILE1
-	echo -e "done.\n"
+	# UBUNTU_VER -> value 1 means Ubuntu Version between 18 to 21
+	UBUNTU_VER=$(cat /etc/lsb-release | grep 'RELEASE' | cut -d "=" -f 2 | grep '[18|19|20|21]' | wc -l)
+	if [ $UBUNTU_VER -eq 0 ] ; then
+             echo -e "delete route to 169.254.0.0/16 , only OLDer Ubuntu (version number less then 18.04) need to do this . \n"
+             FILE1="/etc/network/if-up.d/avahi-autoipd"
+             sed -i -- "s|/bin/ip route add|#/bin/ip route add|g" $FILE1
+             sed -i -- "s|/sbin/route add|#/sbin/route add|g" $FILE1
+             echo -e "done.\n"
+	fi
 }
 
 add_swap_space(){
-        HOW_MANY_TIMES_KEYWORD_SWAP_APPEARS="$(cat /etc/fstab | grep -c swap)"
-        if [ $HOW_MANY_TIMES_KEYWORD_SWAP_APPEARS -eq 0 ] && [ ! -f /swapfile ]; then
-                echo -e "swap config not in /etc/fstab && /swapfile not exists\n"
-                echo -e "populate a empty file of 4096MB size with /dev/zero\n"
-                dd if=/dev/zero of=/swapfile bs=1M count=4096
-                sync
-                chmod 600 /swapfile
-                mkswap /swapfile
-                swapon -s
-		echo -e "before swapon\n"
-                swapon /swapfile
-		echo -e "after swapon\n"
-                swapon -s
-                echo "/swapfile  none          swap    sw          0       0" >> /etc/fstab
-		echo -e "swap configuration already write to /etc/fstab\n"
-        fi
+
+	if [ $ADD_SWAP = "YES" ] || [ $ADD_SWAP = "yes" ] ; then
+             HOW_MANY_TIMES_KEYWORD_SWAP_APPEARS="$(cat /etc/fstab | grep -c swap)"
+             if [ $HOW_MANY_TIMES_KEYWORD_SWAP_APPEARS -eq 0 ] && [ ! -f /swapfile ]; then
+                     echo -e "swap config not in /etc/fstab && /swapfile not exists\n"
+                     echo -e "populate a empty file of 4096MB size with /dev/zero\n"
+                     dd if=/dev/zero of=/swapfile bs=1M count=4096
+                     sync
+                     chmod 600 /swapfile
+                     mkswap /swapfile
+                     swapon -s
+     	             echo -e "before swapon\n"
+                     swapon /swapfile
+                     echo -e "after swapon\n"
+                     swapon -s
+                     echo "/swapfile  none          swap    sw          0       0" >> /etc/fstab
+                     echo -e "swap configuration already write to /etc/fstab\n"
+             fi
+        else
+             echo -n "user chosen no need to add swap space ... disable swap for u "
+	     swapoff -a
+	     sed -e '/\/swap/ s/^#*/#/' -i /etc/fstab
+	fi
+
 }
 
 install_softwares(){
         apt-get update
-	string="build-essential:git:htop:memtester:vim:subversion:synaptic:vinagre:seahorse:fcitx:fcitx-table-boshiamy:fcitx-chewing:net-tools:ifupdown:unzip"
+	if [ $VERSION == "Desktop" ] ; then
+	     string="build-essential:git:htop:memtester:vim:subversion:synaptic:vinagre:seahorse:fcitx:fcitx-table-boshiamy:fcitx-chewing:net-tools:ifupdown:unzip"
+	elif [ $VERSION == "Server" ] ; then
+	     string="build-essential:git:htop:memtester:vim:net-tools:ifupdown:unzip"
+	else
+	     string="build-essential:git:htop:memtester:vim:subversion:unzip"
+	fi
 	IFS=':' read -r -a array <<< "$string"
 	for index in "${!array[@]}"
 	do
@@ -184,21 +229,29 @@ install_softwares(){
 }
 
 install_chrome_browser() {
-        wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
-        sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'
-        apt-get update
-        apt-get install -y google-chrome-stable
+	if [ $VERSION == "Desktop" ] ; then
+             wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
+             sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'
+             apt-get update
+             apt-get install -y google-chrome-stable
 
-	# for supressing error messages like this when u run 'apt-get update'
-	#   W: Target Packages (main/binary-amd64/Packages) is configured multiple times in /etc/apt/sources.list.d/google-chrome.list:3 and /etc/apt/sources.list.d/google.list:1
-        #   W: Target Packages (main/binary-all/Packages) is configured multiple times in /etc/apt/sources.list.d/google-chrome.list:3 and /etc/apt/sources.list.d/google.list:1
-	sed -i -- 's/^/#/' /etc/apt/sources.list.d/google.list
+             # for supressing error messages like this when u run 'apt-get update'
+             #   W: Target Packages (main/binary-amd64/Packages) is configured multiple times in /etc/apt/sources.list.d/google-chrome.list:3 and /etc/apt/sources.list.d/google.list:1
+             #   W: Target Packages (main/binary-all/Packages) is configured multiple times in /etc/apt/sources.list.d/google-chrome.list:3 and /etc/apt/sources.list.d/google.list:1
+             sed -i -- 's/^/#/' /etc/apt/sources.list.d/google.list
+	fi
 }
 
 remove_ugly_fonts() {
-	apt-get --purge remove fonts-arphic-ukai fonts-arphic-uming
+	apt-get --purge remove fonts-arphic-ukai fonts-arphic-uming -y
+	apt autoremove -y
 	# remove all of packages that were marked as 'deinstall'
-	dpkg --purge `dpkg --get-selections | grep deinstall | cut -f1`
+	UNWANNTED_PACKAGES=$(dpkg --get-selections | grep deinstall | cut -f1)
+	if [ -n "$UNWANNTED_PACKAGES" ] ; then
+	     dpkg --purge `dpkg --get-selections | grep deinstall | cut -f1`
+        else
+             echo -e "nothing to uninstall , skip this function ... \n"
+	fi
 }
 
 downgrade_gcc_version() {
@@ -260,11 +313,12 @@ main(){
 	disable_ipv6_entirely
 	disable_dnssec
 	sync_system_time
+	disable_cloudinit_garbage_messages
 	fix_too_many_authentication_failures
 	firewall_setting
 	delete_route_to_169_254_0_0
 	add_swap_space
-	#install_chrome_browser
+	install_chrome_browser
 	remove_ugly_fonts
         downgrade_gcc_version
 	change_apport_settings
@@ -282,14 +336,15 @@ echo -e "  6.modify network config /etc/network/interfaces \n"
 echo -e "  7.disable ipv6 entirely \n"
 echo -e "  8.disable DNSSEC for systemd-resolved.service \n"
 echo -e "  9.install ntpdate and sync system time \n"
-echo -e "  10.fix too many authentication failures problem \n"
-echo -e "  11.Firewall rule setting (Write firewall rules in /etc/network/if-up.d/firewall) \n"
-echo -e "  12.delete route to 169.254.0.0 \n"
-echo -e "  13.add swap space with 4096MB \n"
-echo -e "  14.install chrome browser \n"
-echo -e "  15.remove ugly fonts \n"
-echo -e "  16.downgrade gcc/g++ version to 7.x \n"
-echo -e "  17.turn off apport problem report popup dialog \n"
+echo -e "  10.disable cloudinit messages that appear to foreground \n"
+echo -e "  11.fix too many authentication failures problem \n"
+echo -e "  12.Firewall rule setting (Write firewall rules in /etc/network/if-up.d/firewall) \n"
+echo -e "  13.delete route to 169.254.0.0 \n"
+echo -e "  14.add swap space with 4096MB \n"
+echo -e "  15.install chrome browser \n"
+echo -e "  16.remove ugly fonts \n"
+echo -e "  17.downgrade gcc/g++ version to 7.x \n"
+echo -e "  18.turn off apport problem report popup dialog \n"
 
 read -p "Are you sure (y/n)?" sure
 case $sure in

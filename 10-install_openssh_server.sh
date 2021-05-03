@@ -45,11 +45,12 @@ change_sshd_settings() {
         # point /etc/resolv.conf to correct path for surpressing error below in /var/log/syslog
         # [ Server returned error NXDOMAIN, mitigating potential DNS violation DVE-2018-0001 ]
         # https://askubuntu.com/questions/1058750/new-alert-keeps-showing-up-server-returned-error-nxdomain-mitigating-potential
-
-        if [ -L /etc/resolv.conf ]; then
-                rm -rf /etc/resolv.conf
-                ln -s /run/systemd/resolve/resolv.conf /etc/resolv.conf
-        fi
+	
+	### no need to do this anymore , because resolvconf.service is working fine (systemctl status resolvconf.service)
+        ###if [ -L /etc/resolv.conf ]; then
+        ###        rm -rf /etc/resolv.conf
+        ###        ln -s /run/systemd/resolve/resolv.conf /etc/resolv.conf
+        ###fi
 
         # and here are 3 more problems, one is telling u to find problem with '/usr/sbin/sshd -T' command, it will show possible errors clue
         # two is telling u how to re-generate keys if u found strange error : all of your public/private keys in /etc/ssh/ were actually empty files.

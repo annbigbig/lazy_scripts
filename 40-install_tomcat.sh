@@ -9,9 +9,9 @@ TOMCAT_JNDI_RESOURCE_NAME="jdbc/DB_SPRING"                                      
 TOMCAT_JNDI_USERNAME="spring"                                                                         #
 TOMCAT_JNDI_PASSWORD="spring"                                                                         #
 TOMCAT_JNDI_URL="jdbc:mariadb://127.0.0.1:3306/db_spring"                                             #
-TOMCAT_MEMCACHED_NODES="n1:172.25.169.201:11211,n2:172.25.169.202:11211"                              #
-MINIMAL_HEAP_MEMORY_SIZE="1024m"                                                                      #
-MAXIMUM_HEAP_MEMORY_SIZE="1536m"                                                                      #
+TOMCAT_MEMCACHED_NODES="n1:127.0.0.1:11211"                                                           #
+MINIMAL_HEAP_MEMORY_SIZE="1536m"                                                                      #
+MAXIMUM_HEAP_MEMORY_SIZE="2048m"                                                                      #
 #######################################################################################################
 
 say_goodbye() {
@@ -58,24 +58,24 @@ install_tomcat() {
 	echo -e "ready to install tomcat \n"
 	apt-get install -y build-essential
 	cd /usr/local
-	wget http://ftp.twaren.net/Unix/Web/apache/tomcat/tomcat-8/v8.5.57/bin/apache-tomcat-8.5.57.tar.gz
-	wget https://downloads.apache.org/tomcat/tomcat-8/v8.5.57/bin/apache-tomcat-8.5.57.tar.gz.sha512
-	SHA512SUM_SHOULD_BE="$(/bin/cat ./apache-tomcat-8.5.57.tar.gz.sha512 | cut -d ' ' -f 1)"
-	SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./apache-tomcat-8.5.57.tar.gz | cut -d ' ' -f 1)"
+	wget http://ftp.twaren.net/Unix/Web/apache/tomcat/tomcat-8/v8.5.64/bin/apache-tomcat-8.5.64.tar.gz
+	wget https://downloads.apache.org/tomcat/tomcat-8/v8.5.64/bin/apache-tomcat-8.5.64.tar.gz.sha512
+	SHA512SUM_SHOULD_BE="$(/bin/cat ./apache-tomcat-8.5.64.tar.gz.sha512 | cut -d ' ' -f 1)"
+	SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./apache-tomcat-8.5.64.tar.gz | cut -d ' ' -f 1)"
         [ "$SHA512SUM_SHOULD_BE" == "$SHA512SUM_COMPUTED" ] && echo "tomcat sha512sum matched." || exit 2
 
-	tar -zxvf ./apache-tomcat-8.5.57.tar.gz
-	chown -R root:root ./apache-tomcat-8.5.57
-	chmod -R a+r ./apache-tomcat-8.5.57
-        find /usr/local/apache-tomcat-8.5.57 -type d -exec chmod a+rx {} \;
+	tar -zxvf ./apache-tomcat-8.5.64.tar.gz
+	chown -R root:root ./apache-tomcat-8.5.64
+	chmod -R a+r ./apache-tomcat-8.5.64
+        find /usr/local/apache-tomcat-8.5.64 -type d -exec chmod a+rx {} \;
 	rm -rf /usr/local/tomcat
-	ln -s /usr/local/apache-tomcat-8.5.57 /usr/local/tomcat
-	rm -rf ./apache-tomcat-8.5.57.tar.gz*
+	ln -s /usr/local/apache-tomcat-8.5.64 /usr/local/tomcat
+	rm -rf ./apache-tomcat-8.5.64.tar.gz*
 
 	echo -e "build jsvc\n"
 	cd /usr/local/tomcat/bin
 	tar -zxvf ./commons-daemon-native.tar.gz
-	cd commons-daemon-1.2.2-native-src/unix
+	cd commons-daemon-1.2.4-native-src/unix
 	./configure --with-java=/usr/local/jdk
 	make
 	cp jsvc ../..
@@ -86,7 +86,7 @@ install_tomcat() {
 	cd /usr/local/tomcat/conf/
         cp tomcat-users.xml tomcat-users.xml.default
         rm -rf tomcat-users.xml
-        cat > /usr/local/apache-tomcat-8.5.57/conf/tomcat-users.xml << "EOF"
+        cat > /usr/local/apache-tomcat-8.5.64/conf/tomcat-users.xml << "EOF"
 <?xml version="1.0" encoding="UTF-8"?>
 <tomcat-users xmlns="http://tomcat.apache.org/xml"
               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -100,14 +100,14 @@ install_tomcat() {
 <user username="TOMCAT_ADMIN_USERNAME" password="TOMCAT_ADMIN_PASSWORD" roles="admin-gui,manager-script,manager-jmx,manager-gui,manager-status"/>
 </tomcat-users>
 EOF
-        sed -i -- "s|TOMCAT_ADMIN_USERNAME|$TOMCAT_ADMIN_USERNAME|g" /usr/local/apache-tomcat-8.5.57/conf/tomcat-users.xml
-        sed -i -- "s|TOMCAT_ADMIN_PASSWORD|$TOMCAT_ADMIN_PASSWORD|g" /usr/local/apache-tomcat-8.5.57/conf/tomcat-users.xml
+        sed -i -- "s|TOMCAT_ADMIN_USERNAME|$TOMCAT_ADMIN_USERNAME|g" /usr/local/apache-tomcat-8.5.64/conf/tomcat-users.xml
+        sed -i -- "s|TOMCAT_ADMIN_PASSWORD|$TOMCAT_ADMIN_PASSWORD|g" /usr/local/apache-tomcat-8.5.64/conf/tomcat-users.xml
 
         echo -e "configure JNDI DataSource"
         cd /usr/local/tomcat/conf/
         cp server.xml server.xml.default
         rm -rf server.xml
-        cat > /usr/local/apache-tomcat-8.5.57/conf/server.xml << "EOF"
+        cat > /usr/local/apache-tomcat-8.5.64/conf/server.xml << "EOF"
 <?xml version="1.0" encoding="UTF-8"?>
 <Server port="8005" shutdown="SHUTDOWN">
   <Listener className="org.apache.catalina.startup.VersionLoggerListener" />
@@ -171,15 +171,15 @@ EOF
   </Service>
 </Server>
 EOF
-        sed -i -- "s|TOMCAT_JNDI_RESOURCE_NAME|$TOMCAT_JNDI_RESOURCE_NAME|g" /usr/local/apache-tomcat-8.5.57/conf/server.xml
-        sed -i -- "s|TOMCAT_JNDI_USERNAME|$TOMCAT_JNDI_USERNAME|g" /usr/local/apache-tomcat-8.5.57/conf/server.xml
-        sed -i -- "s|TOMCAT_JNDI_PASSWORD|$TOMCAT_JNDI_PASSWORD|g" /usr/local/apache-tomcat-8.5.57/conf/server.xml
-        sed -i -- "s|TOMCAT_JNDI_URL|$TOMCAT_JNDI_URL|g" /usr/local/apache-tomcat-8.5.57/conf/server.xml
+        sed -i -- "s|TOMCAT_JNDI_RESOURCE_NAME|$TOMCAT_JNDI_RESOURCE_NAME|g" /usr/local/apache-tomcat-8.5.64/conf/server.xml
+        sed -i -- "s|TOMCAT_JNDI_USERNAME|$TOMCAT_JNDI_USERNAME|g" /usr/local/apache-tomcat-8.5.64/conf/server.xml
+        sed -i -- "s|TOMCAT_JNDI_PASSWORD|$TOMCAT_JNDI_PASSWORD|g" /usr/local/apache-tomcat-8.5.64/conf/server.xml
+        sed -i -- "s|TOMCAT_JNDI_URL|$TOMCAT_JNDI_URL|g" /usr/local/apache-tomcat-8.5.64/conf/server.xml
 
         cd /usr/local/tomcat/conf/
         cp context.xml context.xml.default
         rm context.xml
-        cat > /usr/local/apache-tomcat-8.5.57/conf/context.xml << "EOF"
+        cat > /usr/local/apache-tomcat-8.5.64/conf/context.xml << "EOF"
 <?xml version="1.0" encoding="UTF-8"?>
 <Context antiResourceLocking="true">
 
@@ -196,15 +196,15 @@ EOF
 
 </Context>
 EOF
-        sed -i -- "s|TOMCAT_JNDI_RESOURCE_NAME|$TOMCAT_JNDI_RESOURCE_NAME|g" /usr/local/apache-tomcat-8.5.57/conf/context.xml
-        sed -i -- "s|TOMCAT_MEMCACHED_NODES|$TOMCAT_MEMCACHED_NODES|g" /usr/local/apache-tomcat-8.5.57/conf/context.xml
+        sed -i -- "s|TOMCAT_JNDI_RESOURCE_NAME|$TOMCAT_JNDI_RESOURCE_NAME|g" /usr/local/apache-tomcat-8.5.64/conf/context.xml
+        sed -i -- "s|TOMCAT_MEMCACHED_NODES|$TOMCAT_MEMCACHED_NODES|g" /usr/local/apache-tomcat-8.5.64/conf/context.xml
 
 
         # unlock host-manager and manager that only be accessed by 127.0.0.1
-        rm -rf /usr/local/apache-tomcat-8.5.57/webapps/manager/META-INF/context.xml
-        rm -rf /usr/local/apache-tomcat-8.5.57/webapps/host-manager/MATA-INF/context.xml
+        rm -rf /usr/local/apache-tomcat-8.5.64/webapps/manager/META-INF/context.xml
+        rm -rf /usr/local/apache-tomcat-8.5.64/webapps/host-manager/MATA-INF/context.xml
 
-        cat > /usr/local/apache-tomcat-8.5.57/webapps/manager/META-INF/context.xml << "EOF"
+        cat > /usr/local/apache-tomcat-8.5.64/webapps/manager/META-INF/context.xml << "EOF"
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Licensed to the Apache Software Foundation (ASF) under one or more
@@ -228,15 +228,15 @@ EOF
   <Manager sessionAttributeValueClassNameFilter="java\.lang\.(?:Boolean|Integer|Long|Number|String)|org\.apache\.catalina\.filters\.CsrfPreventionFilter\$LruCache(?:\$1)?|java\.util\.(?:Linked)?HashMap"/>
 </Context>
 EOF
-        cp /usr/local/apache-tomcat-8.5.57/webapps/manager/META-INF/context.xml /usr/local/apache-tomcat-8.5.57/webapps/host-manager/META-INF/context.xml
-        chmod 644 /usr/local/apache-tomcat-8.5.57/webapps/manager/META-INF/context.xml
-        chmod 644 /usr/local/apache-tomcat-8.5.57/webapps/host-manager/META-INF/context.xml
+        cp /usr/local/apache-tomcat-8.5.64/webapps/manager/META-INF/context.xml /usr/local/apache-tomcat-8.5.64/webapps/host-manager/META-INF/context.xml
+        chmod 644 /usr/local/apache-tomcat-8.5.64/webapps/manager/META-INF/context.xml
+        chmod 644 /usr/local/apache-tomcat-8.5.64/webapps/host-manager/META-INF/context.xml
 
         # download jar file 'slf4j-api-1.7.25.jar' and place it in $CATALINA_HOME/lib
-        wget -O /usr/local/apache-tomcat-8.5.57/lib/slf4j-api-1.7.25.jar https://repo.maven.apache.org/maven2/org/slf4j/slf4j-api/1.7.25/slf4j-api-1.7.25.jar
+        wget -O /usr/local/apache-tomcat-8.5.64/lib/slf4j-api-1.7.25.jar https://repo.maven.apache.org/maven2/org/slf4j/slf4j-api/1.7.25/slf4j-api-1.7.25.jar
 
         # download jar files for JNDI resource settings
-        cd /usr/local/apache-tomcat-8.5.57/lib/
+        cd /usr/local/apache-tomcat-8.5.64/lib/
         wget https://downloads.mariadb.com/Connectors/java/connector-java-2.5.4/mariadb-java-client-2.5.4.jar
 	wget https://downloads.mariadb.com/Connectors/java/connector-java-2.5.4/md5sums.txt
         MD5SUM_SHOULD_BE="$(/bin/cat ./md5sums.txt | grep mariadb-java-client-2.5.4.jar | cut -d ' ' -f 1)"
@@ -254,15 +254,15 @@ EOF
 	wget https://repo.maven.apache.org/maven2/com/esotericsoftware/reflectasm/1.11.7/reflectasm-1.11.7.jar
         wget https://repo.maven.apache.org/maven2/net/spy/spymemcached/2.12.3/spymemcached-2.12.3.jar
 
-	chown root:root /usr/local/apache-tomcat-8.5.57/lib/*.jar
-	chmod 644 /usr/local/apache-tomcat-8.5.57/lib/*.jar
+	chown root:root /usr/local/apache-tomcat-8.5.64/lib/*.jar
+	chmod 644 /usr/local/apache-tomcat-8.5.64/lib/*.jar
 
 	echo -e "tomcat installation completed."
 }
 
 create_test_jsp() {
-        IP_ADDRESS="$(/sbin/ip addr show eth0 | grep dynamic | grep -v inet6 | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
-        LAST_NUMBER_OF_IP_ADDRESS="$(/sbin/ip addr show eth0 | grep dynamic | grep -v inet6 | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1 | cut -d '.' -f 4)"
+        IP_ADDRESS="$(/sbin/ip addr show wlx3c7c3f49a829 | grep dynamic | grep -v inet6 | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
+        LAST_NUMBER_OF_IP_ADDRESS="$(/sbin/ip addr show wlx3c7c3f49a829 | grep dynamic | grep -v inet6 | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1 | cut -d '.' -f 4)"
         COLOR="black"
         if [ $(($LAST_NUMBER_OF_IP_ADDRESS % 3)) -eq 0 ] ; then
            COLOR="red"
@@ -420,7 +420,7 @@ register_tomcat_as_systemd_service() {
 	id tomcat
 
 	echo -e "change owner and group for \$CATALINA_HOME\n"
-	chown -R tomcat:tomcat /usr/local/apache-tomcat-8.5.57
+	chown -R tomcat:tomcat /usr/local/apache-tomcat-8.5.64
 
 	echo -e "create a systemd service\n"
 	rm -rf /lib/systemd/system/tomcat.service
@@ -471,17 +471,17 @@ EOF
 }
 
 main() {
-	install_jdk
-	set_jdk_priority
-	install_tomcat
-        create_test_jsp
-	install_maven
-	install_gradle
-	install_spring_boot_cli
-	install_jmeter
+	##install_jdk
+	##set_jdk_priority
+	##install_tomcat
+        ##create_test_jsp
+	##install_maven
+	##install_gradle
+	##install_spring_boot_cli
+	##install_jmeter
 	install_eclipse_ee
 	set_environments_variables
-	register_tomcat_as_systemd_service
+	#register_tomcat_as_systemd_service
 }
 
 echo -e "This script will install jdk 8 and tomcat 8.5.x for you"
