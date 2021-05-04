@@ -98,10 +98,10 @@ sort_buffer_size = 512K
 net_buffer_length = 16K
 myisam_sort_buffer_size = 8M
 # meet cacti needs
-max_heap_table_size = 128M
+max_heap_table_size = 256M
 max_allowed_packet = 16M
-tmp_table_size = 64M
-join_buffer_size = 128M
+tmp_table_size = 256M
+join_buffer_size = 512M
 
 # utf8 settings
 collation-server=utf8mb4_unicode_ci
@@ -151,7 +151,7 @@ innodb_flush_method = O_DIRECT
 #innodb_buffer_pool_instances = 9
 # You can set .._buffer_pool_size up to 50 - 80 %
 # of RAM but beware of setting memory usage too high
-innodb_buffer_pool_size = 1G
+innodb_buffer_pool_size = 4G
 innodb_io_capacity = 5000
 innodb_io_capacity_max = 10000
 

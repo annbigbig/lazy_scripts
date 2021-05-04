@@ -43,7 +43,6 @@ so my deployment environment would look like this :
     - [install mariadb galera cluster](30-install_mariadb_server.sh)
     - [install tomcat servlet container](40-install_tomcat.sh)
     - [install nginx with php7 support](50-install_nginx_with_php_support.sh)
-    - [install nagios nrpe](71-install_nagios_nrpe.sh)
 * **primary dns server**
     - [optimize ubuntu](00-optimize_ubuntu.sh)
     - [install openssh server](10-install_openssh_server.sh)
@@ -52,10 +51,6 @@ so my deployment environment would look like this :
     - [optimize ubuntu](00-optimize_ubuntu.sh)
     - [install openssh server](10-install_openssh_server.sh)
     - [install secondary dns server](61-install_secondary_dns_server.sh)
-* **nagios monitoring server**
-    - [optimize ubuntu](00-optimize_ubuntu.sh)
-    - [install openssh server](10-install_openssh_server.sh)
-    - [install nagios server](70-install_nagios_server.sh)
 
 ## More questions you might insterested in
 here are some search results that might be helpful  

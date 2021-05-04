@@ -1,7 +1,6 @@
 #!/bin/bash
 ##
-
-
+## dont install python like this , it will mess up some of your Ubuntu native features
 ##
 say_goodbye() {
         echo "goodbye everyone"

@@ -4,11 +4,12 @@
 #
 # these parameters will be used in firewall rules:      <<Tested on Ubuntu Mate 20.04 Desktop Edition>>
 ########################################################################################################
-VERSION="Server"                        # only two values could work well 'Desktop' or 'Server'
+OS_TYPE="Server"                        # only two values could work well 'Desktop' or 'Server'
 LAN="192.168.21.0/24"                   # The local network that you allow packets come in from there
 VPN="172.25.169.0/24"                   # The VPN network that you allow packets come in from there
 MY_TIMEZONE="Asia/Taipei"               # The timezone that you specify for this VPS node
 ADD_SWAP="no"                           # Do u need swap space ? fill in 'yes' or 'YES' will add swap for u
+YOUR_VNC_PASSWORD="vnc"                 # set your vnc password here
 ########################################################################################################
 # useful links: 
 # https://www.tecmint.com/set-permanent-dns-nameservers-in-ubuntu-debian/
@@ -21,7 +22,7 @@ say_goodbye (){
 }
 
 fix_network_interfaces_name(){
-	if [ $VERSION == "Server" ] ; then
+	if [ $OS_TYPE == "Server" ] ; then
             # change network interface name from ens3/ens7 to eth0/eth1 , and disable netplan
             sed -i -- 's|GRUB_CMDLINE_LINUX=.*|GRUB_CMDLINE_LINUX="consoleblank=0 net.ifnames=0 biosdevname=0 netcfg/do_not_use_netplan=true"|g' /etc/default/grub
             update-grub
@@ -29,7 +30,7 @@ fix_network_interfaces_name(){
 }
 
 modify_network_config() {
-	if [ $VERSION == "Server" ] ; then
+	if [ $OS_TYPE == "Server" ] ; then
              NETWORK_CONFIG_FILE="/etc/network/interfaces"
              rm -rf $NETWORK_CONFIG_FILE
              cat >> $NETWORK_CONFIG_FILE << "EOF"
@@ -58,7 +59,7 @@ EOF
 }
 
 enable_resolvconf_service() {
-	if [ $VERSION == "Server" ] ; then
+	if [ $OS_TYPE == "Server" ] ; then
              # if your network use static ip settings , u need this to let it function normally (save it from dxxn-low dns query time)
 	     if [ -L /etc/resolv.conf ] ; then
 		rm -rf /etc/resolv.conf
@@ -207,9 +208,9 @@ add_swap_space(){
 
 install_softwares(){
         apt-get update
-	if [ $VERSION == "Desktop" ] ; then
-	     string="build-essential:git:htop:memtester:vim:subversion:synaptic:vinagre:seahorse:fcitx:fcitx-table-boshiamy:fcitx-chewing:net-tools:ifupdown:unzip"
-	elif [ $VERSION == "Server" ] ; then
+	if [ $OS_TYPE == "Desktop" ] ; then
+	     string="build-essential:git:htop:memtester:vim:subversion:synaptic:vinagre:seahorse:fcitx:fcitx-table-boshiamy:fcitx-chewing:net-tools:unzip"
+	elif [ $OS_TYPE == "Server" ] ; then
 	     string="build-essential:git:htop:memtester:vim:net-tools:ifupdown:unzip"
 	else
 	     string="build-essential:git:htop:memtester:vim:subversion:unzip"
@@ -229,7 +230,7 @@ install_softwares(){
 }
 
 install_chrome_browser() {
-	if [ $VERSION == "Desktop" ] ; then
+	if [ $OS_TYPE == "Desktop" ] ; then
              wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
              sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'
              apt-get update
@@ -303,6 +304,42 @@ change_apport_settings() {
 	sed -i -- 's|enabled=1|enabled=0|g' /etc/default/apport
 }
 
+install_x11vnc(){
+	
+  if [ -z "$(dpkg --get-selections | grep x11vnc)" ] && [ $OS_TYPE == "Desktop" ] ; then
+	  echo -e "ready to install x11vnc ... ( it will run on 127.0.0.1:5900 ) \n"
+      apt-get install -y x11vnc
+      echo -e "done. \n"
+      x11vnc -storepasswd $YOUR_VNC_PASSWORD /etc/x11vnc.pass
+      touch /lib/systemd/system/x11vnc.service
+      cat >> /lib/systemd/system/x11vnc.service << EOF
+[Unit]
+Description=Start x11vnc at startup.
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/x11vnc -auth /var/run/lightdm/root/:0 -forever -loop -noxdamage -repeat -rfbauth /etc/x11vnc.pass -localhost -rfbport 5900 -shared -logfile /tmp/x11vnc.log
+
+[Install]
+WantedBy=multi-user.target
+EOF
+      systemctl daemon-reload
+      systemctl enable x11vnc.service
+      systemctl start x11vnc.service
+      systemctl status x11vnc.service
+  fi
+
+  ### README parts ###
+  echo -e "################################################################################################ \n"
+  echo -e "#  HOW to connect to a remote host that runs x11vnc at 127.0.0.1:5900  ? ? ?                   # \n"
+  echo -e "#  if that remote host has a SSH Service running on tcp port 36000 just like my situation      # \n"
+  echo -e "#  u could fire command below to bind its 127.0.0.1:5900 to your local tcp port 5999 :         # \n"
+  echo -e "#        ssh -p36000 -L 5999:127.0.0.1:5900 -N -f username@192.168.21.231                      # \n"
+  echo -e "#  replace <username> and <192.168.21.231> with your real username and ip address , thats all  # \n"
+  echo -e "################################################################################################ \n"
+}
+
 main(){
         unlock_apt_bala_bala
         update_system
@@ -322,6 +359,7 @@ main(){
 	remove_ugly_fonts
         downgrade_gcc_version
 	change_apport_settings
+	install_x11vnc
 	echo -e "now you should reboot your computer for configurations take affect.\n"
 	echo -e "RUN 'reboot' in your prompt # symbol\n"
 }
@@ -345,6 +383,7 @@ echo -e "  15.install chrome browser \n"
 echo -e "  16.remove ugly fonts \n"
 echo -e "  17.downgrade gcc/g++ version to 7.x \n"
 echo -e "  18.turn off apport problem report popup dialog \n"
+echo -e "  19.install x11vnc service (running on 127.0.0.1:5900) for u if your OS_TYPE is Desktop \n"
 
 read -p "Are you sure (y/n)?" sure
 case $sure in

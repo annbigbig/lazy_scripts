@@ -5,6 +5,10 @@
 ## https://code.visualstudio.com/docs/setup/linux
 ## https://code.visualstudio.com/docs/nodejs/vuejs-tutorial
 ## https://marketplace.visualstudio.com/items?itemName=octref.vetur
+##
+OS_TYPE="Server"  ## install Visual Studio Code only when OS_TYPE set to 'Desktop'
+##
+
 say_goodbye() {
         echo "goodbye everyone"
 }
@@ -35,8 +39,10 @@ install_nodeJS() {
 }
 
 install_VScode() {
-        echo "u already have snap pre-installed on your system if u use Ubuntu 20.04 "
-	snap install --classic code # or code-insiders
+	if [ $OS_TYPE == "Desktop" ] ; then
+             echo "u already have snap pre-installed on your system if u use Ubuntu 20.04 "
+	     snap install --classic code # or code-insiders
+	fi
 
 	##########################################################################
 	##                                                                      ##
@@ -91,7 +97,7 @@ fix_errors() {
 main() {
 	install_prerequisite
         install_nodeJS
-	#install_VScode
+	install_VScode
 	install_vueCLI
 	install_webpack
 	fix_errors
