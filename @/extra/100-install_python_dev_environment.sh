@@ -15,7 +15,7 @@ install_prerequisite() {
 
 install_python2() {
 	add-apt-repository universe
-	apt install python2
+	apt install python2 -y
 	curl https://bootstrap.pypa.io/get-pip.py --output get-pip.py
 	python2 get-pip.py
 }
@@ -24,7 +24,7 @@ install_python3() {
 	apt install software-properties-common
 	add-apt-repository ppa:deadsnakes/ppa
 	apt update
-	apt install python3.8 python3-pip
+	apt install python3.8 python3-pip -y
 }
 
 set_python_priority() {
@@ -35,11 +35,11 @@ set_python_priority() {
 }
 
 set_environments_variables() {
-
+        echo -e " set_environments_variables() \n"
 }
 
 fix_error() {
-
+        echo -e " fix_error() \n"
 }
 
 main() {
@@ -47,8 +47,8 @@ main() {
         install_python2
         install_python3
 	set_python_priority
-	#set_environments_variables
-	#fix_error
+	set_environments_variables
+	fix_error
 }
 
 echo -e "This script will install python2 python3 dev environment on this host \n"

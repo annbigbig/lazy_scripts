@@ -6,19 +6,19 @@
 ###########################################  <<Tested on Ubuntu Mate 20.04 Desktop Edition>>  ############
 #
 DOMAIN_NAME="dq5rocks.com"
-FIRST_OCTET="172"
-SECOND_OCTET="25"
-THIRD_OCTET="169"
+FIRST_OCTET="192"
+SECOND_OCTET="168"
+THIRD_OCTET="21"
 #
-TRUSTED_LOCAL_SUBNET="172.25.169.0/24"
-TRUSTED_VPN_SUBNET="10.8.0.0/24"
-PRIMARY_DNS_IP_ADDRESS="172.25.169.201"
+TRUSTED_LOCAL_SUBNET="192.168.21.0/24"
+TRUSTED_VPN_SUBNET="192.168.224.0/24"
+PRIMARY_DNS_IP_ADDRESS="192.168.21.231"
 #
 ##########################################################################################################
 # *** Hint ***
-# how to query a specifc DNS server (ex: 172.25.169.202) ? use this command : 
-#  $ nslookup www.dq5rocks.com 172.25.169.202
-#  $ nslookup 172.25.169.160 172.25.169.202
+# how to query a specifc DNS server (ex: 192.168.21.242) ? use this command : 
+#  $ nslookup www.dq5rocks.com 192.168.21.242
+#  $ nslookup 192.168.21.254 192.168.21.242
 #
 ##########################################################################################################
 # *** SPECIAL THANKS ***
@@ -71,22 +71,22 @@ install_dependencies() {
 
 install_bind_server() {
         cd /usr/local/src/
-        wget https://downloads.isc.org/isc/bind9/9.16.6/bind-9.16.6.tar.xz
-        wget https://downloads.isc.org/isc/bind9/9.16.6/bind-9.16.6.tar.xz.sha512.asc
+        wget https://downloads.isc.org/isc/bind9/9.16.15/bind-9.16.15.tar.xz
+        wget https://downloads.isc.org/isc/bind9/9.16.15/bind-9.16.15.tar.xz.sha512.asc
 
         # how to verify the integrity of downloaded tar.xz file ? see here:
         # https://kb.isc.org/docs/aa-01225
 
-        PUBLIC_KEY="$(gpg --verify ./bind-9.16.6.tar.xz.sha512.asc ./bind-9.16.6.tar.xz 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
+        PUBLIC_KEY="$(gpg --verify ./bind-9.16.15.tar.xz.sha512.asc ./bind-9.16.15.tar.xz 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
         IMPORT_KEY_RESULT="$(gpg --keyserver keyserver.ubuntu.com --recv $PUBLIC_KEY 2>&1 | grep 'codesign@isc.org' | wc -l)"
-        VERIFY_SIGNATURE_RESULT="$(gpg --verify ./bind-9.16.6.tar.xz.sha512.asc ./bind-9.16.6.tar.xz 2>&1 | tr -s ' ' | grep 'codesign@isc.org' | wc -l)"
+        VERIFY_SIGNATURE_RESULT="$(gpg --verify ./bind-9.16.15.tar.xz.sha512.asc ./bind-9.16.15.tar.xz 2>&1 | tr -s ' ' | grep 'codesign@isc.org' | wc -l)"
         [ "$IMPORT_KEY_RESULT" -gt 0 ] && echo "pubkey $PUBLIC_KEY imported successfuly" ||  exit 2
         [ "$VERIFY_SIGNATURE_RESULT" -gt 0 ] && echo "verify signature successfully" || exit 2
 
 
-        tar xvf ./bind-9.16.6.tar.xz
-        cd bind-9.16.6
-        ./configure --prefix=/usr/local/bind-9.16.6           \
+        tar xvf ./bind-9.16.15.tar.xz
+        cd bind-9.16.15
+        ./configure --prefix=/usr/local/bind-9.16.15           \
                     --sysconfdir=/etc                         \
                     --localstatedir=/var                      \
                     --mandir=/usr/share/man                   \
@@ -97,9 +97,9 @@ install_bind_server() {
                     --with-randomdev=/dev/urandom
         make
         make install
-        ln -s /usr/local/bind-9.16.6 /usr/local/bind9
-        install -v -m755 -d /usr/share/doc/bind-9.16.6/{arm,misc}
-        install -v -m644 doc/misc/{options,rfc-compliance} /usr/share/doc/bind-9.16.6/misc
+        ln -s /usr/local/bind-9.16.15 /usr/local/bind9
+        install -v -m755 -d /usr/share/doc/bind-9.16.15/{arm,misc}
+        install -v -m644 doc/misc/{options,rfc-compliance} /usr/share/doc/bind-9.16.15/misc
 }
 
 

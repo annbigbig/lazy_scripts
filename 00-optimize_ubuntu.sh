@@ -125,7 +125,7 @@ fix_too_many_authentication_failures() {
 firewall_setting(){
         FIREWALL_RULE_FILE="/etc/network/if-up.d/firewall"
         if [ ! -f $FIREWALL_RULE_FILE ]; then
-                echo "writing local firewall rule to $FIREWALL_RULE_FILE \n"
+                echo -e "writing local firewall rule to $FIREWALL_RULE_FILE \n"
                 cat >> $FIREWALL_RULE_FILE << EOF
 #!/bin/bash
 # ============ Set your network parameters here ===================================================
@@ -163,7 +163,7 @@ fi
 # =================================================================================================
 EOF
 		chmod +x $FIREWALL_RULE_FILE
-		echo "done.\n"
+		echo -e "done.\n"
         fi
 }
 
@@ -209,11 +209,11 @@ add_swap_space(){
 install_softwares(){
         apt-get update
 	if [ $OS_TYPE == "Desktop" ] ; then
-	     string="build-essential:git:htop:memtester:vim:subversion:synaptic:vinagre:seahorse:fcitx:fcitx-table-boshiamy:fcitx-chewing:net-tools:unzip"
+	     string="build-essential:git:htop:memtester:vim:subversion:synaptic:vinagre:seahorse:fcitx:fcitx-table-boshiamy:fcitx-chewing:net-tools:unzip:cifs-utils:sshfs"
 	elif [ $OS_TYPE == "Server" ] ; then
-	     string="build-essential:git:htop:memtester:vim:net-tools:ifupdown:unzip"
+	     string="build-essential:git:htop:memtester:vim:net-tools:ifupdown:unzip:cifs-utils:sshfs"
 	else
-	     string="build-essential:git:htop:memtester:vim:subversion:unzip"
+	     string="build-essential:git:htop:memtester:vim:subversion:unzip:cifs-utils:sshfs"
 	fi
 	IFS=':' read -r -a array <<< "$string"
 	for index in "${!array[@]}"

@@ -3,7 +3,10 @@
 # this script will install jdk 8 and tomcat 8.5.x and several tools for JavaEE developers
 # there are some parameters have to be confirmed before u run this script :
 ####################################  <<Tested on Ubuntu Mate 20.04 Desktop Edition>>  ################
-OS_TYPE="Server"              # only 'Server' or 'Desktop' are possible values
+OS_TYPE="Server"              # only 'Server' or 'Desktop' are possible values                        #
+NETWORK_INTERFACE="eth0"      # Server : eth0   Desktop : ens33  , depends on your situation          #
+USER_MANUAL="labasky"         # Install Eclipse EE in this users home directory if u r Desktop        #
+USER_AUTO="$(/usr/bin/cat /etc/passwd | grep 1000 | cut -d ":" -f 1)"    # try to get your username   #
 TOMCAT_ADMIN_USERNAME="admin"                                                                         #
 TOMCAT_ADMIN_PASSWORD="admin"                                                                         #
 TOMCAT_JNDI_RESOURCE_NAME="jdbc/DB_SPRING"                                                            #
@@ -264,8 +267,8 @@ EOF
 }
 
 create_test_jsp() {
-        IP_ADDRESS="$(/usr/sbin/ip addr show eth0 | grep inet | grep -v inet6 | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
-        LAST_NUMBER_OF_IP_ADDRESS="$(/usr/sbin/ip addr show eth0 | grep inet | grep -v inet6 | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1 | cut -d '.' -f 4)"
+        IP_ADDRESS="$(/usr/sbin/ip addr show $NETWORK_INTERFACE | grep inet | grep -v inet6 | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
+        LAST_NUMBER_OF_IP_ADDRESS="$(/usr/sbin/ip addr show $NETWORK_INTERFACE | grep inet | grep -v inet6 | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1 | cut -d '.' -f 4)"
         COLOR="black"
         if [ $(($LAST_NUMBER_OF_IP_ADDRESS % 3)) -eq 0 ] ; then
            COLOR="red"
@@ -451,26 +454,31 @@ EOF
 
 install_eclipse_ee() {
         # hint: There is no need to install Eclipse IDE tool on a Server machine.
-	if [ $OS_TYPE == "Desktop" ] ; then
+        if [ -n "$USER_AUTO" ] ; then
+	   USER=$USER_AUTO
+        elif [ -n "$USER_MANUAL" ] ; then
+           USER=$USER_MANUAL
+	else
+	   USER=""
+        fi
+	     
+	if [ $OS_TYPE == "Desktop" ] && [ -n $USER ]; then
              echo -e "ready to install Eclipse EE\n"
-             cd /usr/local
+             #cd /home/$USER
+	     cd /usr/local/
              rm -rf ./eclipse*
-             wget https://www.eclipse.org/downloads/download.php?file=/oomph/epp/2021-03/R/eclipse-inst-jre-linux64.tar.gz\&r=1 -O eclipse-inst-jre-linux64.tar.gz
-             SHA512SUM_SHOULD_BE="6ccff0fe4530c9ffab42cd09cd86fe9573f178302997f7acd6ee14051acae9d32fe30df22b2d17cc6443a2e3809080dc4c1ea79b75b2b93a1ff96d535978b29a"
-             SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./eclipse-inst-jre-linux64.tar.gz | cut -d ' ' -f 1)"
+	     wget https://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/2021-03/R/eclipse-jee-2021-03-R-linux-gtk-x86_64.tar.gz\&r=1 -O eclipse-jee-2021-03-R-linux-gtk-x86_64.tar.gz
+             SHA512SUM_SHOULD_BE="fb874429164015510f8561818bae0881fcb5e1cd3a8df41a358fbfea0dd001c07c914ab6ebd086f83d014a01b98a7154229a6a0c2bd5cb14b7d697aa31753209"
+             SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./eclipse-jee-2021-03-R-linux-gtk-x86_64.tar.gz | cut -d ' ' -f 1)"
              [ "$SHA512SUM_SHOULD_BE" == "$SHA512SUM_COMPUTED" ] && echo "Eclipse EE sha512sum matched." || exit 2
-             tar -zxvf ./eclipse-inst-jre-linux64.tar.gz
-             chown -R root:root ./eclipse-installer
-	     echo -e "It seems like a Installer so hey human its your turn ... \n"
-	     /usr/local/eclipse-installer/eclipse-inst
+             tar -zxvf ./eclipse-jee-2021-03-R-linux-gtk-x86_64.tar.gz
+	     chown -R root:root /usr/local/eclipse/
+	     rm -rf /home/$USER/桌面/eclipse*
+	     ln -s /usr/local/eclipse/eclipse /home/$USER/桌面/eclipse
+	     sync
 
-             # find the user whose UID is 1000
-             #YOUR_USERNAME="$(/bin/cat /etc/passwd | grep 1000 | head -1 | cut -d ':' -f 1)"
-
-             #rm -rf /home/$YOUR_USERNAME/桌面/eclipse-EE-202006R
-             #ln -s /usr/local/eclipse/eclipse /home/$YOUR_USERNAME/桌面/eclipse-EE-202006R
-             #rm -rf ./eclipse-jee-2020-06-R-linux-gtk-x86_64.tar.gz
-             #echo -e "Eclipse EE installation completed."
+             rm -rf ./eclipse-jee-2021-03-R-linux-gtk-x86_64.tar.gz
+             echo -e "Eclipse EE installation completed."
 	else
              echo -e "No need to install Eclipse IDE tool on Server machine , skip this process ... \n"
 	fi
