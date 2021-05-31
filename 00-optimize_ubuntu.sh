@@ -4,9 +4,9 @@
 #
 # these parameters will be used in firewall rules:      <<Tested on Ubuntu Mate 20.04 Desktop Edition>>
 ########################################################################################################
-OS_TYPE="Server"                        # only two values could work well 'Desktop' or 'Server'
-LAN="192.168.21.0/24"                   # The local network that you allow packets come in from there
-VPN="172.25.169.0/24"                   # The VPN network that you allow packets come in from there
+OS_TYPE="Desktop"                       # only two values could work well 'Desktop' or 'Server'
+LAN="192.168.0.0/24"                    # The local network that you allow packets come in from there
+VPN="192.168.21.0/24"                   # The VPN network that you allow packets come in from there
 MY_TIMEZONE="Asia/Taipei"               # The timezone that you specify for this VPS node
 ADD_SWAP="no"                           # Do u need swap space ? fill in 'yes' or 'YES' will add swap for u
 YOUR_VNC_PASSWORD="vnc"                 # set your vnc password here
@@ -131,7 +131,7 @@ firewall_setting(){
 # ============ Set your network parameters here ===================================================
 iptables=/sbin/iptables
 loopback=127.0.0.1
-local="\$(/sbin/ip addr show eth0 | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
+local="\$(/sbin/ip addr show ens4 | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
 #local="\$(/sbin/ip addr show wlan0 | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
 #local=192.168.21.231
 lan=$LAN
@@ -140,9 +140,12 @@ vpn=$VPN
 if [ -n \$local ] ; then
   \$iptables -t filter -F
   \$iptables -t filter -A INPUT -i lo -s \$loopback -d \$loopback -p all -j ACCEPT
-  #\$iptables -t filter -A INPUT -i eth0 -s \$local -d \$local -p all -j ACCEPT
-  #\$iptables -t filter -A INPUT -i eth0 -s \$lan -d \$local -p all -j ACCEPT
-  #\$iptables -t filter -A INPUT -i eth0 -s \$vpn -d \$local -p all -j ACCEPT
+  #\$iptables -t filter -A INPUT -i ens4 -s \$local -d \$local -p all -j ACCEPT
+  #\$iptables -t filter -A INPUT -i ens4 -s \$lan -d \$local -p all -j ACCEPT
+  #\$iptables -t filter -A INPUT -i ens4 -s \$vpn -d \$local -p all -j ACCEPT
+  #\$iptables -t filter -A INPUT -i wls3 -s \$local -d \$local -p all -j ACCEPT
+  #\$iptables -t filter -A INPUT -i wls3 -s \$lan -d \$local -p all -j ACCEPT
+  #\$iptables -t filter -A INPUT -i wls3 -s \$vpn -d \$local -p all -j ACCEPT
   \$iptables -t filter -A INPUT -s \$local -d \$local -p all -j ACCEPT
   \$iptables -t filter -A INPUT -s \$lan -d \$local -p all -j ACCEPT
   \$iptables -t filter -A INPUT -s \$vpn -d \$local -p all -j ACCEPT
