@@ -6,7 +6,7 @@
 ## https://code.visualstudio.com/docs/nodejs/vuejs-tutorial
 ## https://marketplace.visualstudio.com/items?itemName=octref.vetur
 ##
-OS_TYPE="Server"  ## install Visual Studio Code only when OS_TYPE set to 'Desktop'
+OS_TYPE="Desktop"  ## install Visual Studio Code only when OS_TYPE set to 'Desktop'
 ##
 
 say_goodbye() {
