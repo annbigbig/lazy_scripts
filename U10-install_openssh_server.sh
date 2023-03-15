@@ -1,7 +1,8 @@
 #!/bin/bash
-#######################################  <<Tested on Ubuntu Mate 20.04 Desktop Edition>> #####
+######################## << Tested on Ubuntu Mate 22.04 Desktop Edition>> #####################
+######################## << Tested on Ubuntu 22.04 Server Edition >> ##########################
 #
-# This script will install openssh-server on Ubuntu 20.04 LTS
+# This script will install openssh-server on Ubuntu 22.04 LTS
 # it will change sshd port number from default 22 to the number you specified here
 # (range could be: 1024 to 65535)
 #
@@ -41,24 +42,7 @@ change_sshd_settings() {
         sed -i -- 's|#PasswordAuthentication yes|PasswordAuthentication no|g' $CONFIG_FILE_PATH
         sed -i -- 's|#PermitEmptyPasswords no|PermitEmptyPasswords no|g' $CONFIG_FILE_PATH
 
-        # this error found in Ubuntu 20.04 Server edition
-        # point /etc/resolv.conf to correct path for surpressing error below in /var/log/syslog
-        # [ Server returned error NXDOMAIN, mitigating potential DNS violation DVE-2018-0001 ]
-        # https://askubuntu.com/questions/1058750/new-alert-keeps-showing-up-server-returned-error-nxdomain-mitigating-potential
-	
-	### no need to do this anymore , because resolvconf.service is working fine (systemctl status resolvconf.service)
-        ###if [ -L /etc/resolv.conf ]; then
-        ###        rm -rf /etc/resolv.conf
-        ###        ln -s /run/systemd/resolve/resolv.conf /etc/resolv.conf
-        ###fi
-
-        # and here are 3 more problems, one is telling u to find problem with '/usr/sbin/sshd -T' command, it will show possible errors clue
-        # two is telling u how to re-generate keys if u found strange error : all of your public/private keys in /etc/ssh/ were actually empty files.
-        # three is telling u how to re-generate keys for all the algorithm (dsa/rsa//ecdsa/ed25519...) with single command
-        # https://askubuntu.com/questions/1113607/failed-to-start-openbsd-secure-shell-server-error-when-i-try-to-run-apt-get-or-t
-        # https://wangxianggit.github.io/sshd%20no%20hostkeys%20available/
-        # https://serverfault.com/questions/471327/how-to-change-a-ssh-host-key
-
+	# check dsa key existed or not , if not existed , delete all of the other keys and re-generate them
         if [ ! -s /etc/ssh/ssh_host_dsa_key -a ! -s /etc/ssh/ssh_host_dsa_key.pub ]; then
                 rm -rf /etc/ssh/ssh_host_*
                 ssh-keygen -A
@@ -67,12 +51,13 @@ change_sshd_settings() {
                 chmod 644 /etc/ssh/ssh_host_dsa_*.pub
         fi
 
-	# check /var/run/sshd existed or not, this is also a weird bug
+	# check /var/run/sshd existed or not, if not , create it , this is also a weird bug
         if [ ! -d /var/run/sshd ]; then
                 mkdir -p -m0755 /var/run/sshd
                 chown root:root /var/run/sshd
         fi
 
+	# change ssh service port from default 22 to custom port you specify at top of the script
 	if [ $SSHD_LISTENING_PORT -gt 1024 ] && [ $SSHD_LISTENING_PORT -lt 65535 ] ; then
 		echo -e "modify $CONFIG_FILE_PATH \n replace 'Port 22' with 'Port $SSHD_LISTENING_PORT' \n"
 		sed -i -- "s|#Port 22|Port 22|g" $CONFIG_FILE_PATH
@@ -102,7 +87,8 @@ main() {
         append_public_key
 	echo -e "now you can connect to your SSH service .\n"
 	echo -e "with the following command:\n"
-	ip_address=$(/sbin/ifconfig eth0 | grep inet | grep -v inet6 | tr -s ' ' | cut -d ' ' -f 3 | cut -d ':' -f 2)
+	WIRED_INTERFACE_NAME="$(ip link show | grep '2:' | cut -d ':' -f 2 | sed 's/^ *//g')"
+	ip_address=$(/sbin/ifconfig $WIRED_INTERFACE_NAME | grep inet | grep -v inet6 | tr -s ' ' | cut -d ' ' -f 3 | cut -d ':' -f 2)
         echo -e "ssh -p$SSHD_LISTENING_PORT -i <PATH_TO_YOUR_PRIVATE_KEY> $AUTHORIZED_USER@$ip_address \n"
 	echo -e "\n"
 	echo -e "you could also put this block below into /home/\$USER/.ssh/config of ssh client computer \n"

@@ -1,9 +1,9 @@
 # Lazy Scripts
-these shell scripts will help you setup and configure LEMP stack && Tomcat on Ubuntu 20.04 LTS with less painful,  
+these shell scripts will help you setup and configure LEMP stack && Tomcat on Ubuntu 20.04/22.04 LTS with less painful,  
 after executing all of the shell scripts provided here, you will have a ready-to-use PHP/JavaEE deployment environment for your webapps.  
  > <font color=0000FF>使用這裡的shell scripts快速建立LEMP stack + JavaEE/Tomcat開發環境,  
    不用再被學長姐嫌棄連開發環境都搞不定 (ノ▼Д▼)ノ  
-   可使用於Ubuntu 20.04 LTS AMD64架構</font>  
+   可使用於Ubuntu 20.04/22.04 LTS AMD64架構</font>  
 
 
 ## How to use it?
@@ -15,7 +15,7 @@ chmod +x ./*.sh
 ```
 open the script you wanna execute later with your favorite text editor
 ```
-vim 00-optimize_ubuntu
+vim U00-optimize_ubuntu.sh
 ```
 modify the parameters on top of shell script to suite your needs <br />
 each script has their own specific parameters that have to be configure before use, <br />
@@ -26,7 +26,7 @@ VPN="10.8.0.0/24" # The VPN network that you allow packets come in from there
 ```
 then just call their names (with root privilege), the shell script been called will begin to work :-)
 ```
-./00-optimize_ubuntu.sh
+sudo ./U00-optimize_ubuntu.sh
 ```
 ## System Architecture Diagram
 basically i extect a horizontal scalable architecture,  
@@ -37,20 +37,20 @@ so my deployment environment would look like this :
 
 ## Server types in network and their corresponding shell scripts
 * **regular node in cluster**
-    - [optimize ubuntu](00-optimize_ubuntu.sh)
-    - [install openssh server](10-install_openssh_server.sh)
-    - [install memcached server](20-install_memcached_server.sh)
-    - [install mariadb galera cluster](30-install_mariadb_server.sh)
-    - [install tomcat servlet container](40-install_tomcat.sh)
-    - [install nginx with php7 support](50-install_nginx_with_php_support.sh)
+    - [optimize ubuntu](U00-optimize_ubuntu.sh)
+    - [install openssh server](U10-install_openssh_server.sh)
+    - [install memcached server](U20-install_memcached_server.sh)
+    - [install mariadb galera cluster](U30-install_mariadb_server.sh)
+    - [install tomcat servlet container](U40-install_tomcat.sh)
+    - [install nginx with php support](U50-install_nginx_with_php_support.sh)
 * **primary dns server**
-    - [optimize ubuntu](00-optimize_ubuntu.sh)
-    - [install openssh server](10-install_openssh_server.sh)
-    - [install primary dns server](60-install_primary_dns_server.sh)
+    - [optimize ubuntu](U00-optimize_ubuntu.sh)
+    - [install openssh server](U10-install_openssh_server.sh)
+    - [install primary dns server](U60-install_primary_dns_server.sh)
 * **secondary dns server**
-    - [optimize ubuntu](00-optimize_ubuntu.sh)
-    - [install openssh server](10-install_openssh_server.sh)
-    - [install secondary dns server](61-install_secondary_dns_server.sh)
+    - [optimize ubuntu](U00-optimize_ubuntu.sh)
+    - [install openssh server](U10-install_openssh_server.sh)
+    - [install secondary dns server](U61-install_secondary_dns_server.sh)
 
 ## More questions you might insterested in
 here are some search results that might be helpful  
@@ -60,11 +60,11 @@ here are some search results that might be helpful
 * [where to buy cheap SSL certificate](https://www.google.com.tw/search?q=where+to+buy+cheap+ssl+certificate)  
 * [where to find free SSL certificate](https://www.google.com.tw/search?q=where+to+find+free+ssl+certificate)  
 
-（我的部落格2020-07-01開始啟用囉，忙著求生應該沒空常寫它，付不出VPS費用的話也有可能隨時會關閉）  
-and my domain (dq5rocks.com) was bought at GoDaddy,  
-vps nodes were rent at Vultr, i have a wordpress blog running at  
-  [blog.dq5rocks.com](https://blog.dq5rocks.com)  
-but that's my personal choice, you could buy domain/vps from other providers you preferred.
+#（我的部落格2020-07-01開始啟用囉，忙著求生應該沒空常寫它，付不出VPS費用的話也有可能隨時會關閉）  
+#and my domain (dq5rocks.com) was bought at GoDaddy,  
+#vps nodes were rent at Vultr, i have a wordpress blog running at  
+#  [blog.dq5rocks.com](https://blog.dq5rocks.com)  
+#but that's my personal choice, you could buy domain/vps from other providers you preferred.
 
 ## Disclaimer Clause  
 <font size=4 color=888888>不管發生什麼事，都不是我幹的，我什麼都不知道  ∠( ᐛ 」∠)＿ </font>  

@@ -1,20 +1,31 @@
 #!/bin/bash
-# This script will perform lots of work for optimizing Ubuntu 20.04 LTS you've just installed
-# before you run this script , please specify some parameters here:
-#
-# these parameters will be used in firewall rules:      <<Tested on Ubuntu Mate 20.04 Desktop Edition>>
+# This script will perform lots of work for optimizing Ubuntu 22.04 LTS you've just installed
+# before you run this script , please specify some parameters here ;
+# these parameters will be used in firewall rules or system settings :
+# 
 ########################################################################################################
 OS_TYPE="Desktop"                       # only two values could work well 'Desktop' or 'Server'
 LAN="192.168.0.0/24"                    # The local network that you allow packets come in from there
 VPN="192.168.21.0/24"                   # The VPN network that you allow packets come in from there
 MY_TIMEZONE="Asia/Taipei"               # The timezone that you specify for this VPS node
-ADD_SWAP="no"                           # Do u need swap space ? fill in 'yes' or 'YES' will add swap for u
+ADD_SWAP="yes"                          # Do u need swap space ? fill in 'yes' or 'YES' will add swap for u
 YOUR_VNC_PASSWORD="vnc"                 # set your vnc password here
+IP_PROTOCOL="dhcp"                      # possible values ('dhcp' or 'staic') ; how do u get ipv4 address?
+ADDRESS="192.168.0.91"                  # fill in ipv4 address (such as 192.168.0.96) if u use static ip
+NETMASK="255.255.255.0"                 # fill in ipv4 netmask (such as 255.255.255.0) if u use static ip
+GATEWAY="192.168.0.1"                   # fill in ipv4 gateway (such as 192.168.0.1) if u use static ip
+########################################################################################################
+# no need to setup below , script will know it and use it automatically for u 
+WIRED_INTERFACE_NAME="$(ip link show | grep '2:' | cut -d ':' -f 2 | sed 's/^ *//g')"
 ########################################################################################################
 # useful links: 
 # https://www.tecmint.com/set-permanent-dns-nameservers-in-ubuntu-debian/
 # https://linuxconfig.org/how-to-switch-back-networking-to-etc-network-interfaces-on-ubuntu-20-04-focal-fossa-linux
 # https://vitux.com/ubuntu-network-configuration/
+# https://linuxhint.com/update-resolv-conf-on-ubuntu/
+########################################################################################################
+#                            <<Tested on Ubuntu Mate 22.04 Desktop Edition>>
+#                            <<Tested on Ubuntu 22.04 Server Edition>>
 ########################################################################################################
 
 say_goodbye (){
@@ -30,8 +41,8 @@ fix_network_interfaces_name(){
 }
 
 modify_network_config() {
+        NETWORK_CONFIG_FILE="/etc/network/interfaces"
 	if [ $OS_TYPE == "Server" ] ; then
-             NETWORK_CONFIG_FILE="/etc/network/interfaces"
              rm -rf $NETWORK_CONFIG_FILE
              cat >> $NETWORK_CONFIG_FILE << "EOF"
 # interfaces(5) file used by ifup(8) and ifdown(8)
@@ -40,39 +51,54 @@ modify_network_config() {
 auto lo
 iface lo inet loopback
 
-# if u get ip from DHCP service
-#auto eth0
-#iface eth0 inet dhcp
+EOF
 
+# if u get ip from DHCP service
+		if [ $IP_PROTOCOL == "dhcp" ] ; then
+			cat >> $NETWORK_CONFIG_FILE << "EOF"
+auto eth0
+iface eth0 inet dhcp
+
+EOF
+		fi
+
+		if [ $IP_PROTOCOL == "static" ] ; then
+			cat >> $NETWORK_CONFIG_FILE << "EOF"
 # if u get ip from manual (static)
 auto eth0
   iface eth0 inet static
-  address 192.168.21.231
-  netmask 255.255.255.0
-  gateway 192.168.21.254
+  address ADDRESS
+  netmask NETMASK
+  gateway GATEWAY
   dns-nameservers 8.8.8.8 8.8.4.4 168.95.192.1 168.95.1.1
-
 EOF
-             chown root:root $NETWORK_CONFIG_FILE
-             chmod 644 $NETWORK_CONFIG_FILE
-        fi
+			sed -i -- "S|ADDRESS|$ADDRESS|g" $NETWORK_CONFIG_FILE
+			sed -i -- "S|NETWORK|$NETMASK|g" $NETWORK_CONFIG_FILE
+			sed -i -- "S|GATEWAY|$GATEWAY|g" $NETWORK_CONFIG_FILE
+		fi
+
+	        chown root:root $NETWORK_CONFIG_FILE
+        	chmod 644 $NETWORK_CONFIG_FILE
+
+	fi
+
 }
 
 enable_resolvconf_service() {
+	# i want to make sure some DNS servers were added as my DNS resolver
+	# such like (Google : 8.8.8.8 and 8.8.4.4) and (Hinet : 168.95.1.1 and 168.95.192.1)
+	# because /etc/resolv.conf its content may be overriden by other process
+	# so i have decided to install resolvconf then i can specify my preffered DNS Servers in 
+        # '/etc/resolvconf/resolv.conf.d/head'  file	
 	if [ $OS_TYPE == "Server" ] ; then
-             # if your network use static ip settings , u need this to let it function normally (save it from dxxn-low dns query time)
-	     if [ -L /etc/resolv.conf ] ; then
-		rm -rf /etc/resolv.conf
-		touch /etc/resolv.conf
-		echo "nameserver 168.95.1.1" >> /etc/resolv.conf
-		echo "nameserver 168.95.192.1" >> /etc/resolv.conf
-	     fi
              apt-get install resolvconf -y
              cp /etc/resolvconf/resolv.conf.d/head /etc/resolvconf/resolv.conf.d/head.default
-             rm /etc/resolvconf/resolv.conf.d/head
+             rm -rf /etc/resolvconf/resolv.conf.d/head
              cat >> /etc/resolvconf/resolv.conf.d/head << "EOF"
-nameserver 8.8.4.4
 nameserver 8.8.8.8
+nameserver 8.8.4.4
+nameserver 168.95.1.1
+nameserver 168.95.192.1
 
 options single-request-reopen
 EOF
@@ -113,13 +139,11 @@ EOF
         ntpdate -v pool.ntp.org
 }
 
-disable_cloudinit_garbage_messages() {
-        touch /etc/cloud/cloud-init.disabled
-}
-
 fix_too_many_authentication_failures() {
-        sed -e '/pam_motd/ s/^#*/#/' -i /etc/pam.d/login
-        apt-get purge -y landscape-client landscape-common
+	if [ $OS_TYPE == "Desktop" ] ; then
+        	sed -e '/pam_motd/ s/^#*/#/' -i /etc/pam.d/login
+        	apt-get purge -y landscape-client landscape-common
+	fi
 }
 
 firewall_setting(){
@@ -131,8 +155,10 @@ firewall_setting(){
 # ============ Set your network parameters here ===================================================
 iptables=/sbin/iptables
 loopback=127.0.0.1
-local="\$(/sbin/ip addr show ens4 | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
-#local="\$(/sbin/ip addr show wlan0 | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
+local="\$(/sbin/ip addr show $WIRED_INTERFACE_NAME | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
+if [ $OS_TYPE == "Server" ] || [ $OS_TYPE == "server" ] || [ $OS_TYPE == "SERVER" ] ; then
+	local="\$(/sbin/ip addr show eth0 | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
+fi
 #local=192.168.21.231
 lan=$LAN
 vpn=$VPN
@@ -140,12 +166,6 @@ vpn=$VPN
 if [ -n \$local ] ; then
   \$iptables -t filter -F
   \$iptables -t filter -A INPUT -i lo -s \$loopback -d \$loopback -p all -j ACCEPT
-  #\$iptables -t filter -A INPUT -i ens4 -s \$local -d \$local -p all -j ACCEPT
-  #\$iptables -t filter -A INPUT -i ens4 -s \$lan -d \$local -p all -j ACCEPT
-  #\$iptables -t filter -A INPUT -i ens4 -s \$vpn -d \$local -p all -j ACCEPT
-  #\$iptables -t filter -A INPUT -i wls3 -s \$local -d \$local -p all -j ACCEPT
-  #\$iptables -t filter -A INPUT -i wls3 -s \$lan -d \$local -p all -j ACCEPT
-  #\$iptables -t filter -A INPUT -i wls3 -s \$vpn -d \$local -p all -j ACCEPT
   \$iptables -t filter -A INPUT -s \$local -d \$local -p all -j ACCEPT
   \$iptables -t filter -A INPUT -s \$lan -d \$local -p all -j ACCEPT
   \$iptables -t filter -A INPUT -s \$vpn -d \$local -p all -j ACCEPT
@@ -171,10 +191,8 @@ EOF
 }
 
 delete_route_to_169_254_0_0(){
-	# UBUNTU_VER -> value 1 means Ubuntu Version between 18 to 21
-	UBUNTU_VER=$(cat /etc/lsb-release | grep 'RELEASE' | cut -d "=" -f 2 | grep '[18|19|20|21]' | wc -l)
-	if [ $UBUNTU_VER -eq 0 ] ; then
-             echo -e "delete route to 169.254.0.0/16 , only OLDer Ubuntu (version number less then 18.04) need to do this . \n"
+	if [ $OS_TYPE == "Desktop" ] ; then
+             echo -e "delete route to 169.254.0.0/16 \n"
              FILE1="/etc/network/if-up.d/avahi-autoipd"
              sed -i -- "s|/bin/ip route add|#/bin/ip route add|g" $FILE1
              sed -i -- "s|/sbin/route add|#/sbin/route add|g" $FILE1
@@ -184,7 +202,7 @@ delete_route_to_169_254_0_0(){
 
 add_swap_space(){
 
-	if [ $ADD_SWAP = "YES" ] || [ $ADD_SWAP = "yes" ] ; then
+	if [ $ADD_SWAP == "YES" ] || [ $ADD_SWAP == "yes" ] ; then
              HOW_MANY_TIMES_KEYWORD_SWAP_APPEARS="$(cat /etc/fstab | grep -c swap)"
              if [ $HOW_MANY_TIMES_KEYWORD_SWAP_APPEARS -eq 0 ] && [ ! -f /swapfile ]; then
                      echo -e "swap config not in /etc/fstab && /swapfile not exists\n"
@@ -209,6 +227,19 @@ add_swap_space(){
 
 }
 
+remove_fcitx5(){
+   # for some reason i don't know
+   # there is no so called 'fcitx5-table-boshiamy' package existed in apt repositories
+   # so i have to REMOVE/UNINSTALL everything about fcitx5
+   # and reinstall those fcitx version4 (OLD) packages later in order to use Chinese input method Boshiamy
+	if [ $OS_TYPE == "Desktop" ] ; then
+   		apt list --installed | grep fcitx5
+   		apt-get purge fcitx5* -y
+   		apt-get purge libfcitx5* -y
+   		apt autoremove -y
+   	fi
+}
+
 install_softwares(){
         apt-get update
 	if [ $OS_TYPE == "Desktop" ] ; then
@@ -223,12 +254,12 @@ install_softwares(){
 	do
            PACKAGE_COUNT=$((index+1))
            PACKAGE_NAME=${array[index]}
-           #if [ -z "$(dpkg --get-selections | grep $PACKAGE_NAME)" ]; then
-              #echo "$PACKAGE_NAME was not installed on your system, install now ... "
+           if [ -z "$(dpkg --get-selections | grep $PACKAGE_NAME)" ]; then
+              echo "$PACKAGE_NAME was not installed on your system, install now ... "
               apt-get install -y $PACKAGE_NAME
-           #else
-              #echo "$PACKAGE_NAME has been installed on your system."
-           #fi
+           else
+              echo "$PACKAGE_NAME has been installed on your system."
+           fi
 	done
 }
 
@@ -247,24 +278,37 @@ install_chrome_browser() {
 }
 
 remove_ugly_fonts() {
-	apt-get --purge remove fonts-arphic-ukai fonts-arphic-uming -y
-	apt autoremove -y
-	# remove all of packages that were marked as 'deinstall'
-	UNWANNTED_PACKAGES=$(dpkg --get-selections | grep deinstall | cut -f1)
-	if [ -n "$UNWANNTED_PACKAGES" ] ; then
-	     dpkg --purge `dpkg --get-selections | grep deinstall | cut -f1`
-        else
-             echo -e "nothing to uninstall , skip this function ... \n"
+	if [ $OS_TYPE == "Desktop" ] ; then
+
+		apt-get --purge remove fonts-arphic-ukai fonts-arphic-uming -y
+		apt autoremove -y
+		# remove all of packages that were marked as 'deinstall'
+		UNWANNTED_PACKAGES=$(dpkg --get-selections | grep deinstall | cut -f1)
+		if [ -n "$UNWANNTED_PACKAGES" ] ; then
+			dpkg --purge `dpkg --get-selections | grep deinstall | cut -f1`
+       	 	else
+			echo -e "nothing to uninstall , skip this function ... \n"
+		fi
+
 	fi
 }
 
 downgrade_gcc_version() {
-        apt-get install -y gcc-7 g++-7
-        apt-get install -y gcc-8 g++-8
-        update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 70 --slave /usr/bin/g++ g++ /usr/bin/g++-7
-        update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 80 --slave /usr/bin/g++ g++ /usr/bin/g++-8
-	update-alternatives --set gcc /usr/bin/gcc-8
+	# this command will list gcc version now installed on your system (default gcc version on Ubuntu 22.04 are 11 and 12)
+	apt list --installed | grep gcc
+
+	# this command will list available packages for installation (older version is 9 and 10)
+	apt-cache search gcc
+
+	# install gcc/g++ version 9 and 10 , and set default gcc/g++ version to use 9
+        apt-get install -y gcc-9 g++-9
+        apt-get install -y gcc-10 g++-10
+        update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90 --slave /usr/bin/g++ g++ /usr/bin/g++-9
+        update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10
+	update-alternatives --set gcc /usr/bin/gcc-9
 	gcc -v && g++ -v
+
+	# if u wanna switch to another version again , use this command below :
         # update-alternatives --config gcc
 }
 
@@ -288,8 +332,8 @@ update_system() {
         apt-get update
         apt-get dist-upgrade -y
         apt autoremove -y
-        # after installation , change it back to its original value 755
-        chmod 755 /var/lib/update-notifier/package-data-downloads/partial
+        # after installation , change it back to its original value 700
+        chmod 700 /var/lib/update-notifier/package-data-downloads/partial
 }
 
 change_apport_settings() {
@@ -331,7 +375,6 @@ EOF
       systemctl enable x11vnc.service
       systemctl start x11vnc.service
       systemctl status x11vnc.service
-  fi
 
   ### README parts ###
   echo -e "################################################################################################ \n"
@@ -341,11 +384,15 @@ EOF
   echo -e "#        ssh -p36000 -L 5999:127.0.0.1:5900 -N -f username@192.168.21.231                      # \n"
   echo -e "#  replace <username> and <192.168.21.231> with your real username and ip address , thats all  # \n"
   echo -e "################################################################################################ \n"
+
+  fi
+
 }
 
 main(){
         unlock_apt_bala_bala
         update_system
+	remove_fcitx5
 	install_softwares
 	fix_network_interfaces_name
 	enable_resolvconf_service
@@ -353,7 +400,6 @@ main(){
 	disable_ipv6_entirely
 	disable_dnssec
 	sync_system_time
-	disable_cloudinit_garbage_messages
 	fix_too_many_authentication_failures
 	firewall_setting
 	delete_route_to_169_254_0_0
@@ -370,7 +416,7 @@ main(){
 echo -e "This script will do the following tasks for your x64 machine, including: \n"
 echo -e "  1.unlock apt package manager \n"
 echo -e "  2.update packages to newest version \n"
-echo -e "  3.install softwares you need \n"
+echo -e "  3.remove fcitx5 packages && install softwares you need \n"
 echo -e "  4.Fix network interfaces name (To conventional 'eth0' and 'wlan0') \n"
 echo -e "  5.Enable resolvconf service \n"
 echo -e "  6.modify network config /etc/network/interfaces \n"
@@ -384,7 +430,7 @@ echo -e "  13.delete route to 169.254.0.0 \n"
 echo -e "  14.add swap space with 4096MB \n"
 echo -e "  15.install chrome browser \n"
 echo -e "  16.remove ugly fonts \n"
-echo -e "  17.downgrade gcc/g++ version to 7.x \n"
+echo -e "  17.downgrade gcc/g++ version to 9.x \n"
 echo -e "  18.turn off apport problem report popup dialog \n"
 echo -e "  19.install x11vnc service (running on 127.0.0.1:5900) for u if your OS_TYPE is Desktop \n"
 

@@ -1,25 +1,59 @@
 #!/bin/bash
 #
-# This script will configure a Bind9 server as secondary DNS server with chroot environment
+# This script will configure a Bind9 server as primary DNS server with chroot environment
 # before running this script, please set some parameters below:
 #
-###########################################  <<Tested on Ubuntu Mate 20.04 Desktop Edition>>  ############
+################################  <<Tested on Ubuntu 20.04/22.04 Server Edition>>  #############
 #
 DOMAIN_NAME="dq5rocks.com"
 FIRST_OCTET="192"
 SECOND_OCTET="168"
-THIRD_OCTET="21"
+THIRD_OCTET="0"
 #
-TRUSTED_LOCAL_SUBNET="192.168.21.0/24"
-TRUSTED_VPN_SUBNET="192.168.224.0/24"
-PRIMARY_DNS_IP_ADDRESS="192.168.21.231"
+TRUSTED_LOCAL_SUBNET="192.168.0.0/24"
+TRUSTED_VPN_SUBNET="192.168.21.0/24"
+SECONDARY_DNS_IP_ADDRESS="192.168.0.92"
 #
+# dont forget suffix dot . if you write a FQDN for NS/MX/A/PTR record
+# each column is seperated by space
+read -r -d '' DNS_RECORDS << EOV
+NS vhost91.dq5rocks.com.
+NS vhost92.dq5rocks.com.
+MX vhost91.dq5rocks.com. 10
+MX vhost92.dq5rocks.com. 20
+CNAME ns1 vhost91
+CNAME ns2 vhost92
+CNAME mail1 vhost91
+CNAME mail2 vhost92
+A dq5rocks.com. 192.168.0.91
+A dq5rocks.com. 192.168.0.92
+A vhost91.dq5rocks.com. 192.168.0.91
+A vhost92.dq5rocks.com. 192.168.0.92
+A www.dq5rocks.com. 192.168.0.91
+A www.dq5rocks.com. 192.168.0.92
+A blog.dq5rocks.com. 192.168.0.91
+A blog.dq5rocks.com. 192.168.0.92
+A mysql.dq5rocks.com. 192.168.0.100
+A elastic.dq5rocks.com. 192.168.0.101
+A api.dq5rocks.com. 192.168.0.111
+A ftp.dq5rocks.com. 192.168.0.222
+A gateway.dq5rocks.com. 192.168.0.1
+PTR 100 mysql.dq5rocks.com.
+PTR 101 elastic.dq5rocks.com.
+PTR 111 api.dq5rocks.com.
+PTR 222 ftp.dq5rocks.com.
+PTR 91 vhost91.dq5rocks.com.
+PTR 92 vhost92.dq5rocks.com.
+PTR 1 gateway.dq5rocks.com.
+EOV
 ##########################################################################################################
 # *** Hint ***
-# how to query a specifc DNS server (ex: 192.168.21.242) ? use this command : 
-#  $ nslookup www.dq5rocks.com 192.168.21.242
-#  $ nslookup 192.168.21.254 192.168.21.242
-#
+# how to query a specifc DNS server (ex: 192.168.0.91) ? use these command : 
+#  $ nslookup www.dq5rocks.com 192.168.0.91
+#  $ nslookup 192.168.0.100 192.168.0.91
+#  $ dig @192.168.0.91 dq5rocks.com
+#  $ dig @192.168.0.91 dq5rocks.com MX
+#  $ dig @192.168.0.91 dq5rocks.com NS
 ##########################################################################################################
 # *** SPECIAL THANKS ***
 # All of the commands used here were inspired by this article : 
@@ -33,13 +67,12 @@ PRIMARY_DNS_IP_ADDRESS="192.168.21.231"
 # https://tecadmin.net/configure-rndc-for-bind9/
 ##########################################################################################################
 
-
 say_goodbye() {
 	echo "goodbye everyone"
 }
 
 remove_previous_version() {
-        NAMED_IS_RUNNING="$(/bin/netstat -anp | grep named | wc -l)"
+	NAMED_IS_RUNNING="$(/bin/netstat -anp | grep named | wc -l)"
         if [ "$NAMED_IS_RUNNING" -gt 0 ] || [ -f /lib/systemd/system/bind9.service ]; then
               systemctl stop bind9.service
               systemctl disable bind9.service
@@ -64,44 +97,44 @@ remove_previous_version() {
 }
 
 install_dependencies() {
-        apt-get install -y libcap-dev libxml2 libkrb5-dev libssl-dev pkg-config
+	apt-get install -y libcap-dev libxml2 libkrb5-dev libssl-dev pkg-config
 	apt-get install -y libuv1 libuv1-dev python3 python3-all python3-ply python3-plyvel
+	apt-get install -y libnghttp2-14 libnghttp2-dev libnghttp2-doc
 }
 
-
 install_bind_server() {
-        cd /usr/local/src/
-        wget https://downloads.isc.org/isc/bind9/9.16.15/bind-9.16.15.tar.xz
-        wget https://downloads.isc.org/isc/bind9/9.16.15/bind-9.16.15.tar.xz.sha512.asc
+	cd /usr/local/src/
+	wget https://downloads.isc.org/isc/bind9/9.18.12/bind-9.18.12.tar.xz
+	wget https://downloads.isc.org/isc/bind9/9.18.12/bind-9.18.12.tar.xz.asc
 
         # how to verify the integrity of downloaded tar.xz file ? see here:
-        # https://kb.isc.org/docs/aa-01225
+	# https://kb.isc.org/docs/aa-01225
 
-        PUBLIC_KEY="$(gpg --verify ./bind-9.16.15.tar.xz.sha512.asc ./bind-9.16.15.tar.xz 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
-        IMPORT_KEY_RESULT="$(gpg --keyserver keyserver.ubuntu.com --recv $PUBLIC_KEY 2>&1 | grep 'codesign@isc.org' | wc -l)"
-        VERIFY_SIGNATURE_RESULT="$(gpg --verify ./bind-9.16.15.tar.xz.sha512.asc ./bind-9.16.15.tar.xz 2>&1 | tr -s ' ' | grep 'codesign@isc.org' | wc -l)"
+        PUBLIC_KEY="$(gpg --verify ./bind-9.18.12.tar.xz.asc ./bind-9.18.12.tar.xz 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
+        IMPORT_KEY_RESULT="$(gpg --keyserver keyserver.ubuntu.com --recv $PUBLIC_KEY 2>&1 | grep 'michal@isc.org' | wc -l)"
+        VERIFY_SIGNATURE_RESULT="$(gpg --verify ./bind-9.18.12.tar.xz.asc ./bind-9.18.12.tar.xz 2>&1 | tr -s ' ' | grep 'michal@isc.org' | wc -l)"
         [ "$IMPORT_KEY_RESULT" -gt 0 ] && echo "pubkey $PUBLIC_KEY imported successfuly" ||  exit 2
         [ "$VERIFY_SIGNATURE_RESULT" -gt 0 ] && echo "verify signature successfully" || exit 2
 
-
-        tar xvf ./bind-9.16.15.tar.xz
-        cd bind-9.16.15
-        ./configure --prefix=/usr/local/bind-9.16.15           \
-                    --sysconfdir=/etc                         \
-                    --localstatedir=/var                      \
-                    --mandir=/usr/share/man                   \
-                    --libdir=/usr/lib/x86_64-linux-gnu        \
-                    --enable-threads                          \
-                    --with-libtool                            \
-                    --disable-static                          \
-                    --with-randomdev=/dev/urandom
-        make
-        make install
-        ln -s /usr/local/bind-9.16.15 /usr/local/bind9
-        install -v -m755 -d /usr/share/doc/bind-9.16.15/{arm,misc}
-        install -v -m644 doc/misc/{options,rfc-compliance} /usr/share/doc/bind-9.16.15/misc
+	tar xvf ./bind-9.18.12.tar.xz
+	cd bind-9.18.12
+        ./configure --prefix=/usr/local/bind-9.18.12          \
+	            --sysconfdir=/etc                         \
+	            --localstatedir=/var                      \
+	            --mandir=/usr/share/man                   \
+		    --libdir=/usr/lib/x86_64-linux-gnu        \
+	            --enable-threads                          \
+	            --with-libtool                            \
+	            --disable-static                          \
+	            --with-randomdev=/dev/urandom
+	make
+	make install
+        ln -s /usr/local/bind-9.18.12 /usr/local/bind9
+	install -v -m755 -d /usr/share/doc/bind-9.18.12/{arm,misc}
+	install -v -m644 doc/misc/{options,rfc-compliance} /usr/share/doc/bind-9.18.12/misc
+	rm -rf /usr/local/src/bind-9.18.12.tar.xz
+	rm -rf /usr/local/src/bind-9.18.12.tar.xz.asc
 }
-
 
 export_sbin_dir_to_path() {
         cat > /etc/profile.d/named.sh << EOF
@@ -132,19 +165,21 @@ create_necessary_directories() {
 	#          |
         #          +-- var
         #               +-- run
-        #
-          
-        install -d -m770 -o named -g named /srv/named
-        cd /srv/named
-        mkdir -p dev etc/namedb/{slave,pz} usr/lib/engines var/run/named
-        mknod /srv/named/dev/null c 1 3
-        mknod /srv/named/dev/urandom c 1 9
-        chmod 666 /srv/named/dev/{null,urandom}
-        cp /etc/localtime etc
+        #          
+
+	install -d -m770 -o named -g named /srv/named
+	cd /srv/named
+	mkdir -p dev etc/namedb/{slave,pz} usr/lib/engines var/run/named
+	mknod /srv/named/dev/null c 1 3
+	mknod /srv/named/dev/urandom c 1 9
+	chmod 666 /srv/named/dev/{null,urandom}
+	cp /etc/localtime etc
 }
 
 edit_rsyslog_config_and_restart_it() {
-        echo "\$AddUnixListenSocket /srv/named/dev/log" > /etc/rsyslog.d/bind-chroot.conf
+        echo "\$AddUnixListenSocket /srv/named/dev/log" > /etc/rsyslog.d/60-bind-chroot.conf
+	chown root:root /etc/rsyslog.d/60-bind-chroot.conf
+	chmod 644 /etc/rsyslog.d/60-bind-chroot.conf
         systemctl restart rsyslog.service
 }
 
@@ -168,15 +203,16 @@ WantedBy=multi-user.target
 EOF
 
         # generate /srv/named/etc/rndc.key and /srv/named/etc/named.conf
-        /usr/local/bind9/sbin/rndc-confgen -a -b 512 -t /srv/named
-        cat /srv/named/etc/rndc.key > /srv/named/etc/named.conf
+	/usr/local/bind9/sbin/rndc-confgen -a -b 512 -t /srv/named
+	cat /srv/named/etc/rndc.key > /srv/named/etc/named.conf
 
         # append to /srv/named/etc/named.conf
 cat >> /srv/named/etc/named.conf << "EOF"
+
 acl "trusted" {
-        127.0.0.0/8;    # loopback
-        TRUSTED_LOCAL_SUBNET;    # local subnet
-        TRUSTED_VPN_SUBNET;      # vpn subnet
+        127.0.0.0/8;            # loopback
+        TRUSTED_LOCAL_SUBNET;   # local subnet
+        TRUSTED_VPN_SUBNET;     # vpn subnet
 };
 
 options {
@@ -186,14 +222,14 @@ options {
         recursion yes;                      # enables resursive queries
         allow-recursion { trusted; };       # allows recursive queries from "trusted" clients
         listen-on { localnets; };           # ns1 private IP address - listen on private network only
-        allow-transfer { none; };           # slave server doesnt allow zone transfers
+        allow-transfer { trusted; };        # allow zone transfers only in trusted intranet
 
         forwarders {
 	                8.8.8.8;
 	                8.8.4.4;
         };
 
-	                       # option 'dnssec-enable' is obsolete and should be removed
+                               # option 'dnssec-enable' is obsolete and should be removed
         #dnssec-enable no;     # write this line only when host Internal(private) DNS server
         dnssec-validation auto; # 'no' if used in Internal(private) DNS server, or 'auto' if used in normal situation
         auth-nxdomain no;    # conform to RFC1035
@@ -226,15 +262,15 @@ zone "255.in-addr.arpa" {
 };
 
 zone "DOMAIN_NAME" {
-        type slave;
-        file "slave/db.DOMAIN_NAME";
-        masters { PRIMARY_DNS_IP_ADDRESS; };           # ns1 private IP address
+        type master;
+        file "pz/db.DOMAIN_NAME";                             # zone file path
+        allow-transfer { SECONDARY_DNS_IP_ADDRESS; };         # ns2 private IP address - secondary
 };
 
 zone "THIRD_OCTET.SECOND_OCTET.FIRST_OCTET.in-addr.arpa" {
-        type slave;
-        file "slave/db.FIRST_OCTET.SECOND_OCTET.THIRD_OCTET";
-        masters { PRIMARY_DNS_IP_ADDRESS; };           # ns1 private IP address
+        type master;
+        file "pz/db.FIRST_OCTET.SECOND_OCTET.THIRD_OCTET";    # FIRST_OCTET.SECOND_OCTET.THIRD_OCTET.0/24 subnet
+        allow-transfer { SECONDARY_DNS_IP_ADDRESS; };         # ns2 private IP address - secondary
 };
 
     // Bind 9 now logs by default through syslog (except debug).
@@ -277,7 +313,7 @@ EOF
         sed -i -- "s|TRUSTED_LOCAL_SUBNET|$TRUSTED_LOCAL_SUBNET|g" /srv/named/etc/named.conf
         sed -i -- "s|TRUSTED_VPN_SUBNET|$TRUSTED_VPN_SUBNET|g" /srv/named/etc/named.conf
         sed -i -- "s|DOMAIN_NAME|$DOMAIN_NAME|g" /srv/named/etc/named.conf
-        sed -i -- "s|PRIMARY_DNS_IP_ADDRESS|$PRIMARY_DNS_IP_ADDRESS|g" /srv/named/etc/named.conf
+        sed -i -- "s|SECONDARY_DNS_IP_ADDRESS|$SECONDARY_DNS_IP_ADDRESS|g" /srv/named/etc/named.conf
         sed -i -- "s|FIRST_OCTET|$FIRST_OCTET|g" /srv/named/etc/named.conf
         sed -i -- "s|SECOND_OCTET|$SECOND_OCTET|g" /srv/named/etc/named.conf
         sed -i -- "s|THIRD_OCTET|$THIRD_OCTET|g" /srv/named/etc/named.conf
@@ -391,11 +427,85 @@ $TTL	604800
 @	IN	NS	localhost.
 EOF
 
+        # db.$DOMAIN_NAME (forward zone)
+        cat > /srv/named/etc/namedb/pz/db.$DOMAIN_NAME << "EOF"
+$TTL    604800
+@       IN      SOA     PRIMARY_DNS_SERVER_NAME admin.DOMAIN_NAME. (
+                  3     ; Serial --> increase this value then restart bind if there are any changes happend
+             604800     ; Refresh
+              86400     ; Retry
+            2419200     ; Expire
+             604800 )   ; Negative Cache TTL
+;
+EOF
+        sed -i -- "s|DOMAIN_NAME|$DOMAIN_NAME|g" /srv/named/etc/namedb/pz/db.$DOMAIN_NAME
+
+        # populate NS/MX/CNAME/A records into forward zone file
+        while read -r line; do
+           RECORD_TYPE="$(/bin/echo $line | cut -d ' ' -f 1)"
+           case $RECORD_TYPE in
+              NS)
+                 FQDN_WITH_ENDING_DOT="$(/bin/echo $line | cut -d ' ' -f 2)"
+                 sed -i -- "s|PRIMARY_DNS_SERVER_NAME|$FQDN_WITH_ENDING_DOT|g" /srv/named/etc/namedb/pz/db.$DOMAIN_NAME
+                 echo "     IN     NS     $FQDN_WITH_ENDING_DOT" >> /srv/named/etc/namedb/pz/db.$DOMAIN_NAME
+                      ;;
+              MX)
+                 FQDN_WITH_ENDING_DOT="$(/bin/echo $line | cut -d ' ' -f 2)"
+                 PRIORITY_VALUE="$(/bin/echo $line | cut -d ' ' -f 3)"
+                 echo "     IN     MX     $PRIORITY_VALUE     $FQDN_WITH_ENDING_DOT" >> /srv/named/etc/namedb/pz/db.$DOMAIN_NAME
+                      ;;
+              CNAME)
+                 SHORT_CANONICAL_HOSTNAME_WITHOUT_ENDING_DOT="$(/bin/echo $line | cut -d ' ' -f 2)"
+                 SHORT_REAL_HOSTNAME_WITHOUT_ENDING_DOT="$(/bin/echo $line | cut -d ' ' -f 3)"
+                 echo "$SHORT_CANONICAL_HOSTNAME_WITHOUT_ENDING_DOT      IN     CNAME     $SHORT_REAL_HOSTNAME_WITHOUT_ENDING_DOT" >> /srv/named/etc/namedb/pz/db.$DOMAIN_NAME
+                      ;;
+              A)
+                 FQDN_WITH_ENDING_DOT="$(/bin/echo $line | cut -d ' ' -f 2)"
+                 IPV4_ADDRESS="$(/bin/echo $line | cut -d ' ' -f 3)"
+                 echo "$FQDN_WITH_ENDING_DOT     IN     A     $IPV4_ADDRESS" >> /srv/named/etc/namedb/pz/db.$DOMAIN_NAME
+                      ;;
+           esac
+        done <<< "$DNS_RECORDS"
+
+
+        # db.$FIRST_OCTET.$SECOND_OCTET.$THIRD.OCTET (reverse zone) 
+        cat > /srv/named/etc/namedb/pz/db.$FIRST_OCTET.$SECOND_OCTET.$THIRD_OCTET << "EOF"
+$TTL    604800
+@       IN      SOA     PRIMARY_DNS_SERVER_NAME admin.DOMAIN_NAME. (
+                              3         ; Serial --> increase this value then restart bind if there are any changes happend
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+;
+EOF
+        sed -i -- "s|DOMAIN_NAME|$DOMAIN_NAME|g" /srv/named/etc/namedb/pz/db.$FIRST_OCTET.$SECOND_OCTET.$THIRD_OCTET
+
+        # populate NS/MX/CNAME/A records into forward zone file
+        while read -r line; do
+           RECORD_TYPE="$(/bin/echo $line | cut -d ' ' -f 1)"
+           case $RECORD_TYPE in
+              NS)
+                 FQDN_WITH_ENDING_DOT="$(/bin/echo $line | cut -d ' ' -f 2)"
+                 sed -i -- "s|PRIMARY_DNS_SERVER_NAME|$FQDN_WITH_ENDING_DOT|g" /srv/named/etc/namedb/pz/db.$FIRST_OCTET.$SECOND_OCTET.$THIRD_OCTET
+                 echo "     IN     NS     $FQDN_WITH_ENDING_DOT" >> /srv/named/etc/namedb/pz/db.$FIRST_OCTET.$SECOND_OCTET.$THIRD_OCTET
+                      ;;
+
+              PTR)
+                 FOURTH_OCTET="$(/bin/echo $line | cut -d ' ' -f 2)"
+                 FQDN_WITH_ENDING_DOT="$(/bin/echo $line | cut -d ' ' -f 3)"
+                 echo "$FOURTH_OCTET     IN     PTR     $FQDN_WITH_ENDING_DOT     ; $FIRST_OCTET.$SECOND_OCTET.$THIRD_OCTET.$FOURTH_OCTET" >> /srv/named/etc/namedb/pz/db.$FIRST_OCTET.$SECOND_OCTET.$THIRD_OCTET
+                      ;;
+           esac
+        done <<< "$DNS_RECORDS"
+
         # set directory permissions
         chown -R named:named /srv/named
 
         # check if there are syntax error in config files / zone files or not
-	/usr/local/bind9/sbin/named-checkconf -t /srv/named
+	/usr/local/bind9/bin/named-checkconf -t /srv/named
+	/usr/local/bind9/bin/named-checkzone $DOMAIN_NAME /srv/named/etc/namedb/pz/db.$DOMAIN_NAME
+	/usr/local/bind9/bin/named-checkzone $THIRD_OCTET.$SECOND_OCTET.$FIRST_OCTET.in-addr.arpa /srv/named/etc/namedb/pz/db.$FIRST_OCTET.$SECOND_OCTET.$THIRD_OCTET
 }
 
 start_bind_service() {
@@ -407,17 +517,17 @@ start_bind_service() {
 
 main() {
         remove_previous_version
-        install_dependencies
-        install_bind_server
-        export_sbin_dir_to_path
-        create_named_user_and_group
-        create_necessary_directories
-        edit_rsyslog_config_and_restart_it
-        edit_config_file
-        start_bind_service
+	install_dependencies
+	install_bind_server
+	export_sbin_dir_to_path
+	create_named_user_and_group
+	create_necessary_directories
+	edit_rsyslog_config_and_restart_it
+	edit_config_file
+	start_bind_service
 }
 
-echo -e "This script will install Bind9 server (secondary) on this host \n"
+echo -e "This script will install Bind9 server (primary) on this host \n"
 read -p "Are you sure (y/n)?" sure
 case $sure in
 	[Yy]*)

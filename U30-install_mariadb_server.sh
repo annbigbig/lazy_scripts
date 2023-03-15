@@ -1,17 +1,19 @@
 #!/bin/bash
 #
-# This script will install MariaDB server 10.5.x galera cluster on Ubuntu mate 20.04 LTS
+# This script will install MariaDB server 10.6.11 galera cluster on Ubuntu 22.04 LTS Server Edition
 #
-######################################################################          <<Tested on Ubuntu Mate 20.04 Desktop Edition>>
+######################################################################          <<Tested on Ubuntu 22.04 Server Edition>>
 INSTALL_MARIADB_AS_MULTIPLE_NODES_GALERA_CLUSTER="no"                # 'galera.cnf' would be generated only when its value is 'yes'
 ######################################################################
 FIRST_NODE="yes"                                                     # if this node is first node of cluster, set this value to 'yes'
 MYSQL_ROOT_PASSWD="root"                                             # mariadb root password you specify for first node
 WSREP_CLUSTER_NAME="kashu_cluster"                                   # name of galera cluster you preffered
-WSREP_CLUSTER_ADDRESS="192.168.21.231,192.168.21.242"                # IP addresses list seperated by comma of all cluster nodes
-SERVER_ID_MANUAL="100"                                               # server id u specify here has higher priority than $SERVER_ID_AUTO
+WSREP_CLUSTER_ADDRESS="192.168.0.91,192.168.0.92"                    # IP addresses list seperated by comma of all cluster nodes
+SERVER_ID_MANUAL=""                                                  # server id u specify here has higher priority than $SERVER_ID_AUTO
 #########################################################################################################################################
-SERVER_ID_AUTO="$(/sbin/ifconfig eth0 | grep -v 'inet6' | grep 'inet' | tr -s ' ' | cut -d ' ' -f 3 | cut -d ':' -f 2 | cut -d '.' -f 4)"
+# no need to setup below , script will know it and use them automatically for u
+WIRED_INTERFACE_NAME="$(ip link show | grep '2:' | cut -d ':' -f 2 | sed 's/^ *//g')"
+SERVER_ID_AUTO="$(/sbin/ifconfig $WIRED_INTERFACE_NAME | grep -v 'inet6' | grep 'inet' | tr -s ' ' | cut -d ' ' -f 3 | cut -d ':' -f 2 | cut -d '.' -f 4)"
 #########################################################################################################################################
 # *** SPECIAL THANKS ***
 # install mariadb 10.3/10.4 on Ubuntu 20.04 LTS
@@ -19,6 +21,9 @@ SERVER_ID_AUTO="$(/sbin/ifconfig eth0 | grep -v 'inet6' | grep 'inet' | tr -s ' 
 #
 # install mariadb 10.5 on Ubuntu 20.04 LTS
 # https://computingforgeeks.com/how-to-install-mariadb-on-ubuntu-focal-fossa/
+#
+# How to Install MariaDB on Ubuntu 22.04
+# https://linuxhint.com/install-mariadb-ubuntu-22-04/
 #
 # workaround for strange 'Could not increase number of max_open_files to more than 16364 ' problem
 # https://mariadb.com/kb/en/could-not-increase-number-of-max_open_files-to-more-than-1024-request-1835/
@@ -61,35 +66,68 @@ install_mariadb_server() {
 	MARIADB_SERVER_HAS_BEEN_INSTALLED="$(dpkg --get-selections | grep mariadb-server)"
 	[ -n "$MARIADB_SERVER_HAS_BEEN_INSTALLED" ] && echo "mariadb already has been installed." && exit 2 || echo "ready to install mariadb..."
 	apt-get update
-	apt-get install -y software-properties-common apt-transport-https ca-certificates gnupg-curl
-	apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc'
-	add-apt-repository 'deb [arch=amd64] http://ftp.ubuntu-tw.org/mirror/mariadb/repo/10.5/ubuntu focal main'
+	apt-get install -y libblockdev-crypto2 libblockdev-mdraid2
+	apt-get install -y software-properties-common dirmngr ca-certificates apt-transport-https curl
+	curl -o /etc/apt/trusted.gpg.d/mariadb_release_signing_key.asc 'https://mariadb.org/mariadb_release_signing_key.asc'
+	sh -c "echo 'deb https://tw1.mirror.blendbyte.net/mariadb/repo/10.9/ubuntu jammy main' >>/etc/apt/sources.list"
 	apt-get install -y mariadb-server mariadb-client
         echo -e "done"
 }
 
 generate_config_file() {
-        MY_IP="$(/sbin/ifconfig eth0 | grep -v 'inet6' | grep 'inet' | tr -s ' ' | cut -d ' ' -f 3)"
+        MY_IP="$(/sbin/ifconfig $WIRED_INTERFACE_NAME | grep -v 'inet6' | grep 'inet' | tr -s ' ' | cut -d ' ' -f 3)"
 
-        echo "generating config file at /etc/mysql/my.cnf"
+        echo "generating main config file at /etc/mysql/mariadb.cnf"
         install -v -dm 755 /etc/mysql
         install -v -dm 755 /etc/mysql/conf.d
-	mv /etc/mysql/my.cnf /etc/mysql/my.cnf.backup
+	install -v -dm 755 /etc/mysql/mariadb.conf.d
+	cp /etc/mysql/my.cnf /etc/mysql/my.cnf.default
+	cp /etc/mysql/mariadb.cnf /etc/mysql/mariadb.cnf.default
+	rm -rf /etc/mysql/my.cnf
+	rm -rf /etc/mysql/mariadb.cnf
         cat > /etc/mysql/my.cnf << "EOF"
+# The MariaDB configuration file
+#
+# The MariaDB/MySQL tools read configuration files in the following order:
+# 0. "/etc/mysql/my.cnf" symlinks to this file, reason why all the rest is read.
+# 1. "/etc/mysql/mariadb.cnf" (this file) to set global defaults,
+# 2. "/etc/mysql/conf.d/*.cnf" to set global options.
+# 3. "/etc/mysql/mariadb.conf.d/*.cnf" to set MariaDB-only options.
+# 4. "~/.my.cnf" to set user-specific options.
+#
+# If the same option is defined multiple times, the last one will apply.
+#
+# One can use all long options that the program supports.
+# Run program with --help to get a list of available options and with
+# --print-defaults to see which it would actually understand and use.
+#
+# If you are new to MariaDB, check out https://mariadb.com/kb/en/basic-mariadb-articles/
+
+#
+# This group is read both by the client and the server
+# use it for options that affect everything
+#
+#
 # Begin /etc/mysql/my.cnf
+[client-server]
+# Port or socket location where to connect
+# port = 3306
+socket = /run/mysqld/mysqld.sock
 
 # The following options will be passed to all MySQL clients
 [client]
 #password       = your_password
 port            = 3306
-socket          = /var/run/mysqld/mysqld.sock
+socket          = /run/mysqld/mysqld.sock
 default-character-set=utf8mb4
 
 # The MySQL server
 [mysqld]
 #bind-address    = 127.0.0.1
+# no need to write this, it will let daemon only run on 0.0.0.0:3306 (ipv4) but not :::3306 (ipv6)
+#bind-address    = 0.0.0.0
 port            = 3306
-socket          = /var/run/mysqld/mysqld.sock
+socket          = /run/mysqld/mysqld.sock
 datadir         = /var/lib/mysql
 skip-external-locking
 skip-name-resolve
@@ -101,7 +139,7 @@ myisam_sort_buffer_size = 8M
 max_heap_table_size = 256M
 max_allowed_packet = 16M
 tmp_table_size = 256M
-join_buffer_size = 512M
+join_buffer_size = 1M
 
 # utf8 settings
 collation-server=utf8mb4_unicode_ci
@@ -143,7 +181,7 @@ innodb_log_file_size = 5M
 innodb_log_buffer_size = 8M
 innodb_flush_log_at_trx_commit = 1
 innodb_lock_wait_timeout = 50
-innodb_doublewrite = on
+innodb_doublewrite = off
 innodb_flush_log_at_timeout = 3
 innodb_read_io_threads = 32
 innodb_write_io_threads = 16
@@ -180,8 +218,10 @@ write_buffer = 2M
 [mysqlhotcopy]
 interactive-timeout
 
-# End /etc/mysql/my.cnf
+# Import all .cnf files from configuration directory
 !includedir /etc/mysql/conf.d/
+#!includedir /etc/mysql/mariadb.conf.d/
+
 EOF
         ###
 
@@ -199,7 +239,8 @@ cat > /etc/mysql/conf.d/galera.cnf << "EOF"
 binlog_format=ROW
 default-storage-engine=innodb
 innodb_autoinc_lock_mode=2
-bind-address=0.0.0.0
+# no need to write this, it will let daemon only run on 0.0.0.0:3306 (ipv4) but not :::3306 (ipv6)
+#bind-address=0.0.0.0
 
 # Galera Provider Configuration
 wsrep_on=ON
@@ -277,7 +318,7 @@ ALTER USER root@localhost IDENTIFIED VIA unix_socket OR mysql_native_password US
 FLUSH PRIVILEGES;
 EOF
             sed -i -- "s|MYSQL_ROOT_PASSWD|$MYSQL_ROOT_PASSWD|g" /tmp/set_mariadb_root_passwd
-            mysql -h localhost --port 3306 -u root < /tmp/set_mariadb_root_passwd
+            mysql -u root < /tmp/set_mariadb_root_passwd
         else
             echo " only set root password for mariadb on the first node."
         fi
@@ -305,52 +346,52 @@ create_users_and_db_for_webapps() {
 if [ "$FIRST_NODE" == "yes" ] || [ "$INSTALL_MARIADB_AS_MULTIPLE_NODES_GALERA_CLUSTER" != "yes" ]; then
 
 # create superuser who has the same permission with root
-mysql -h localhost --port 3306 -u root -p$MYSQL_ROOT_PASSWD << "EOF"
+mysql -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 create user 'superuser'@'localhost' identified by 'superpassword';
 create user 'superuser'@'127.0.0.1' identified by 'superpassword';
-create user 'superuser'@'172.25.169.%' identified by 'superpassword';
+create user 'superuser'@'192.168.0.%' identified by 'superpassword';
 create user 'superuser'@'192.168.21.%' identified by 'superpassword';
 grant all on *.* to 'superuser'@'localhost' with grant option;
 grant all on *.* to 'superuser'@'127.0.0.1' with grant option;
-grant all on *.* to 'superuser'@'172.25.169.%' with grant option;
+grant all on *.* to 'superuser'@'192.168.0.%' with grant option;
 grant all on *.* to 'superuser'@'192.168.21.%' with grant option;
 flush privileges;
 EOF
 
 # create users and database for phpmyadmin
-mysql -h localhost --port 3306 -u root -p$MYSQL_ROOT_PASSWD << "EOF"
+mysql -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 drop database if exists phpmyadmin;
 create user 'pmauser'@'localhost' identified by 'pmapassword';
 create user 'pmauser'@'127.0.0.1' identified by 'pmapassword';
-create user 'pmauser'@'172.25.169.%' identified by 'pmapassword';
+create user 'pmauser'@'192.168.0.%' identified by 'pmapassword';
 create user 'pmauser'@'192.168.21.%' identified by 'pmapassword';
 grant all on phpmyadmin.* to 'pmauser'@'localhost';
 grant all on phpmyadmin.* to 'pmauser'@'127.0.0.1';
-grant all on phpmyadmin.* to 'pmauser'@'172.25.169.%';
+grant all on phpmyadmin.* to 'pmauser'@'192.168.0.%';
 grant all on phpmyadmin.* to 'pmauser'@'192.168.21.%';
 flush privileges;
 EOF
 
 # create users and database for wordpress
-mysql -h localhost --port 3306 -u root -p$MYSQL_ROOT_PASSWD << "EOF"
+mysql -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 drop database if exists wpdb;
 create database wpdb;
 create user 'wpuser'@'localhost' identified by 'wppassword';
 create user 'wpuser'@'127.0.0.1' identified by 'wppassword';
-create user 'wpuser'@'172.25.169.%' identified by 'wppassword';
+create user 'wpuser'@'192.168.0.%' identified by 'wppassword';
 create user 'wpuser'@'192.168.21.%' identified by 'wppassword';
 grant all on wpdb.* to 'wpuser'@'localhost';
 grant all on wpdb.* to 'wpuser'@'127.0.0.1';
-grant all on wpdb.* to 'wpuser'@'172.25.169.%';
+grant all on wpdb.* to 'wpuser'@'192.168.0.%';
 grant all on wpdb.* to 'wpuser'@'192.168.21.%';
 flush privileges;
 EOF
 
 # create users and database for cacti
         cd /tmp
-        wget https://www.cacti.net/downloads/cacti-1.2.16.tar.gz
-        tar zxvf /tmp/cacti-1.2.16.tar.gz
-mysql -h localhost --port 3306 -u root -p$MYSQL_ROOT_PASSWD << "EOF"
+        wget https://www.cacti.net/downloads/cacti-1.2.24.tar.gz
+        tar zxvf /tmp/cacti-1.2.24.tar.gz
+mysql -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 drop database if exists cacti_db;
 create database cacti_db;
 create user 'cactiuser'@'localhost' identified by 'cactipass';
@@ -361,22 +402,22 @@ grant select on mysql.time_zone_name to 'cactiuser'@'localhost';
 grant select on mysql.time_zone_name to 'cactiuser'@'127.0.0.1';
 flush privileges;
 use cacti_db;
-source /tmp/cacti-1.2.16/cacti.sql;
+source /tmp/cacti-1.2.24/cacti.sql;
 EOF
         # populate timezone data from /usr/share/zoneinfo to mysql time_zone_name table
-        /usr/bin/mysql_tzinfo_to_sql /usr/share/zoneinfo/ | mysql -h localhost --port 3306 -u root -p$MYSQL_ROOT_PASSWD mysql
+        /usr/bin/mysql_tzinfo_to_sql /usr/share/zoneinfo/ | mysql -u root -p$MYSQL_ROOT_PASSWD mysql
 
 # create users and database for my personal JavaEE webapp
-mysql -h localhost --port 3306 -u root -p$MYSQL_ROOT_PASSWD << "EOF"
+mysql -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 drop database if exists db_spring;
 create database db_spring;
 create user 'spring'@'localhost' identified by 'spring';
 create user 'spring'@'127.0.0.1' identified by 'spring';
-create user 'spring'@'172.25.169.%' identified by 'spring';
+create user 'spring'@'192.168.0.%' identified by 'spring';
 create user 'spring'@'192.168.21.%' identified by 'spring';
 grant all on db_spring.* to 'spring'@'localhost';
 grant all on db_spring.* to 'spring'@'127.0.0.1';
-grant all on db_spring.* to 'spring'@'172.25.169.%';
+grant all on db_spring.* to 'spring'@'192.168.0.%';
 grant all on db_spring.* to 'spring'@'192.168.21.%';
 flush privileges;
 EOF
