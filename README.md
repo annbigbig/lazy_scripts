@@ -60,12 +60,6 @@ here are some search results that might be helpful
 * [where to buy cheap SSL certificate](https://www.google.com.tw/search?q=where+to+buy+cheap+ssl+certificate)  
 * [where to find free SSL certificate](https://www.google.com.tw/search?q=where+to+find+free+ssl+certificate)  
 
-#（我的部落格2020-07-01開始啟用囉，忙著求生應該沒空常寫它，付不出VPS費用的話也有可能隨時會關閉）  
-#and my domain (dq5rocks.com) was bought at GoDaddy,  
-#vps nodes were rent at Vultr, i have a wordpress blog running at  
-#  [blog.dq5rocks.com](https://blog.dq5rocks.com)  
-#but that's my personal choice, you could buy domain/vps from other providers you preferred.
-
 ## Disclaimer Clause  
 <font size=4 color=888888>不管發生什麼事，都不是我幹的，我什麼都不知道  ∠( ᐛ 」∠)＿ </font>  
 i don't guarantee these shell scripts would work properly as you expected,  
