@@ -5,18 +5,18 @@
 ############################  <<Tested on Ubuntu 20.04/22.04 Desktop/Server Edition>>  ################
 OS_TYPE="Server"              # only 'Server' or 'Desktop' are possible values                        #
 USER_MANUAL="labasky"         # Install Eclipse EE in this users home directory if u r Desktop        #
-TOMCAT_VERSION_U_WANT="8"     # '8' will install version 8.5.x , '9' will install version 9.x.x       #
+TOMCAT_VERSION_U_WANT="9"     # '8' will install version 8.5.x , '9' will install version 9.x.x       #
 TOMCAT_ADMIN_USERNAME="admin"                                                                         #
 TOMCAT_ADMIN_PASSWORD="admin"                                                                         #
 TOMCAT_JNDI_RESOURCE_NAME="jdbc/DB_SPRING"                                                            #
 TOMCAT_JNDI_USERNAME="spring"                                                                         #
 TOMCAT_JNDI_PASSWORD="spring"                                                                         #
 TOMCAT_JNDI_DBNAME="db_spring"                                                                        #
-TOMCAT_JNDI_SQLSERVER="mariadb"                     # only 'mysql' or 'mariadb' are possible values    #
-#TOMCAT_JNDI_DRIVER_NAME="com.mysql.cj.jdbc.Driver" # 或是 org.mariadb.jdbc.Driver                     #
-TOMCAT_JNDI_DRIVER_NAME="org.mariadb.jdbc.Driver" # 或是 com.mysql.cj.jdbc.Driver                    #
+TOMCAT_JNDI_SQLSERVER="mariadb"                     # only 'mysql' or 'mariadb' are possible values   #
+#TOMCAT_JNDI_DRIVER_NAME="com.mysql.cj.jdbc.Driver" # 或是 org.mariadb.jdbc.Driver                    #
+TOMCAT_JNDI_DRIVER_NAME="org.mariadb.jdbc.Driver" # 或是 com.mysql.cj.jdbc.Driver                     #
 TOMCAT_JNDI_URL="jdbc:$TOMCAT_JNDI_SQLSERVER://127.0.0.1:3306/$TOMCAT_JNDI_DBNAME"                    #
-TOMCAT_MEMCACHED_NODES="n1:192.168.0.91:11211,n2:192.168.0.92:11211"   # 多個節點用逗號隔開           #
+TOMCAT_MEMCACHED_NODES="n1:192.168.251.91:11211,n2:192.168.251.92:11211"   # 多個節點用逗號隔開       #
 TOMCAT_MINIMAL_HEAP_MEMORY_SIZE="1g"                                                                  #
 TOMCAT_MAXIMUM_HEAP_MEMORY_SIZE="1g"                                                                  #
 MINIMAL_HEAP_MEMORY_SIZE="2g"                                                                         #
@@ -26,33 +26,66 @@ MAXIMUM_HEAP_MEMORY_SIZE="2g"                                                   
 #                                                                                                     #
 NETWORK_INTERFACE="$(ip link show | grep '2:' | cut -d ':' -f 2 | sed 's/^ *//g')"                    #
 USER_AUTO="$(/usr/bin/cat /etc/passwd | grep 1000 | cut -d ":" -f 1)"                                 #
+UNAME_M="$(/usr/bin/uname -m)"                                                                        #
 #                                                                                                     #
+#######################################################################################################
+# Useful Links:                                                                                       #
+# https://gist.github.com/wavezhang/ba8425f24a968ec9b2a8619d7c2d86a6                                  #
 #######################################################################################################
 
 say_goodbye() {
-        echo "goodbye everyone"
+        echo "see you next time"
 }
 
 install_jdk() {
         echo -e "ready to install jdk \n"
         cd /usr/local/
 
-	# https://gist.github.com/wavezhang/ba8425f24a968ec9b2a8619d7c2d86a6                                  #
-	wget https://javadl.oracle.com/webapps/download/AutoDL?BundleId=247926_0ae14417abb444ebb02b9815e2103550 -O jdk-8u361-linux-x64.tar.gz
+	if [ $UNAME_M == "x86_64" ]; then
 
-        # checksum could be found here
-	# https://www.oracle.com/a/tech/docs/8u331checksum.html
-        SHA256SUM_SHOULD_BE="abee6d353bcfeb8868cca7d8d7e2c6fb35ddc6469c13b05621a30c02d2c47b6a"
-        SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./jdk-8u361-linux-x64.tar.gz | cut -d ' ' -f 1)"
-        [ "$SHA256SUM_SHOULD_BE" == "$SHA256SUM_COMPUTED" ] && echo "jdk sha256sum matched." || exit 2
+	###wget https://javadl.oracle.com/webapps/download/AutoDL?BundleId=247926_0ae14417abb444ebb02b9815e2103550 -O jdk-8u361-linux-x64.tar.gz
+           wget https://download.java.net/java/GA/jdk20.0.1/b4887098932d415489976708ad6d1a4b/9/GPL/openjdk-20.0.1_linux-x64_bin.tar.gz -O openjdk-20.0.1_linux-x64_bin.tar.gz
 
-        tar -zxvf ./jdk-8u361-linux-x64.tar.gz
-        chown -R root:root ./jdk1.8.0_361
-        rm -rf /usr/local/jdk
-        ln -s /usr/local/jdk1.8.0_361 /usr/local/jdk
-        rm -rf ./jdk-8u361-linux-x64.tar.gz
+        #### checksum could be found here
+	#### https://www.oracle.com/a/tech/docs/8u331checksum.html
+        ###SHA256SUM_SHOULD_BE="abee6d353bcfeb8868cca7d8d7e2c6fb35ddc6469c13b05621a30c02d2c47b6a"
+        ###SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./jdk-8u361-linux-x64.tar.gz | cut -d ' ' -f 1)"
+        ###[ "$SHA256SUM_SHOULD_BE" == "$SHA256SUM_COMPUTED" ] && echo "jdk sha256sum matched." || exit 2
+           # checksum could be found here
+           # https://download.java.net/java/GA/jdk20.0.1/b4887098932d415489976708ad6d1a4b/9/GPL/openjdk-20.0.1_linux-x64_bin.tar.gz.sha256
+           SHA256SUM_SHOULD_BE="4248a3af4602dbe2aefdb7010bc9086bf34a4155888e837649c90ff6d8e8cef9"
+           SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./openjdk-20.0.1_linux-x64_bin.tar.gz | cut -d ' ' -f 1)"
+          [ "$SHA256SUM_SHOULD_BE" == "$SHA256SUM_COMPUTED" ] && echo "jdk sha256sum matched." || exit 2
 
-        echo -e "jdk installation completed."
+        ###tar -zxvf ./jdk-8u361-linux-x64.tar.gz
+        ###chown -R root:root ./jdk1.8.0_361
+        ###rm -rf /usr/local/jdk
+        ###ln -s /usr/local/jdk1.8.0_361 /usr/local/jdk
+        ###rm -rf ./jdk-8u361-linux-x64.tar.gz
+	###echo -e "jdk ($UNAME_M) installation completed."
+           tar -zxvf ./openjdk-20.0.1_linux-x64_bin.tar.gz
+           chown -R root:root ./jdk-20.0.1
+           rm -rf /usr/local/jdk
+           ln -s /usr/local/jdk-20.0.1 /usr/local/jdk
+           rm -rf ./openjdk-20.0.1_linux-x64_bin.tar.gz
+           echo -e "jdk ($UNAME_M) installation completed."
+	elif [ $UNAME_M == "armv7l" ]; then
+           wget https://javadl.oracle.com/webapps/download/AutoDL?BundleId=248215_ce59cff5c23f4e2eaf4e778a117d4c5b -O jdk-8u371-linux-arm32-vfp-hflt.tar.gz
+	   # checksum could be found here
+	   # https://www.oracle.com/a/tech/docs/8u371checksum.html
+           SHA256SUM_SHOULD_BE="f4b5a3cac57d473061db1b2eab3c97d53ef28cd061fe829f661f445903eef711"
+           SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./jdk-8u371-linux-arm32-vfp-hflt.tar.gz | cut -d ' ' -f 1)"
+          [ "$SHA256SUM_SHOULD_BE" == "$SHA256SUM_COMPUTED" ] && echo "jdk sha256sum matched." || exit 2
+	   tar -zxvf ./jdk-8u371-linux-arm32-vfp-hflt.tar.gz
+	   chown -R root:root ./jdk1.8.0_371
+           rm -rf /usr/local/jdk
+           ln -s /usr/local/jdk1.8.0_371 /usr/local/jdk
+           rm -rf ./jdk-8u371-linux-arm32-vfp-hflt.tar.gz
+           echo -e "jdk ($UNAME_M) installation completed."
+	else
+	   echo -e "no JDK installed."
+	fi
+
 }
 
 set_jdk_priority() {
@@ -515,17 +548,17 @@ EOF
 install_maven() {
         echo -e "ready to install maven\n"
         cd /usr/local
-	wget http://ftp.tc.edu.tw/pub/Apache/maven/maven-3/3.9.0/binaries/apache-maven-3.9.0-bin.tar.gz
-	wget https://downloads.apache.org/maven/maven-3/3.9.0/binaries/apache-maven-3.9.0-bin.tar.gz.sha512
-        SHA512SUM_SHOULD_BE="$(/bin/cat ./apache-maven-3.9.0-bin.tar.gz.sha512 | cut -d ' ' -f 1)"
-        SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./apache-maven-3.9.0-bin.tar.gz | cut -d ' ' -f 1)"
+	wget https://dlcdn.apache.org/maven/maven-3/3.9.1/binaries/apache-maven-3.9.1-bin.tar.gz
+	wget https://downloads.apache.org/maven/maven-3/3.9.1/binaries/apache-maven-3.9.1-bin.tar.gz.sha512
+        SHA512SUM_SHOULD_BE="$(/bin/cat ./apache-maven-3.9.1-bin.tar.gz.sha512 | cut -d ' ' -f 1)"
+        SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./apache-maven-3.9.1-bin.tar.gz | cut -d ' ' -f 1)"
         [ "$SHA512SUM_SHOULD_BE" == "$SHA512SUM_COMPUTED" ] && echo "maven sha512sum matched." || exit 2
 
-        tar -zxvf ./apache-maven-3.9.0-bin.tar.gz
-        chown -R root:root ./apache-maven-3.9.0
+        tar -zxvf ./apache-maven-3.9.1-bin.tar.gz
+        chown -R root:root ./apache-maven-3.9.1
         rm -rf /usr/local/maven3
-        ln -s /usr/local/apache-maven-3.9.0 /usr/local/maven3
-        rm -rf ./apache-maven-3.9.0-bin.tar.gz*
+        ln -s /usr/local/apache-maven-3.9.1 /usr/local/maven3
+        rm -rf ./apache-maven-3.9.1-bin.tar.gz*
 }
 
 install_gradle() {
@@ -611,6 +644,7 @@ EOF
 register_tomcat_as_systemd_service() {
 
 	if [ $TOMCAT_VERSION_U_WANT != "8" ] && [ $TOMCAT_VERSION_U_WANT != "9" ] ; then
+	     echo -e "parameter \$TOMCAT_VERSION_U_WANT must be 8 or 9 \n"
 	     return 0; #exit this function
 	fi
 
@@ -689,17 +723,21 @@ install_eclipse_ee() {
              #cd /home/$USER
 	     cd /usr/local/
              rm -rf ./eclipse*
-	     wget https://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/2022-12/R/eclipse-jee-2022-12-R-linux-gtk-x86_64.tar.gz\&r=1 -O eclipse-jee-2022-12-R-linux-gtk-x86_64.tar.gz
-             SHA512SUM_SHOULD_BE="e798bd61539afaf287b7bdaf1c8ab2f4198a32483529a2ea312b634ed7da2d31f9c8fd1e8be3533f65cbf080473a0bb4842109a985d3abedc8dd1432e3be9eb5"
-             SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./eclipse-jee-2022-12-R-linux-gtk-x86_64.tar.gz | cut -d ' ' -f 1)"
-             [ "$SHA512SUM_SHOULD_BE" == "$SHA512SUM_COMPUTED" ] && echo "Eclipse EE sha512sum matched." || exit 2
-             tar -zxvf ./eclipse-jee-2022-12-R-linux-gtk-x86_64.tar.gz
+	     if [ $UNAME_M == "x86_64" ]; then
+	        wget https://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/2022-12/R/eclipse-jee-2022-12-R-linux-gtk-x86_64.tar.gz\&r=1 -O eclipse-jee-2022-12-R-linux-gtk-x86_64.tar.gz
+                SHA512SUM_SHOULD_BE="e798bd61539afaf287b7bdaf1c8ab2f4198a32483529a2ea312b634ed7da2d31f9c8fd1e8be3533f65cbf080473a0bb4842109a985d3abedc8dd1432e3be9eb5"
+                SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./eclipse-jee-2022-12-R-linux-gtk-x86_64.tar.gz | cut -d ' ' -f 1)"
+                [ "$SHA512SUM_SHOULD_BE" == "$SHA512SUM_COMPUTED" ] && echo "Eclipse EE sha512sum matched." || exit 2
+                tar -zxvf ./eclipse-jee-2022-12-R-linux-gtk-x86_64.tar.gz
+                rm -rf ./eclipse-jee-2022-12-R-linux-gtk-x86_64.tar.gz
+	     #elif [ $UNAME_M == "aach64" ]; then
+
+	     fi
 	     chown -R root:root /usr/local/eclipse/
 	     rm -rf /home/$USER/桌面/eclipse*
 	     ln -s /usr/local/eclipse/eclipse /home/$USER/桌面/eclipse
 	     sync
 
-             rm -rf ./eclipse-jee-2022-12-R-linux-gtk-x86_64.tar.gz
              echo -e "Eclipse EE installation completed."
 	else
              echo -e "No need to install Eclipse IDE tool on Server machine , skip this process ... \n"

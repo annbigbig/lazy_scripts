@@ -18,7 +18,7 @@ AUTHORIZED_USER="labasky"
 ###############################################################################################
 
 say_goodbye() {
-	echo "goodbye everyone"
+	echo "see you next time"
 }
 
 install_openssh_server() {

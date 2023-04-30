@@ -8,12 +8,12 @@ MEMCACHED_RAM_SIZE="256"                       # how many RAM size that u wanna 
 #################################################################################################################
 
 say_goodbye() {
-	echo "goodbye everyone"
+	echo "see you next time"
 }
 
 install_memcached_server() {
-	       MEMCACHED_HAS_BEEN_INSTALL=$(dpkg --get-selections | grep memcached)
-        if [ -z $MEMCACHED_HAS_BEEN_INSTALL ] ; then
+	      MEMCACHED_HAS_BEEN_INSTALL="$(dpkg --get-selections | grep memcached | wc -l)"
+        if [ $MEMCACHED_HAS_BEEN_INSTALL -eq 0 ] ; then
 		apt-get update
 		apt-get install -y memcached
 		sed -i -- "s|-l 127.0.0.1|-l $MEMCACHED_RUNNING_IP_ADDRESS|g" /etc/memcached.conf

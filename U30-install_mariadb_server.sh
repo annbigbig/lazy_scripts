@@ -8,7 +8,7 @@ INSTALL_MARIADB_AS_MULTIPLE_NODES_GALERA_CLUSTER="no"                # 'galera.c
 FIRST_NODE="yes"                                                     # if this node is first node of cluster, set this value to 'yes'
 MYSQL_ROOT_PASSWD="root"                                             # mariadb root password you specify for first node
 WSREP_CLUSTER_NAME="kashu_cluster"                                   # name of galera cluster you preffered
-WSREP_CLUSTER_ADDRESS="192.168.0.91,192.168.0.92"                    # IP addresses list seperated by comma of all cluster nodes
+WSREP_CLUSTER_ADDRESS="192.168.251.91,192.168.251.92"                # IP addresses list seperated by comma of all cluster nodes
 SERVER_ID_MANUAL=""                                                  # server id u specify here has higher priority than $SERVER_ID_AUTO
 #########################################################################################################################################
 # no need to setup below , script will know it and use them automatically for u
@@ -37,6 +37,10 @@ SERVER_ID_AUTO="$(/sbin/ifconfig $WIRED_INTERFACE_NAME | grep -v 'inet6' | grep 
 # https://mitblog.pixnet.net/blog/post/43827108-%5Bmysql%5D-%E7%82%BA%E4%BB%80%E9%BA%BC-mysql-%E8%A6%81%E8%A8%AD%E5%AE%9A%E7%94%A8-utf8mb4-%E7%B7%A8%E7%A2%BC-utf8mb4_
 # https://matthung0807.blogspot.com/2018/05/mysql-schemacollation.html
 #
+# what if mariadb.service restart failed ?
+# https://stackoverflow.com/questions/26439742/getting-error-plugin-innodb-registration-as-a-storage-engine-failed-when-sta
+# https://blog.longwin.com.tw/2017/03/mysql-innodb-storage-engine-failed-fixed-2017/
+#
 # *** ATTENTION ***
 # extra db-users and databases and permissions would be created for webapp's requirements
 # their names have been hard-coded in function 'create_users_and_db_for_webapps'
@@ -44,7 +48,7 @@ SERVER_ID_AUTO="$(/sbin/ifconfig $WIRED_INTERFACE_NAME | grep -v 'inet6' | grep 
 # modify them to suite your needs directly
 
 say_goodbye() {
-	echo "goodbye everyone"
+	echo "see you next time"
 }
 
 remove_mysql_if_it_exists() {
@@ -77,7 +81,7 @@ install_mariadb_server() {
 generate_config_file() {
         MY_IP="$(/sbin/ifconfig $WIRED_INTERFACE_NAME | grep -v 'inet6' | grep 'inet' | tr -s ' ' | cut -d ' ' -f 3)"
 
-        echo "generating main config file at /etc/mysql/mariadb.cnf"
+        echo "generating main config file at /etc/mysql/my.cnf"
         install -v -dm 755 /etc/mysql
         install -v -dm 755 /etc/mysql/conf.d
 	install -v -dm 755 /etc/mysql/mariadb.conf.d
@@ -174,8 +178,8 @@ server-id = 1
 # InnoDB tables are now used by default
 innodb_data_home_dir = /var/lib/mysql
 innodb_data_file_path = ibdata1:10M:autoextend
-innodb_file_format = "Barracuda"
-innodb_large_prefix = 1
+#innodb_file_format = "Barracuda"
+#innodb_large_prefix = 1
 innodb_log_group_home_dir = /var/lib/mysql
 innodb_log_file_size = 5M
 innodb_log_buffer_size = 8M
@@ -294,6 +298,7 @@ EOF
 
 restart_mariadb_service() {
 	sed -i -- "s|LimitNOFILE=16364|LimitNOFILE=infinity|g" /lib/systemd/system/mariadb.service
+	sed -i -- "s|LimitNOFILE=32768|LimitNOFILE=infinity|g" /lib/systemd/system/mariadb.service
 	systemctl daemon-reload
 
 	if [ "$FIRST_NODE" == "yes" ] && [ "$INSTALL_MARIADB_AS_MULTIPLE_NODES_GALERA_CLUSTER" == "yes" ]; then
@@ -307,6 +312,38 @@ restart_mariadb_service() {
 		systemctl enable mariadb.service
 		systemctl status mariadb.service
 
+# Error messages when restart mariadb.service		
+# Apr 16 19:39:01 pi3b sh[3133]: 2023-04-16 19:39:01 0 [ERROR] Plugin 'InnoDB' init function returned error.
+# Apr 16 19:39:01 pi3b sh[3133]: 2023-04-16 19:39:01 0 [ERROR] Plugin 'InnoDB' registration as a STORAGE ENGINE failed.
+# Apr 16 19:39:01 pi3b sh[3133]: 2023-04-16 19:39:01 0 [Note] Plugin 'FEEDBACK' is disabled.
+# Apr 16 19:39:01 pi3b sh[3133]: 2023-04-16 19:39:01 0 [Warning] 'innodb-file-format' was removed. It does nothing now and exists only for compatibility with old my.cnf files.
+# Apr 16 19:39:01 pi3b sh[3133]: 2023-04-16 19:39:01 0 [Warning] 'innodb-large-prefix' was removed. It does nothing now and exists only for compatibility with old my.cnf files.
+# Apr 16 19:39:01 pi3b sh[3133]: 2023-04-16 19:39:01 0 [ERROR] Unknown/unsupported storage engine: innodb
+# Apr 16 19:39:01 pi3b sh[3133]: 2023-04-16 19:39:01 0 [ERROR] Aborting'
+# Apr 16 19:39:01 pi3b systemd[1]: mariadb.service: Control process exited, code=exited, status=1/FAILURE
+# Apr 16 19:39:01 pi3b systemd[1]: mariadb.service: Failed with result 'exit-code'.
+# Apr 16 19:39:01 pi3b systemd[1]: Failed to start MariaDB 10.6.12 database server.
+# if u see these error messages , do the following actions :
+# cd /var/lib/mysql
+# mv ib_logfile* /tmp
+# then restart mariadb.service again
+# 
+#
+# Error messages when restart mariadb.service (at raspberry pi 3b)
+# Apr 16 20:02:04 pi3b sh[3831]: WSREP: Failed to start mysqld for wsrep recovery: '2023-04-16 20:02:04 0 [Note] Starting MariaDB 10.6.12-MariaDB-0ubuntu0.22.04.1-log source revision  as process 4009
+# Apr 16 20:02:04 pi3b sh[3831]: 2023-04-16 20:02:04 0 [ERROR] innodb_buffer_pool_size can't be over 4GB on 32-bit systems
+# Apr 16 20:02:04 pi3b sh[3831]: 2023-04-16 20:02:04 0 [ERROR] Plugin 'InnoDB' init function returned error.
+# Apr 16 20:02:04 pi3b sh[3831]: 2023-04-16 20:02:04 0 [ERROR] Plugin 'InnoDB' registration as a STORAGE ENGINE failed.
+# Apr 16 20:02:04 pi3b sh[3831]: 2023-04-16 20:02:04 0 [Note] Plugin 'FEEDBACK' is disabled.
+# Apr 16 20:02:04 pi3b sh[3831]: 2023-04-16 20:02:04 0 [ERROR] Unknown/unsupported storage engine: innodb
+# Apr 16 20:02:04 pi3b sh[3831]: 2023-04-16 20:02:04 0 [ERROR] Aborting'
+# Apr 16 20:02:04 pi3b systemd[1]: mariadb.service: Control process exited, code=exited, status=1/FAILURE
+# Apr 16 20:02:04 pi3b systemd[1]: mariadb.service: Failed with result 'exit-code'.
+# Apr 16 20:02:04 pi3b systemd[1]: Failed to start MariaDB 10.6.12 database server.
+# try to change innodb_buffer_pool_size = 4G to innodb_buffer_pool_size = 2G
+# at /etc/mysql/my.cnf
+# and restart mariadb.service 
+# it will be done probably
 }
 
 set_mariadb_root_passwd() {
@@ -349,12 +386,12 @@ if [ "$FIRST_NODE" == "yes" ] || [ "$INSTALL_MARIADB_AS_MULTIPLE_NODES_GALERA_CL
 mysql -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 create user 'superuser'@'localhost' identified by 'superpassword';
 create user 'superuser'@'127.0.0.1' identified by 'superpassword';
-create user 'superuser'@'192.168.0.%' identified by 'superpassword';
-create user 'superuser'@'192.168.21.%' identified by 'superpassword';
+create user 'superuser'@'192.168.251.%' identified by 'superpassword';
+create user 'superuser'@'192.168.252.%' identified by 'superpassword';
 grant all on *.* to 'superuser'@'localhost' with grant option;
 grant all on *.* to 'superuser'@'127.0.0.1' with grant option;
-grant all on *.* to 'superuser'@'192.168.0.%' with grant option;
-grant all on *.* to 'superuser'@'192.168.21.%' with grant option;
+grant all on *.* to 'superuser'@'192.168.251.%' with grant option;
+grant all on *.* to 'superuser'@'192.168.252.%' with grant option;
 flush privileges;
 EOF
 
@@ -363,12 +400,12 @@ mysql -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 drop database if exists phpmyadmin;
 create user 'pmauser'@'localhost' identified by 'pmapassword';
 create user 'pmauser'@'127.0.0.1' identified by 'pmapassword';
-create user 'pmauser'@'192.168.0.%' identified by 'pmapassword';
-create user 'pmauser'@'192.168.21.%' identified by 'pmapassword';
+create user 'pmauser'@'192.168.251.%' identified by 'pmapassword';
+create user 'pmauser'@'192.168.252.%' identified by 'pmapassword';
 grant all on phpmyadmin.* to 'pmauser'@'localhost';
 grant all on phpmyadmin.* to 'pmauser'@'127.0.0.1';
-grant all on phpmyadmin.* to 'pmauser'@'192.168.0.%';
-grant all on phpmyadmin.* to 'pmauser'@'192.168.21.%';
+grant all on phpmyadmin.* to 'pmauser'@'192.168.251.%';
+grant all on phpmyadmin.* to 'pmauser'@'192.168.252.%';
 flush privileges;
 EOF
 
@@ -378,12 +415,12 @@ drop database if exists wpdb;
 create database wpdb;
 create user 'wpuser'@'localhost' identified by 'wppassword';
 create user 'wpuser'@'127.0.0.1' identified by 'wppassword';
-create user 'wpuser'@'192.168.0.%' identified by 'wppassword';
-create user 'wpuser'@'192.168.21.%' identified by 'wppassword';
+create user 'wpuser'@'192.168.251.%' identified by 'wppassword';
+create user 'wpuser'@'192.168.252.%' identified by 'wppassword';
 grant all on wpdb.* to 'wpuser'@'localhost';
 grant all on wpdb.* to 'wpuser'@'127.0.0.1';
-grant all on wpdb.* to 'wpuser'@'192.168.0.%';
-grant all on wpdb.* to 'wpuser'@'192.168.21.%';
+grant all on wpdb.* to 'wpuser'@'192.168.251.%';
+grant all on wpdb.* to 'wpuser'@'192.168.252.%';
 flush privileges;
 EOF
 
@@ -413,12 +450,12 @@ drop database if exists db_spring;
 create database db_spring;
 create user 'spring'@'localhost' identified by 'spring';
 create user 'spring'@'127.0.0.1' identified by 'spring';
-create user 'spring'@'192.168.0.%' identified by 'spring';
-create user 'spring'@'192.168.21.%' identified by 'spring';
+create user 'spring'@'192.168.251.%' identified by 'spring';
+create user 'spring'@'192.168.252.%' identified by 'spring';
 grant all on db_spring.* to 'spring'@'localhost';
 grant all on db_spring.* to 'spring'@'127.0.0.1';
-grant all on db_spring.* to 'spring'@'192.168.0.%';
-grant all on db_spring.* to 'spring'@'192.168.21.%';
+grant all on db_spring.* to 'spring'@'192.168.251.%';
+grant all on db_spring.* to 'spring'@'192.168.252.%';
 flush privileges;
 EOF
 

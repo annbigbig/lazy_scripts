@@ -4,16 +4,16 @@
 # these parameters will be used in firewall rules or system settings :
 # 
 ########################################################################################################
-OS_TYPE="Desktop"                       # only two values could work well 'Desktop' or 'Server'
-LAN="192.168.0.0/24"                    # The local network that you allow packets come in from there
-VPN="192.168.21.0/24"                   # The VPN network that you allow packets come in from there
+OS_TYPE="Server"                        # only two values could work well 'Desktop' or 'Server'
+LAN="192.168.251.0/24"                  # The local network that you allow packets come in from there
+VPN="10.8.0.0/24"                       # The VPN network that you allow packets come in from there
 MY_TIMEZONE="Asia/Taipei"               # The timezone that you specify for this VPS node
 ADD_SWAP="yes"                          # Do u need swap space ? fill in 'yes' or 'YES' will add swap for u
 YOUR_VNC_PASSWORD="vnc"                 # set your vnc password here
 IP_PROTOCOL="dhcp"                      # possible values ('dhcp' or 'staic') ; how do u get ipv4 address?
-ADDRESS="192.168.0.91"                  # fill in ipv4 address (such as 192.168.0.96) if u use static ip
+ADDRESS="192.168.251.91"                # fill in ipv4 address (such as 192.168.251.96) if u use static ip
 NETMASK="255.255.255.0"                 # fill in ipv4 netmask (such as 255.255.255.0) if u use static ip
-GATEWAY="192.168.0.1"                   # fill in ipv4 gateway (such as 192.168.0.1) if u use static ip
+GATEWAY="192.168.251.1"                 # fill in ipv4 gateway (such as 192.168.251.1) if u use static ip
 ########################################################################################################
 # no need to setup below , script will know it and use it automatically for u 
 WIRED_INTERFACE_NAME="$(ip link show | grep '2:' | cut -d ':' -f 2 | sed 's/^ *//g')"
@@ -23,13 +23,14 @@ WIRED_INTERFACE_NAME="$(ip link show | grep '2:' | cut -d ':' -f 2 | sed 's/^ */
 # https://linuxconfig.org/how-to-switch-back-networking-to-etc-network-interfaces-on-ubuntu-20-04-focal-fossa-linux
 # https://vitux.com/ubuntu-network-configuration/
 # https://linuxhint.com/update-resolv-conf-on-ubuntu/
+# https://bash.cyberciti.biz/security/linux-openvpn-firewall-etc-iptables-add-openvpn-rules-sh-shell-script/
 ########################################################################################################
 #                            <<Tested on Ubuntu Mate 22.04 Desktop Edition>>
 #                            <<Tested on Ubuntu 22.04 Server Edition>>
 ########################################################################################################
 
 say_goodbye (){
-	echo "goodbye everyone"
+	echo "see you next time"
 }
 
 fix_network_interfaces_name(){
@@ -159,28 +160,39 @@ local="\$(/sbin/ip addr show $WIRED_INTERFACE_NAME | grep 'inet' | grep -v 'inet
 if [ $OS_TYPE == "Server" ] || [ $OS_TYPE == "server" ] || [ $OS_TYPE == "SERVER" ] ; then
 	local="\$(/sbin/ip addr show eth0 | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
 fi
-#local=192.168.21.231
+#local=192.168.251.91
 lan=$LAN
 vpn=$VPN
 # =================================================================================================
 if [ -n \$local ] ; then
+  \$iptables -t nat -F
+  \$iptables -t nat -A POSTROUTING -s \$vpn -o $WIRED_INTERFACE_NAME -j MASQUERADE
   \$iptables -t filter -F
   \$iptables -t filter -A INPUT -i lo -s \$loopback -d \$loopback -p all -j ACCEPT
   \$iptables -t filter -A INPUT -s \$local -d \$local -p all -j ACCEPT
   \$iptables -t filter -A INPUT -s \$lan -d \$local -p all -j ACCEPT
   \$iptables -t filter -A INPUT -s \$vpn -d \$local -p all -j ACCEPT
   \$iptables -t filter -A INPUT -p udp --dport 53 -j ACCEPT
-  \$iptables -t filter -A INPUT -d \$local -p tcp --dport 36000 --syn -m state --state NEW -m limit --limit 10/s --limit-burst 20 -j ACCEPT
+  \$iptables -t filter -A INPUT -i tun0 -j ACCEPT
+  \$iptables -t filter -A INPUT -i $WIRED_INTERFACE_NAME -p udp --dport 1194 -j ACCEPT
+  \$iptables -t filter -A INPUT -d \$local -p tcp --dport 36000 --syn -m state --state NEW -m limit --limit 10/s --limit-burst 5 -j ACCEPT
   \$iptables -t filter -A INPUT -d \$local -p tcp --dport 36000 --syn -m state --state NEW -j DROP
-  \$iptables -t filter -A INPUT -d \$local -p tcp --dport 80 --syn -m state --state NEW -m limit --limit 160/s --limit-burst 200 -j ACCEPT
+  \$iptables -t filter -A INPUT -d \$local -p tcp --dport 25 --syn -m state --state NEW -m limit --limit 20/s --limit-burst 10 -j ACCEPT
+  \$iptables -t filter -A INPUT -d \$local -p tcp --dport 25 --syn -m state --state NEW -j DROP
+  \$iptables -t filter -A INPUT -d \$local -p tcp --dport 80 --syn -m state --state NEW -m limit --limit 300/s --limit-burst 10 -j ACCEPT
   \$iptables -t filter -A INPUT -d \$local -p tcp --dport 80 --syn -m state --state NEW -j DROP
-  \$iptables -t filter -A INPUT -d \$local -p tcp --dport 443 --syn -m state --state NEW -m limit --limit 160/s --limit-burst 200 -j ACCEPT
+  \$iptables -t filter -A INPUT -d \$local -p tcp --dport 110 --syn -m state --state NEW -m limit --limit 20/s --limit-burst 10 -j ACCEPT
+  \$iptables -t filter -A INPUT -d \$local -p tcp --dport 110 --syn -m state --state NEW -j DROP
+  \$iptables -t filter -A INPUT -d \$local -p tcp --dport 443 --syn -m state --state NEW -m limit --limit 300/s --limit-burst 10 -j ACCEPT
   \$iptables -t filter -A INPUT -d \$local -p tcp --dport 443 --syn -m state --state NEW -j DROP
   \$iptables -t filter -A INPUT -s \$lan -d \$local -p icmp -j ACCEPT
   \$iptables -t filter -A INPUT -s \$vpn -d \$local -p icmp -j ACCEPT
-  \$iptables -t filter -A INPUT -p icmp --icmp-type 8 -m limit --limit 10/s -j ACCEPT
+  \$iptables -t filter -A INPUT -p icmp --icmp-type 8 -m limit --limit 10/s --limit-burst 5 -j ACCEPT
+  \$iptables -t filter -A INPUT -p icmp --icmp-type 8 -j DROP
   \$iptables -t filter -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
   \$iptables -t filter -P INPUT DROP
+  \$iptables -t filter -A FORWARD -i $WIRED_INTERFACE_NAME -o tun0 -j ACCEPT
+  \$iptables -t filter -A FORWARD -i tun0 -o $WIRED_INTERFACE_NAME -j ACCEPT
   \$iptables -t filter -L -n --line-number
 fi
 # =================================================================================================
@@ -330,7 +342,8 @@ update_system() {
         # before install/upgrade package, change directory permission number to 777 for it
         chmod 777 /var/lib/update-notifier/package-data-downloads/partial
         apt-get update
-        apt-get dist-upgrade -y
+        #apt-get dist-upgrade -y
+        apt-get upgrade -y
         apt autoremove -y
         # after installation , change it back to its original value 700
         chmod 700 /var/lib/update-notifier/package-data-downloads/partial
@@ -381,8 +394,8 @@ EOF
   echo -e "#  HOW to connect to a remote host that runs x11vnc at 127.0.0.1:5900  ? ? ?                   # \n"
   echo -e "#  if that remote host has a SSH Service running on tcp port 36000 just like my situation      # \n"
   echo -e "#  u could fire command below to bind its 127.0.0.1:5900 to your local tcp port 5999 :         # \n"
-  echo -e "#        ssh -p36000 -L 5999:127.0.0.1:5900 -N -f username@192.168.21.231                      # \n"
-  echo -e "#  replace <username> and <192.168.21.231> with your real username and ip address , thats all  # \n"
+  echo -e "#        ssh -p36000 -L 5999:127.0.0.1:5900 -N -f username@192.168.251.231                     # \n"
+  echo -e "#  replace <username> and <192.168.251.231> with your real username and ip address , thats all # \n"
   echo -e "################################################################################################ \n"
 
   fi

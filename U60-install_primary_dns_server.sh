@@ -8,52 +8,50 @@
 DOMAIN_NAME="dq5rocks.com"
 FIRST_OCTET="192"
 SECOND_OCTET="168"
-THIRD_OCTET="0"
+THIRD_OCTET="251"
 #
-TRUSTED_LOCAL_SUBNET="192.168.0.0/24"
-TRUSTED_VPN_SUBNET="192.168.21.0/24"
-SECONDARY_DNS_IP_ADDRESS="192.168.0.92"
+TRUSTED_LOCAL_SUBNET="192.168.251.0/24"
+TRUSTED_VPN_SUBNET="192.168.252.0/24"
+SECONDARY_DNS_IP_ADDRESS="203.77.68.56"
 #
 # dont forget suffix dot . if you write a FQDN for NS/MX/A/PTR record
 # each column is seperated by space
 read -r -d '' DNS_RECORDS << EOV
-NS vhost91.dq5rocks.com.
-NS vhost92.dq5rocks.com.
-MX vhost91.dq5rocks.com. 10
-MX vhost92.dq5rocks.com. 20
-CNAME ns1 vhost91
-CNAME ns2 vhost92
-CNAME mail1 vhost91
-CNAME mail2 vhost92
-A dq5rocks.com. 192.168.0.91
-A dq5rocks.com. 192.168.0.92
-A vhost91.dq5rocks.com. 192.168.0.91
-A vhost92.dq5rocks.com. 192.168.0.92
-A www.dq5rocks.com. 192.168.0.91
-A www.dq5rocks.com. 192.168.0.92
-A blog.dq5rocks.com. 192.168.0.91
-A blog.dq5rocks.com. 192.168.0.92
-A mysql.dq5rocks.com. 192.168.0.100
-A elastic.dq5rocks.com. 192.168.0.101
-A api.dq5rocks.com. 192.168.0.111
-A ftp.dq5rocks.com. 192.168.0.222
-A gateway.dq5rocks.com. 192.168.0.1
+NS tamsui.dq5rocks.com.
+NS sanzi.dq5rocks.com.
+MX mail.dq5rocks.com. 10
+CNAME ns1 tamsui
+CNAME ns2 sanzi
+A dq5rocks.com. 49.159.105.221
+A dq5rocks.com. 203.77.68.56
+A vhost91.dq5rocks.com. 192.168.251.91
+A vhost92.dq5rocks.com. 192.168.251.92
+A tamsui.dq5rocks.com. 49.159.105.221
+A sanzi.dq5rocks.com. 203.77.68.56
+A www.dq5rocks.com. 49.159.105.221
+A blog.dq5rocks.com. 49.159.105.221
+A mysql.dq5rocks.com. 192.168.251.100
+A elastic.dq5rocks.com. 192.168.251.101
+A api.dq5rocks.com. 192.168.251.111
+A api.dq5rocks.com. 192.168.251.112
+A api.dq5rocks.com. 192.168.251.113
+A mail.dq5rocks.com. 49.159.105.221
 PTR 100 mysql.dq5rocks.com.
 PTR 101 elastic.dq5rocks.com.
 PTR 111 api.dq5rocks.com.
-PTR 222 ftp.dq5rocks.com.
+PTR 112 api.dq5rocks.com.
+PTR 113 api.dq5rocks.com.
 PTR 91 vhost91.dq5rocks.com.
 PTR 92 vhost92.dq5rocks.com.
-PTR 1 gateway.dq5rocks.com.
 EOV
 ##########################################################################################################
 # *** Hint ***
-# how to query a specifc DNS server (ex: 192.168.0.91) ? use these command : 
-#  $ nslookup www.dq5rocks.com 192.168.0.91
-#  $ nslookup 192.168.0.100 192.168.0.91
-#  $ dig @192.168.0.91 dq5rocks.com
-#  $ dig @192.168.0.91 dq5rocks.com MX
-#  $ dig @192.168.0.91 dq5rocks.com NS
+# how to query a specifc DNS server (ex: 192.168.251.91) ? use these command : 
+#  $ nslookup www.dq5rocks.com 192.168.251.91
+#  $ nslookup 192.168.251.100 192.168.251.91
+#  $ dig @192.168.251.91 dq5rocks.com
+#  $ dig @192.168.251.91 dq5rocks.com MX
+#  $ dig @192.168.251.91 dq5rocks.com NS
 ##########################################################################################################
 # *** SPECIAL THANKS ***
 # All of the commands used here were inspired by this article : 
@@ -68,7 +66,7 @@ EOV
 ##########################################################################################################
 
 say_goodbye() {
-	echo "goodbye everyone"
+	echo "see you next time"
 }
 
 remove_previous_version() {
@@ -134,6 +132,19 @@ install_bind_server() {
 	install -v -m644 doc/misc/{options,rfc-compliance} /usr/share/doc/bind-9.18.12/misc
 	rm -rf /usr/local/src/bind-9.18.12.tar.xz
 	rm -rf /usr/local/src/bind-9.18.12.tar.xz.asc
+
+# Error messages when 'make'
+#	Unrecognized options:
+#    --enable-threads, --with-libtool, --with-randomdev
+# ----------------------------------------------------------
+
+# Error messages when 'make install'
+# install: creating directory '/usr/share/doc/bind-9.18.12'
+# install: creating directory '/usr/share/doc/bind-9.18.12/arm'
+# install: creating directory '/usr/share/doc/bind-9.18.12/misc'
+# 'doc/misc/options' -> '/usr/share/doc/bind-9.18.12/misc/options'
+# install: cannot stat 'doc/misc/rfc-compliance': No such file or directory
+
 }
 
 export_sbin_dir_to_path() {

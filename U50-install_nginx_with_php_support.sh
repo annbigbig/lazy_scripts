@@ -4,7 +4,7 @@
 # and deploy phpmyadmin/wordpress/cacti on this web server 
 # before u run this script please confirm these parameters :
 #
-###########################################  <<Tested on Ubuntu Mate 20.04 Desktop Edition>>  ###############
+###########################################  <<Tested on Ubuntu Mate 22.04 Server Edition>>  ################
 #
 SERVER_FQDN="www.dq5rocks.com"
 ENABLE_HTTPS="yes"
@@ -14,14 +14,16 @@ SELF_SIGNED_SSL_ST="New Taipei"
 SELF_SIGNED_SSL_L="Tamsui"
 SELF_SIGNED_SSL_O="Tong-Shing, Inc."
 SELF_SIGNED_SSL_CN="*.dq5rocks.com"
-#SESSION_SAVE_PATH="127.0.0.1:11211"
-SESSION_SAVE_PATH="192.168.0.91:11211,192.168.0.92:11211"
+SESSION_SAVE_PATH="127.0.0.1:11211"
+#SESSION_SAVE_PATH="192.168.251.91:11211,192.168.251.92:11211"
 #
 #############################################################################################################
 # no need to set these two variables , script will get correct values for you
 WIRED_INTERFACE_NAME="$(ip link show | grep '2:' | cut -d ':' -f 2 | sed 's/^ *//g')"
 MY_IP="$(/sbin/ifconfig $WIRED_INTERFACE_NAME | grep -v 'inet6' | grep 'inet' | tr -s ' ' | cut -d ' ' -f 3)"
 OPENSSL_VERSION="$(/usr/bin/openssl version -a | grep -i openssl | cut -d ' ' -f 2 | head -n 1)"
+UNAME_M="$(/usr/bin/uname -m)"
+[[ $UNAME_M == "armv7l" ]] && LIB_SUBPATH="arm-linux-gnueabihf" || LIB_SUBPATH="x86_64-linux-gnu"
 #
 #############################################################################################################
 ###     use this command to generate your own blowfish secret then fill in parameter values below 
@@ -223,18 +225,26 @@ server {
                try_files $uri $uri/ =404;
                fastcgi_pass unix:/usr/local/php/var/run/php-fpm.sock;
          }
+
+         location /stub_status {
+               stub_status on;
+               allow 127.0.0.1;
+               deny all;
+         }
+
 }
 EOF
 
         # create $SERVER_FQDN.conf , this is main configuration of your website
-        cat > /usr/local/nginx-1.23.3/conf.d/$SERVER_FQDN.conf << "EOF"
+	MAIN_CONFIG="/usr/local/nginx-1.23.3/conf.d/$SERVER_FQDN.conf"
+        cat > $MAIN_CONFIG << "EOF"
 server {
          listen 80 default_server;
          server_name SERVER_FQDN;
 EOF
 
 if [ "$ENABLE_HTTPS" == "yes" ] ; then
-        cat >> /usr/local/nginx-1.23.3/conf.d/$SERVER_FQDN.conf << "EOF"
+        cat >> $MAIN_CONFIG << "EOF"
          return 301 https://$server_name$request_uri;
 }
 
@@ -245,7 +255,7 @@ server {
          include ssl-params.conf;
 EOF
 fi
-        cat >> /usr/local/nginx-1.23.3/conf.d/$SERVER_FQDN.conf << "EOF" 
+        cat >> $MAIN_CONFIG << "EOF" 
          root /var/www/SERVER_FQDN;
 
          # Logging --
@@ -281,7 +291,7 @@ fi
 }
 EOF
 
-        sed -i -- "s|SERVER_FQDN|$SERVER_FQDN|g" /usr/local/nginx-1.23.3/conf.d/$SERVER_FQDN.conf
+        sed -i -- "s|SERVER_FQDN|$SERVER_FQDN|g" $MAIN_CONFIG
 
 #####
         # create $WORDPRESS_FQDN.conf, this is configuration file for wordpress blog.
@@ -379,7 +389,7 @@ EOF
 #####################
 
 say_goodbye() {
-	echo "goodbye everyone"
+	echo "see you next time"
 }
 
 remove_previous_install() {
@@ -481,8 +491,8 @@ install_prerequisite() {
         fi
 
         # make a symbolic link for curl header files
-        if [ ! -e "/usr/include/curl" ] && [ -e "/usr/include/x86_64-linux-gnu/curl" ]; then
-               ln -s /usr/include/x86_64-linux-gnu/curl /usr/include/curl
+        if [ ! -e "/usr/include/curl" ] && [ -e "/usr/include/$LIB_SUBPATH/curl" ]; then
+               ln -s /usr/include/$LIB_SUBPATH/curl /usr/include/curl
         fi
 }
 
@@ -784,8 +794,8 @@ install_imap2007f() {
         rm -rf /usr/local/src/imap-2007f.tar.gz
         chown -R root:root /usr/local/imap-2007f
         # for php-imap compilation
-        if [ ! -e "/usr/lib/x86_64-linux-gnu/libc-client.a" ] && [ -e "/usr/local/imap-2007f/lib/libc-client.a" ]; then
-               ln -s /usr/local/imap-2007f/lib/libc-client.a /usr/lib/x86_64-linux-gnu/libc-client.a
+        if [ ! -e "/usr/lib/$LIB_SUBPATH/libc-client.a" ] && [ -e "/usr/local/imap-2007f/lib/libc-client.a" ]; then
+               ln -s /usr/local/imap-2007f/lib/libc-client.a /usr/lib/$LIB_SUBPATH/libc-client.a
         fi
 	
         if [ ! -e "/usr/lib/libc-client.a" ] && [ -e "/usr/local/imap-2007f/lib/libc-client.a" ]; then
@@ -812,10 +822,10 @@ install_phpfpm() {
 install_phpfpm74() {
         # for linking kerberos libraries
         mkdir -p /usr/kerberos
-        ln -s /usr/lib/x86_64-linux-gnu/ /usr/kerberos/lib
+        ln -s /usr/lib/$LIB_SUBPATH/ /usr/kerberos/lib
 
 	# for linking libc-client.a
-	ln -s /usr/lib/libc-client.a /usr/lib/x86_64-linux-gnu/libc-client.a
+	ln -s /usr/lib/libc-client.a /usr/lib/$LIB_SUBPATH/libc-client.a
 
         # change currently working directory
         cd /usr/local/src
@@ -876,7 +886,7 @@ install_phpfpm74() {
                     --with-pdo-mysql=mysqlnd          \
                     --with-mysql-sock=/var/run/mysqld/mysqld.sock \
                     --enable-mysqlnd-compression-support \
-                    --with-libdir=/lib/x86_64-linux-gnu
+                    --with-libdir=/lib/$LIB_SUBPATH
         make
         #make test
         make install
@@ -960,10 +970,10 @@ EOF
 install_phpfpm82() {
         # for linking kerberos libraries
         mkdir -p /usr/kerberos
-        ln -s /usr/lib/x86_64-linux-gnu/ /usr/kerberos/lib
+        ln -s /usr/lib/$LIB_SUBPATH/ /usr/kerberos/lib
 
 	# for linking libc-client.a
-	ln -s /usr/lib/libc-client.a /usr/lib/x86_64-linux-gnu/libc-client.a
+	ln -s /usr/lib/libc-client.a /usr/lib/$LIB_SUBPATH/libc-client.a
 
         # change currently working directory
         cd /usr/local/src
@@ -972,7 +982,7 @@ install_phpfpm82() {
         rm -rf ./php-*
 
         # download the source tar.gz, extract it then configure it
-        wget -O php-8.2.3.tar.gz wget https://www.php.net/distributions/php-8.2.3.tar.gz
+        wget -O php-8.2.3.tar.gz https://www.php.net/distributions/php-8.2.3.tar.gz
         SHA256SUM_SHOULD_BE="7c475bcbe61d28b6878604b1b6f387f39d1a63b5f21fa8156fd7aa615d43e259"
         SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./php-8.2.3.tar.gz | cut -d " " -f 1)"
         [ "$SHA256SUM_SHOULD_BE" != "$SHA256SUM_COMPUTED" ] && echo "oops...sha256 checksum doesnt match." && exit 2 || echo "sha256 checksum matched."
@@ -987,6 +997,7 @@ install_phpfpm82() {
                     #--with-mcrypt                     \
                     #--with-iconv                      \
                     #--enable-gd-native-ttf            \
+                    #--enable-zip                      \
         ./configure --prefix=/usr/local/php-8.2.3     \
                     --enable-fpm                      \
                     --with-fpm-user=nginx             \
@@ -1002,7 +1013,6 @@ install_phpfpm82() {
                     --with-gettext                    \
                     --enable-mbstring                 \
                     --with-readline                   \
-                    --enable-zip                      \
                     --enable-pcntl                    \
                     --enable-exif                     \
                     --enable-sysvmsg                  \
@@ -1025,7 +1035,7 @@ install_phpfpm82() {
                     --with-pdo-mysql=mysqlnd          \
                     --with-mysql-sock=/run/mysqld/mysqld.sock \
 		    --with-fpm-systemd \
-                    --with-libdir=/lib/x86_64-linux-gnu
+                    --with-libdir=/lib/$LIB_SUBPATH
         make
 	#make test
 	make install

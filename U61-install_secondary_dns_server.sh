@@ -8,20 +8,20 @@
 DOMAIN_NAME="dq5rocks.com"
 FIRST_OCTET="192"
 SECOND_OCTET="168"
-THIRD_OCTET="0"
+THIRD_OCTET="251"
 #
-TRUSTED_LOCAL_SUBNET="192.168.0.0/24"
-TRUSTED_VPN_SUBNET="192.168.21.0/24"
-PRIMARY_DNS_IP_ADDRESS="192.168.0.91"
+TRUSTED_LOCAL_SUBNET="192.168.251.0/24"
+TRUSTED_VPN_SUBNET="192.168.252.0/24"
+PRIMARY_DNS_IP_ADDRESS="49.159.105.221"
 #
 ##########################################################################################################
 # *** Hint ***
-# how to query a specifc DNS server (ex: 192.168.0.92) ? use these command : 
-#  $ nslookup www.dq5rocks.com 192.168.0.92
-#  $ nslookup 192.168.0.100 192.168.0.92
-#  $ dig @192.168.0.92 dq5rocks.com
-#  $ dig @192.168.0.92 dq5rocks.com MX
-#  $ dig @192.168.0.92 dq5rocks.com NS
+# how to query a specifc DNS server (ex: 192.168.251.92) ? use these command : 
+#  $ nslookup www.dq5rocks.com 192.168.251.92
+#  $ nslookup 192.168.251.100 192.168.251.92
+#  $ dig @192.168.251.92 dq5rocks.com
+#  $ dig @192.168.251.92 dq5rocks.com MX
+#  $ dig @192.168.251.92 dq5rocks.com NS
 ##########################################################################################################
 # *** SPECIAL THANKS ***
 # All of the commands used here were inspired by this article : 
@@ -37,7 +37,7 @@ PRIMARY_DNS_IP_ADDRESS="192.168.0.91"
 
 
 say_goodbye() {
-	echo "goodbye everyone"
+	echo "see you next time"
 }
 
 remove_previous_version() {

@@ -1,20 +1,17 @@
 #!/bin/bash
 #
-# This script will install MySQL server 8.0.xx && galera 4  cluster on Ubuntu 20.04 LTS Server Edition
-# NOTE again : This script only works on Ubuntu 20.04
-######################################################################          <<Tested on Ubuntu 20.04 Server Edition>>
+# This script will install mysql-wsrep-server 8.0.xx && galera-4  cluster on Ubuntu 22.04 LTS Server Edition
+######################################################################          <<Tested on Ubuntu 22.04 Server Edition>>
 INSTALL_MYSQL_AS_MULTIPLE_NODES_GALERA_CLUSTER="yes"                 # 'galera.cnf' would be generated only when its value is 'yes'
 ######################################################################
 FIRST_NODE="yes"                                                     # if this node is first node of cluster, set this value to 'yes'
 MYSQL_ROOT_PASSWD="root"                                             # mysql root password you specify for first node
 WSREP_CLUSTER_NAME="kashu_cluster"                                   # name of galera cluster you preffered
-WSREP_CLUSTER_ADDRESS="192.168.0.81,192.168.0.82"                    # IP addresses list seperated by comma of all cluster nodes
-SERVER_ID_MANUAL=""                                                  # server id u specify here has higher priority than $SERVER_ID_AUTO
+WSREP_CLUSTER_ADDRESS="192.168.251.91,192.168.251.92"                # IP addresses list seperated by comma of all cluster nodes
 #########################################################################################################################################
 # no need to setup below , script will know it and use them automatically for u
 WIRED_INTERFACE_NAME="$(ip link show | grep '2:' | cut -d ':' -f 2 | sed 's/^ *//g')"
-SERVER_ID_AUTO="$(/sbin/ifconfig $WIRED_INTERFACE_NAME | grep -v 'inet6' | grep 'inet' | tr -s ' ' | cut -d ' ' -f 3 | cut -d ':' -f 2 | cut -d '.' -f 4)"
-UBUNTU_VERSION="$(cat /etc/lsb-release | grep -i codename | cut -d '=' -f 2)"
+UBUNTU_CODENAME="$(cat /etc/lsb-release | grep -i codename | cut -d '=' -f 2)"
 #########################################################################################################################################
 # *** SPECIAL THANKS ***
 # Install Galera 4 with MySQL 8 on Ubuntu 20.04
@@ -47,6 +44,13 @@ UBUNTU_VERSION="$(cat /etc/lsb-release | grep -i codename | cut -d '=' -f 2)"
 # create table and insert some data
 # https://phoenixnap.com/kb/how-to-create-a-table-in-mysql
 #
+# unable to install mysql on linux
+# https://stackoverflow.com/questions/47169028/mysql-server-cant-install-on-linux
+# https://askubuntu.com/questions/1405475/unable-to-install-mysql-server-on-ubuntu-22-04-lts
+#
+# solution for ERROR 1698 (28000): Access denied for user 'root'@'localhost'
+# https://stackoverflow.com/questions/39281594/error-1698-28000-access-denied-for-user-rootlocalhost
+#
 # *** ATTENTION ***
 # extra db-users and databases and permissions would be created for webapp's requirements
 # their names have been hard-coded in function 'create_users_and_db_for_webapps'
@@ -55,12 +59,12 @@ UBUNTU_VERSION="$(cat /etc/lsb-release | grep -i codename | cut -d '=' -f 2)"
 #
 # HINT
 # the command used to bootstrap first-node if all of the nodes were shutdown accidently
-# mysqld --wsrep-new-cluster --wsrep-cluster-address='gcomm://192.168.0.81,192.168.0.82' &
+# mysqld --wsrep-new-cluster --wsrep-cluster-address='gcomm://192.168.251.81,192.168.251.82' &
 # second , third nodes just run
 # systemctl start mysql.service
 
 say_goodbye() {
-	echo "goodbye everyone"
+	echo "see you next time"
 }
 
 remove_mariadb_if_it_exists() {
@@ -78,36 +82,40 @@ remove_mariadb_if_it_exists() {
 }
 
 install_mysql_server() {
-	REPO_INFO_FILE="/etc/apt/sources.list.d/galera.list"
-	rm -rf $REPO_INFO_FILE
-	cat > $REPO_INFO_FILE << EOF
-deb https://releases.galeracluster.com/galera-4/ubuntu focal main
-deb https://releases.galeracluster.com/mysql-wsrep-8.0/ubuntu focal main
+	MYSQL_WSREP_HAS_BEEN_INSTALLED="$(dpkg --get-selections | grep mysql-wsrep)"
+	MYSQL_SERVER_HAS_BEEN_INSTALLED="$(dpkg --get-selections | grep mysql-server)"
+	if [ "$INSTALL_MYSQL_AS_MULTIPLE_NODES_GALERA_CLUSTER" == "yes" ] || [ "$INSTALL_MYSQL_AS_MULTIPLE_NODES_GALERA_CLUSTER" == "YES" ] ; then
+		if [ -z "$MYSQL_WSREP_HAS_BEEN_INSTALLED" ] ; then
+			REPO_INFO_FILE="/etc/apt/sources.list.d/galera.list"
+			rm -rf $REPO_INFO_FILE
+			cat > $REPO_INFO_FILE << EOF
+deb https://releases.galeracluster.com/galera-4/ubuntu UBUNTU_CODENAME main
+deb https://releases.galeracluster.com/mysql-wsrep-8.0/ubuntu UBUNTU_CODENAME main
 EOF
 
-	REPO_PREFERENCE_FILE="/etc/apt/preferences.d/galera.pref"
-	rm -rf $REPO_PREFERENCE_FILE
-	cat > $REPO_PREFERENCE_FILE << EOF
+			REPO_PREFERENCE_FILE="/etc/apt/preferences.d/galera.pref"
+			rm -rf $REPO_PREFERENCE_FILE
+			cat > $REPO_PREFERENCE_FILE << EOF
 # Prefer the Codership repository
 Package: *
 Pin: origin releases.galeracluster.com
 Pin-Priority: 1001
 EOF
+			# replace placeholder 'UBUNTU_CODENAME' with the real $UBUNTU_CODENAME
+			sed -i -- "s|UBUNTU_CODENAME|$UBUNTU_CODENAME|g" $REPO_INFO_FILE
 
-	# import public key
-	apt-key adv --keyserver keyserver.ubuntu.com --recv-keys D669017EBC19DDBA
-
-	apt-get update
-	MYSQL_WSREP_HAS_BEEN_INSTALLED="$(dpkg --get-selections | grep mysql-wsrep)"
-	MYSQL_SERVER_HAS_BEEN_INSTALLED="$(dpkg --get-selections | grep mysql-server)"
-	if [ "$INSTALL_MYSQL_AS_MULTIPLE_NODES_GALERA_CLUSTER" == "yes" ] || [ "$INSTALL_MYSQL_AS_MULTIPLE_NODES_GALERA_CLUSTER" == "YES" ] ; then
-		if [ -z "$MYSQL_WSREP_HAS_BEEN_INSTALLED" ] ; then
-			apt-get install -y mysql-client-core-8.0 mysql-client-8.0 mysql-common
+			# import public key
+			apt-key adv --keyserver keyserver.ubuntu.com --recv-keys D669017EBC19DDBA
+			apt-get update
+			#apt-get install -y mysql-common
+			#apt-get install -y mysql-client-core-8.0 mysql-client-8.0
                         apt-get install -y mysql-wsrep-server mysql-wsrep-8.0 galera-4
 		fi
 	else
 		if [ -z "$MYSQL_SERVER_HAS_BEEN_INSTALLED" ] ; then
-			apt-get install -y mysql-client-core-8.0 mysql-client-8.0 mysql-common
+			apt-get update
+			#apt-get install -y mysql-common
+			#apt-get install -y mysql-client-core-8.0 mysql-client-8.0
 			apt-get install -y mysql-server-8.0
 		fi
 	fi
@@ -377,12 +385,23 @@ set_mysql_root_passwd() {
         if [ "$FIRST_NODE" == "yes" ] || [ "$INSTALL_MYSQL_AS_MULTIPLE_NODES_GALERA_CLUSTER" != "yes" ]; then
 	    # no need to do mysql_secure_installation anymore after mariadb 10.4
             # just change root password on first-node
-            cat > /tmp/set_mysql_root_passwd << "EOF"
+            cat > /tmp/set_mysql_root_passwd.sql << "EOF"
 ALTER USER 'root'@'localhost' IDENTIFIED BY 'MYSQL_ROOT_PASSWD';
 FLUSH PRIVILEGES;
 EOF
-            sed -i -- "s|MYSQL_ROOT_PASSWD|$MYSQL_ROOT_PASSWD|g" /tmp/set_mysql_root_passwd
-            mysql -u root < /tmp/set_mysql_root_passwd
+            sed -i -- "s|MYSQL_ROOT_PASSWD|$MYSQL_ROOT_PASSWD|g" /tmp/set_mysql_root_passwd.sql
+
+            # change root@localhost Plugin from 'auth_socket' to 'mysql_native_password'
+            cat > /tmp/let_normal_system_user_login.sql << "EOF"
+USE mysql;
+UPDATE user SET plugin='mysql_native_password' WHERE User='root';
+FLUSH PRIVILEGES;
+EOF
+            
+            # run xxx.sql in command line	    
+            mysql -u root < /tmp/let_normal_system_user_login.sql
+	    sleep 1
+            mysql -u root < /tmp/set_mysql_root_passwd.sql
         else
             echo " only set root password for mysql on the first node."
         fi
@@ -413,12 +432,12 @@ if [ "$FIRST_NODE" == "yes" ] || [ "$INSTALL_MYSQL_AS_MULTIPLE_NODES_GALERA_CLUS
 mysql -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 create user 'superuser'@'localhost' identified by 'superpassword';
 create user 'superuser'@'127.0.0.1' identified by 'superpassword';
-create user 'superuser'@'192.168.0.%' identified by 'superpassword';
-create user 'superuser'@'192.168.21.%' identified by 'superpassword';
+create user 'superuser'@'192.168.251.%' identified by 'superpassword';
+create user 'superuser'@'192.168.252.%' identified by 'superpassword';
 grant all on *.* to 'superuser'@'localhost' with grant option;
 grant all on *.* to 'superuser'@'127.0.0.1' with grant option;
-grant all on *.* to 'superuser'@'192.168.0.%' with grant option;
-grant all on *.* to 'superuser'@'192.168.21.%' with grant option;
+grant all on *.* to 'superuser'@'192.168.251.%' with grant option;
+grant all on *.* to 'superuser'@'192.168.252.%' with grant option;
 flush privileges;
 EOF
 
@@ -427,12 +446,12 @@ mysql -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 drop database if exists phpmyadmin;
 create user 'pmauser'@'localhost' identified by 'pmapassword';
 create user 'pmauser'@'127.0.0.1' identified by 'pmapassword';
-create user 'pmauser'@'192.168.0.%' identified by 'pmapassword';
-create user 'pmauser'@'192.168.21.%' identified by 'pmapassword';
+create user 'pmauser'@'192.168.251.%' identified by 'pmapassword';
+create user 'pmauser'@'192.168.252.%' identified by 'pmapassword';
 grant all on phpmyadmin.* to 'pmauser'@'localhost';
 grant all on phpmyadmin.* to 'pmauser'@'127.0.0.1';
-grant all on phpmyadmin.* to 'pmauser'@'192.168.0.%';
-grant all on phpmyadmin.* to 'pmauser'@'192.168.21.%';
+grant all on phpmyadmin.* to 'pmauser'@'192.168.251.%';
+grant all on phpmyadmin.* to 'pmauser'@'192.168.252.%';
 flush privileges;
 EOF
 
@@ -442,19 +461,19 @@ drop database if exists wpdb;
 create database wpdb;
 create user 'wpuser'@'localhost' identified by 'wppassword';
 create user 'wpuser'@'127.0.0.1' identified by 'wppassword';
-create user 'wpuser'@'192.168.0.%' identified by 'wppassword';
-create user 'wpuser'@'192.168.21.%' identified by 'wppassword';
+create user 'wpuser'@'192.168.251.%' identified by 'wppassword';
+create user 'wpuser'@'192.168.252.%' identified by 'wppassword';
 grant all on wpdb.* to 'wpuser'@'localhost';
 grant all on wpdb.* to 'wpuser'@'127.0.0.1';
-grant all on wpdb.* to 'wpuser'@'192.168.0.%';
-grant all on wpdb.* to 'wpuser'@'192.168.21.%';
+grant all on wpdb.* to 'wpuser'@'192.168.251.%';
+grant all on wpdb.* to 'wpuser'@'192.168.252.%';
 flush privileges;
 EOF
 
 # create users and database for cacti
         cd /tmp
-        wget https://www.cacti.net/downloads/cacti-1.2.22.tar.gz
-        tar zxvf /tmp/cacti-1.2.22.tar.gz
+        wget https://www.cacti.net/downloads/cacti-1.2.24.tar.gz
+        tar zxvf /tmp/cacti-1.2.24.tar.gz
 mysql -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 drop database if exists cacti_db;
 create database cacti_db;
@@ -466,7 +485,7 @@ grant select on mysql.time_zone_name to 'cactiuser'@'localhost';
 grant select on mysql.time_zone_name to 'cactiuser'@'127.0.0.1';
 flush privileges;
 use cacti_db;
-source /tmp/cacti-1.2.22/cacti.sql;
+source /tmp/cacti-1.2.24/cacti.sql;
 EOF
         # populate timezone data from /usr/share/zoneinfo to mysql time_zone_name table
         /usr/bin/mysql_tzinfo_to_sql /usr/share/zoneinfo/ | mysql -u root -p$MYSQL_ROOT_PASSWD mysql
@@ -477,12 +496,12 @@ drop database if exists db_spring;
 create database db_spring;
 create user 'spring'@'localhost' identified by 'spring';
 create user 'spring'@'127.0.0.1' identified by 'spring';
-create user 'spring'@'192.168.0.%' identified by 'spring';
-create user 'spring'@'192.168.21.%' identified by 'spring';
+create user 'spring'@'192.168.251.%' identified by 'spring';
+create user 'spring'@'192.168.252.%' identified by 'spring';
 grant all on db_spring.* to 'spring'@'localhost';
 grant all on db_spring.* to 'spring'@'127.0.0.1';
-grant all on db_spring.* to 'spring'@'192.168.0.%';
-grant all on db_spring.* to 'spring'@'192.168.21.%';
+grant all on db_spring.* to 'spring'@'192.168.251.%';
+grant all on db_spring.* to 'spring'@'192.168.252.%';
 flush privileges;
 EOF
 
@@ -492,23 +511,14 @@ EOF
 }
 
 main() {
-	# This script Only works for Ubuntu 20.04 , because there are no packages in Ubuntu 22.04 apt repo
-	# E: Unable to locate package mysql-wsrep-8.0
-	# E: Couldn't find any package by glob 'mysql-wsrep-8.0'
-	# E: Couldn't find any package by regex 'mysql-wsrep-8.0'
-
-	if [ $UBUNTU_VERSION == "focal" ] ; then
-		remove_mariadb_if_it_exists
-		install_mysql_server
-		generate_config_file
-		allow_permissions_for_apparmor
-		restart_mysql_service
-		set_mysql_root_passwd
-		setup_logrotate_config
-        	create_users_and_db_for_webapps
-	else
-		echo "this script only works on Ubuntu 20.04 (focal) , Bye! \n"
-	fi
+	remove_mariadb_if_it_exists
+	install_mysql_server
+	generate_config_file
+	allow_permissions_for_apparmor
+	set_mysql_root_passwd
+	restart_mysql_service
+	setup_logrotate_config
+       	create_users_and_db_for_webapps
 }
 
 echo -e "This script will install MySQL 8 on this host \n"
