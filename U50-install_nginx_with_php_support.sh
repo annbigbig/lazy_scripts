@@ -29,7 +29,7 @@ UNAME_M="$(/usr/bin/uname -m)"
 ###     use this command to generate your own blowfish secret then fill in parameter values below 
 ###     cat /dev/urandom | tr -dc 'a-zA-Z0-9#@!' | fold -w ${1:-32} | head -n 1
 DEPLOY_PHPMYADMIN="yes"
-PHPMYADMIN_BLOWFISH_SECRET="Sn6b1p10UyQsUGwhMIPmkJn@E0BcKu2Q"
+PHPMYADMIN_BLOWFISH_SECRET="Sn6.20UyQsUGwhMIPmkJn@E0BcKu2Q"
 PHPMYADMIN_DB_HOST="127.0.0.1"
 PHPMYADMIN_DB_PORT="3306"
 PHPMYADMIN_CONTROL_USER="pmauser"
@@ -78,7 +78,7 @@ SNMPTRAPD_LISTENING_PORT="162"
 edit_nginx_config(){
 
         # create nginx.conf
-        cat > /usr/local/nginx-1.23.3/conf/nginx.conf << "EOF"
+        cat > /usr/local/nginx-1.23.4/conf/nginx.conf << "EOF"
 user nginx nginx;
 worker_processes 2;
 pid run/nginx.pid;
@@ -130,8 +130,8 @@ log_format gzip '$remote_addr - $remote_user [$time_local]  '
 }
 EOF
         # create fastcgi.conf
-        rm -rf /usr/local/nginx-1.23.3/conf/fastcgi.conf
-        cat > /usr/local/nginx-1.23.3/conf/fastcgi.conf << "EOF"
+        rm -rf /usr/local/nginx-1.23.4/conf/fastcgi.conf
+        cat > /usr/local/nginx-1.23.4/conf/fastcgi.conf << "EOF"
 fastcgi_param  SCRIPT_FILENAME    $document_root$fastcgi_script_name;
 fastcgi_param  QUERY_STRING       $query_string;
 fastcgi_param  REQUEST_METHOD     $request_method;
@@ -155,8 +155,8 @@ fastcgi_index  index.php;
 fastcgi_param  REDIRECT_STATUS    200;
 EOF
         # create proxy.conf
-        rm -rf /usr/local/nginx-1.23.3/conf/proxy.conf
-        cat > /usr/local/nginx-1.23.3/conf/proxy.conf << "EOF"
+        rm -rf /usr/local/nginx-1.23.4/conf/proxy.conf
+        cat > /usr/local/nginx-1.23.4/conf/proxy.conf << "EOF"
 proxy_redirect          off;
 proxy_set_header        Host            $host;
 proxy_set_header        X-Real-IP       $remote_addr;
@@ -171,15 +171,15 @@ EOF
 
         if [ "$ENABLE_HTTPS" == "yes" ] ; then
         # create self-signed.conf
-	rm -rf /usr/local/nginx-1.23.3/conf/self-signed.conf
-        cat > /usr/local/nginx-1.23.3/conf/self-signed.conf << "EOF"
+	rm -rf /usr/local/nginx-1.23.4/conf/self-signed.conf
+        cat > /usr/local/nginx-1.23.4/conf/self-signed.conf << "EOF"
 ssl_certificate /etc/ssl/certs/nginx-selfsigned.crt;
 ssl_certificate_key /etc/ssl/private/nginx-selfsigned.key;
 EOF
 
         # create ssl-params.conf
-	rm -rf /usr/local/nginx-1.23.3/conf/ssl-params.conf
-	cat > /usr/local/nginx-1.23.3/conf/ssl-params.conf << "EOF"
+	rm -rf /usr/local/nginx-1.23.4/conf/ssl-params.conf
+	cat > /usr/local/nginx-1.23.4/conf/ssl-params.conf << "EOF"
 # from https://cipherli.st/
 # and https://raymii.org/s/tutorials/Strong_SSL_Security_On_nginx.html
 
@@ -205,7 +205,7 @@ EOF
         fi
 
         # create localhost.conf for 'localhost'
-        cat > /usr/local/nginx-1.23.3/conf.d/localhost.conf << "EOF"
+        cat > /usr/local/nginx-1.23.4/conf.d/localhost.conf << "EOF"
 server {
          listen 127.0.0.1:80;
          server_name localhost;
@@ -236,7 +236,7 @@ server {
 EOF
 
         # create $SERVER_FQDN.conf , this is main configuration of your website
-	MAIN_CONFIG="/usr/local/nginx-1.23.3/conf.d/$SERVER_FQDN.conf"
+	MAIN_CONFIG="/usr/local/nginx-1.23.4/conf.d/$SERVER_FQDN.conf"
         cat > $MAIN_CONFIG << "EOF"
 server {
          listen 80 default_server;
@@ -295,14 +295,14 @@ EOF
 
 #####
         # create $WORDPRESS_FQDN.conf, this is configuration file for wordpress blog.
-        cat > /usr/local/nginx-1.23.3/conf.d/$WORDPRESS_FQDN.conf << "EOF"
+        cat > /usr/local/nginx-1.23.4/conf.d/$WORDPRESS_FQDN.conf << "EOF"
 server {
          listen 80;
          server_name WORDPRESS_FQDN;
 EOF
 
 if [ "$ENABLE_HTTPS" == "yes" ] ; then
-        cat >> /usr/local/nginx-1.23.3/conf.d/$WORDPRESS_FQDN.conf << "EOF"
+        cat >> /usr/local/nginx-1.23.4/conf.d/$WORDPRESS_FQDN.conf << "EOF"
          return 301 https://$server_name$request_uri;
 }
 
@@ -314,7 +314,7 @@ server {
 EOF
 fi
 
-	cat >> /usr/local/nginx-1.23.3/conf.d/$WORDPRESS_FQDN.conf << "EOF"
+	cat >> /usr/local/nginx-1.23.4/conf.d/$WORDPRESS_FQDN.conf << "EOF"
          root /var/www/WORDPRESS_FQDN;
 
          # Logging --
@@ -333,7 +333,7 @@ fi
          }
 }
 EOF
-	sed -i -- "s|WORDPRESS_FQDN|$WORDPRESS_FQDN|g" /usr/local/nginx-1.23.3/conf.d/$WORDPRESS_FQDN.conf
+	sed -i -- "s|WORDPRESS_FQDN|$WORDPRESS_FQDN|g" /usr/local/nginx-1.23.4/conf.d/$WORDPRESS_FQDN.conf
 #####
 
         # test nginx.conf to see if syntax error exist
@@ -341,7 +341,7 @@ EOF
         [ "$CONFIG_SYNTAX_ERR" -eq 1 ] && echo 'SYNTAX ERROR in nginx.conf' || echo 'nginx.conf is GOOD'
 
 
-        chown -R nginx:nginx /usr/local/nginx-1.23.3
+        chown -R nginx:nginx /usr/local/nginx-1.23.4
 }
 
 #####################################################################################################
@@ -550,11 +550,11 @@ install_nginx() {
         rm -rf ./zlib-*
 
         # download the source tar.gz then verify their integrity
-        wget http://nginx.org/download/nginx-1.23.3.tar.gz
-        wget http://nginx.org/download/nginx-1.23.3.tar.gz.asc
-        PUBLIC_KEY_1="$(gpg nginx-1.23.3.tar.gz.asc 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
+        wget http://nginx.org/download/nginx-1.23.4.tar.gz
+        wget http://nginx.org/download/nginx-1.23.4.tar.gz.asc
+        PUBLIC_KEY_1="$(gpg nginx-1.23.4.tar.gz.asc 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
         IMPORT_KEY_RESULT_1="$(gpg --keyserver keyserver.ubuntu.com --recv-key $PUBLIC_KEY_1 2>&1 | grep 'thresh@nginx.com' | wc -l)"
-        VERIFY_SIGNATURE_RESULT_1="$(gpg ./nginx-1.23.3.tar.gz.asc 2>&1 | tr -s ' ' | grep '13C8 2A63 B603 5761 56E3 0A4E A0EA 981B 66B0 D967' | wc -l)"
+        VERIFY_SIGNATURE_RESULT_1="$(gpg ./nginx-1.23.4.tar.gz.asc 2>&1 | tr -s ' ' | grep '13C8 2A63 B603 5761 56E3 0A4E A0EA 981B 66B0 D967' | wc -l)"
         [ "$IMPORT_KEY_RESULT_1" -gt 0 ] && echo "pubkey $PUBLIC_KEY_1 imported successfuly" ||  exit 2
         [ "$VERIFY_SIGNATURE_RESULT_1" -gt 0 ] && echo "verify signature successfully" || exit 2
 
@@ -581,21 +581,21 @@ install_nginx() {
         [ "$VERIFY_SIGNATURE_RESULT_3" -gt 0 ] && echo "verify signature successfully" || exit 2
 
         # extract all of tar.gz files and configure nginx
-        tar -zxvf ./nginx-1.23.3.tar.gz
+        tar -zxvf ./nginx-1.23.4.tar.gz
         tar -zxvf ./openssl-1.1.1t.tar.gz
         tar -zxvf ./pcre-8.45.tar.gz
         tar -zxvf ./zlib-1.2.13.tar.gz
         rm -rf *.tar.gz*
 
         # change directories owner and group
-        chown -R root:root ./nginx-1.23.3
+        chown -R root:root ./nginx-1.23.4
         chown -R root:root ./openssl-1.1.1t
         chown -R root:root ./pcre-8.45
         chown -R root:root ./zlib-1.2.13
 
         # configure then make then install
-        cd ./nginx-1.23.3
-	./configure --prefix=/usr/local/nginx-1.23.3 \
+        cd ./nginx-1.23.4
+	./configure --prefix=/usr/local/nginx-1.23.4 \
                     --user=nginx \
                     --group=nginx \
                     --with-http_v2_module \
@@ -616,15 +616,15 @@ install_nginx() {
         rm -rf ./zlib-*
 
         # backup default nginx.conf
-        if [ -f /usr/local/nginx-1.23.3/conf/nginx.conf.default ]; then
-           rm -rf /usr/local/nginx-1.23.3/conf/nginx.conf
+        if [ -f /usr/local/nginx-1.23.4/conf/nginx.conf.default ]; then
+           rm -rf /usr/local/nginx-1.23.4/conf/nginx.conf
         else
-           mv /usr/local/nginx-1.23.3/conf/nginx.conf /usr/local/nginx-1.23.3/conf/nginx.conf.default
+           mv /usr/local/nginx-1.23.4/conf/nginx.conf /usr/local/nginx-1.23.4/conf/nginx.conf.default
         fi
 
         # create sub-directories
-        mkdir /usr/local/nginx-1.23.3/conf.d/
-        mkdir /usr/local/nginx-1.23.3/run/
+        mkdir /usr/local/nginx-1.23.4/conf.d/
+        mkdir /usr/local/nginx-1.23.4/run/
 
         # create systemd unit file for nginx.service
         cat > /lib/systemd/system/nginx.service << "EOF"
@@ -982,14 +982,14 @@ install_phpfpm82() {
         rm -rf ./php-*
 
         # download the source tar.gz, extract it then configure it
-        wget -O php-8.2.3.tar.gz https://www.php.net/distributions/php-8.2.3.tar.gz
-        SHA256SUM_SHOULD_BE="7c475bcbe61d28b6878604b1b6f387f39d1a63b5f21fa8156fd7aa615d43e259"
-        SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./php-8.2.3.tar.gz | cut -d " " -f 1)"
+        wget -O php-8.2.5.tar.gz https://www.php.net/distributions/php-8.2.5.tar.gz
+        SHA256SUM_SHOULD_BE="8974dea2507155471660b13a0bcbdc165ac778eeb845a7dbd65d5ffb92738c0a"
+        SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./php-8.2.5.tar.gz | cut -d " " -f 1)"
         [ "$SHA256SUM_SHOULD_BE" != "$SHA256SUM_COMPUTED" ] && echo "oops...sha256 checksum doesnt match." && exit 2 || echo "sha256 checksum matched."
-        tar zxvf ./php-8.2.3.tar.gz
-        chown -R root:root ./php-8.2.3
-        rm -rf ./php-8.2.3.tar.gz
-        cd ./php-8.2.3
+        tar zxvf ./php-8.2.5.tar.gz
+        chown -R root:root ./php-8.2.5
+        rm -rf ./php-8.2.5.tar.gz
+        cd ./php-8.2.5
 	
                     #--enable-opcache                  \
                     #--enable-wddx                     \
@@ -998,7 +998,7 @@ install_phpfpm82() {
                     #--with-iconv                      \
                     #--enable-gd-native-ttf            \
                     #--enable-zip                      \
-        ./configure --prefix=/usr/local/php-8.2.3     \
+        ./configure --prefix=/usr/local/php-8.2.5     \
                     --enable-fpm                      \
                     --with-fpm-user=nginx             \
                     --with-fpm-group=nginx            \
@@ -1040,41 +1040,41 @@ install_phpfpm82() {
 	#make test
 	make install
 
-        cp /usr/local/src/php-8.2.3/php.ini-production /usr/local/php-8.2.3/lib/php.ini
-        cp /usr/local/php-8.2.3/etc/php-fpm.conf.default /usr/local/php-8.2.3/etc/php-fpm.conf
+        cp /usr/local/src/php-8.2.5/php.ini-production /usr/local/php-8.2.5/lib/php.ini
+        cp /usr/local/php-8.2.5/etc/php-fpm.conf.default /usr/local/php-8.2.5/etc/php-fpm.conf
 
         # php.ini setting
-        sed -i -- "/\[opcache\]/a zend_extension=/usr/local/php-8.2.3/lib/php/extensions/no-debug-non-zts-20220829/opcache.so" /usr/local/php-8.2.3/lib/php.ini
-        sed -i -- "s|;opcache.enable=1|opcache.enable=1|g" /usr/local/php-8.2.3/lib/php.ini
-        sed -i -- "s|;opcache.enable_cli=0|opcache.enable_cli=1|g" /usr/local/php-8.2.3/lib/php.ini
-        sed -i -- "s|;opcache.memory_consumption=128|opcache.memory_consumption=128|g" /usr/local/php-8.2.3/lib/php.ini
-        sed -i -- "s|;opcache.interned_strings_buffer=8|opcache.interned_strings_buffer=8|g" /usr/local/php-8.2.3/lib/php.ini
-        sed -i -- "s|;opcache.max_accelerated_files=10000|opcache.max_accelerated_files=10000|g" /usr/local/php-8.2.3/lib/php.ini
-        sed -i -- "s|;opcache.use_cwd=1|opcache.use_cwd=0|g" /usr/local/php-8.2.3/lib/php.ini
-        sed -i -- "s|;opcache.validate_timestamps=1|opcache.validate_timestamps=0|g" /usr/local/php-8.2.3/lib/php.ini
-        sed -i -- "s|;opcache.save_comments=1|opcache.save_comments=0|g" /usr/local/php-8.2.3/lib/php.ini
-        sed -i -- "s|;opcache.enable_file_override=0|opcache.enable_file_override=1|g" /usr/local/php-8.2.3/lib/php.ini
-        sed -i -- 's/.*;date.timezone =.*/date.timezone = \"Asia\/Taipei\"/g' /usr/local/php-8.2.3/lib/php.ini
-        echo "safe_mode = Off" >> /usr/local/php-8.2.3/lib/php.ini
-        sed -i -- 's|memory_limit = 128M|memory_limit = 512M|g' /usr/local/php-8.2.3/lib/php.ini
-        sed -i -- 's|max_execution_time = 30|max_execution_time = 60|g' /usr/local/php-8.2.3/lib/php.ini
+        sed -i -- "/\[opcache\]/a zend_extension=/usr/local/php-8.2.5/lib/php/extensions/no-debug-non-zts-20220829/opcache.so" /usr/local/php-8.2.5/lib/php.ini
+        sed -i -- "s|;opcache.enable=1|opcache.enable=1|g" /usr/local/php-8.2.5/lib/php.ini
+        sed -i -- "s|;opcache.enable_cli=0|opcache.enable_cli=1|g" /usr/local/php-8.2.5/lib/php.ini
+        sed -i -- "s|;opcache.memory_consumption=128|opcache.memory_consumption=128|g" /usr/local/php-8.2.5/lib/php.ini
+        sed -i -- "s|;opcache.interned_strings_buffer=8|opcache.interned_strings_buffer=8|g" /usr/local/php-8.2.5/lib/php.ini
+        sed -i -- "s|;opcache.max_accelerated_files=10000|opcache.max_accelerated_files=10000|g" /usr/local/php-8.2.5/lib/php.ini
+        sed -i -- "s|;opcache.use_cwd=1|opcache.use_cwd=0|g" /usr/local/php-8.2.5/lib/php.ini
+        sed -i -- "s|;opcache.validate_timestamps=1|opcache.validate_timestamps=0|g" /usr/local/php-8.2.5/lib/php.ini
+        sed -i -- "s|;opcache.save_comments=1|opcache.save_comments=0|g" /usr/local/php-8.2.5/lib/php.ini
+        sed -i -- "s|;opcache.enable_file_override=0|opcache.enable_file_override=1|g" /usr/local/php-8.2.5/lib/php.ini
+        sed -i -- 's/.*;date.timezone =.*/date.timezone = \"Asia\/Taipei\"/g' /usr/local/php-8.2.5/lib/php.ini
+        echo "safe_mode = Off" >> /usr/local/php-8.2.5/lib/php.ini
+        sed -i -- 's|memory_limit = 128M|memory_limit = 512M|g' /usr/local/php-8.2.5/lib/php.ini
+        sed -i -- 's|max_execution_time = 30|max_execution_time = 60|g' /usr/local/php-8.2.5/lib/php.ini
 
         # php-fpm.conf setting
-        sed -i -- '/^include/s/include/;include/' /usr/local/php-8.2.3/etc/php-fpm.conf
-        sed -i -- 's|;pid = run/php-fpm.pid|pid = run/php-fpm.pid|g' /usr/local/php-8.2.3/etc/php-fpm.conf
-        echo "[www]" >> /usr/local/php-8.2.3/etc/php-fpm.conf
-        echo "listen = /usr/local/php-8.2.3/var/run/php-fpm.sock" >> /usr/local/php-8.2.3/etc/php-fpm.conf
-        echo "listen.backlog = -1" >> /usr/local/php-8.2.3/etc/php-fpm.conf
-        echo "listen.owner = nginx" >> /usr/local/php-8.2.3/etc/php-fpm.conf
-        echo "listen.group = nginx" >> /usr/local/php-8.2.3/etc/php-fpm.conf
-        echo "listen.mode=0660" >> /usr/local/php-8.2.3/etc/php-fpm.conf
-        echo "user = nginx" >> /usr/local/php-8.2.3/etc/php-fpm.conf
-        echo "group = nginx" >> /usr/local/php-8.2.3/etc/php-fpm.conf
-        echo "pm = dynamic" >> /usr/local/php-8.2.3/etc/php-fpm.conf
-        echo "pm.max_children = 20" >> /usr/local/php-8.2.3/etc/php-fpm.conf
-        echo "pm.start_servers = 10" >> /usr/local/php-8.2.3/etc/php-fpm.conf
-        echo "pm.min_spare_servers = 5" >> /usr/local/php-8.2.3/etc/php-fpm.conf
-        echo "pm.max_spare_servers = 20" >> /usr/local/php-8.2.3/etc/php-fpm.conf
+        sed -i -- '/^include/s/include/;include/' /usr/local/php-8.2.5/etc/php-fpm.conf
+        sed -i -- 's|;pid = run/php-fpm.pid|pid = run/php-fpm.pid|g' /usr/local/php-8.2.5/etc/php-fpm.conf
+        echo "[www]" >> /usr/local/php-8.2.5/etc/php-fpm.conf
+        echo "listen = /usr/local/php-8.2.5/var/run/php-fpm.sock" >> /usr/local/php-8.2.5/etc/php-fpm.conf
+        echo "listen.backlog = -1" >> /usr/local/php-8.2.5/etc/php-fpm.conf
+        echo "listen.owner = nginx" >> /usr/local/php-8.2.5/etc/php-fpm.conf
+        echo "listen.group = nginx" >> /usr/local/php-8.2.5/etc/php-fpm.conf
+        echo "listen.mode=0660" >> /usr/local/php-8.2.5/etc/php-fpm.conf
+        echo "user = nginx" >> /usr/local/php-8.2.5/etc/php-fpm.conf
+        echo "group = nginx" >> /usr/local/php-8.2.5/etc/php-fpm.conf
+        echo "pm = dynamic" >> /usr/local/php-8.2.5/etc/php-fpm.conf
+        echo "pm.max_children = 20" >> /usr/local/php-8.2.5/etc/php-fpm.conf
+        echo "pm.start_servers = 10" >> /usr/local/php-8.2.5/etc/php-fpm.conf
+        echo "pm.min_spare_servers = 5" >> /usr/local/php-8.2.5/etc/php-fpm.conf
+        echo "pm.max_spare_servers = 20" >> /usr/local/php-8.2.5/etc/php-fpm.conf
 
         # setup logrotate
 cat > /etc/logrotate.d/php-fpm << EOF
@@ -1104,14 +1104,14 @@ WantedBy=multi-user.target
 EOF
 
         # set files/directories owner and group
-        chown -R nginx:nginx /usr/local/php-8.2.3
+        chown -R nginx:nginx /usr/local/php-8.2.5
         chown root:root /etc/logrotate.d/php-fpm
         chmod 644 /etc/logrotate.d/php-fpm
         chown root:root /lib/systemd/system/php8.2-fpm.service
         chmod 644 /lib/systemd/system/php8.2-fpm.service
 
 	# change multiple php binaries priority
-	update-alternatives --install /usr/bin/php php /usr/local/php-8.2.3/bin/php 99
+	update-alternatives --install /usr/bin/php php /usr/local/php-8.2.5/bin/php 99
 	update-alternatives --display php
 	# if u wanna set priority manually , use this command:
 	# update-alternatives --config php
@@ -1129,13 +1129,13 @@ install_php-memcached() {
 	if [[ $OPENSSL_VERSION = 3* ]]
 	then
         	echo -e "OpenSSL Verison Start with 3 , maybe Ubuntu 22.04 LTS \n"
-        	/usr/local/php-8.2.3/bin/phpize
-        	./configure --disable-memcached-sasl --with-php-config=/usr/local/php-8.2.3/bin/php-config
+        	/usr/local/php-8.2.5/bin/phpize
+        	./configure --disable-memcached-sasl --with-php-config=/usr/local/php-8.2.5/bin/php-config
         	make && make install
-        	chown nginx:nginx /usr/local/php-8.2.3/lib/php/extensions/no-debug-non-zts-20220829//memcached.so
-        	echo 'extension=/usr/local/php-8.2.3/lib/php/extensions/no-debug-non-zts-20220829//memcached.so' >> /usr/local/php-8.2.3/lib/php.ini
-        	sed -i -- 's|session.save_handler = files|session.save_handler = memcached|g' /usr/local/php-8.2.3/lib/php.ini
-        	sed -i -- "s|;session.save_path = \"/tmp\"|session.save_path = \"$SESSION_SAVE_PATH\"|g" /usr/local/php-8.2.3/lib/php.ini
+        	chown nginx:nginx /usr/local/php-8.2.5/lib/php/extensions/no-debug-non-zts-20220829//memcached.so
+        	echo 'extension=/usr/local/php-8.2.5/lib/php/extensions/no-debug-non-zts-20220829//memcached.so' >> /usr/local/php-8.2.5/lib/php.ini
+        	sed -i -- 's|session.save_handler = files|session.save_handler = memcached|g' /usr/local/php-8.2.5/lib/php.ini
+        	sed -i -- "s|;session.save_path = \"/tmp\"|session.save_path = \"$SESSION_SAVE_PATH\"|g" /usr/local/php-8.2.5/lib/php.ini
 	else
         	echo -e "OpenSSL Not Start with 3 , maybe Ubuntu 20.04 LTS \n"
         	/usr/local/php-7.4.33/bin/phpize
@@ -1198,14 +1198,16 @@ deploy_wordpress() {
         [ "$DEPLOY_WORDPRESS" != "yes" -o -z "$WORDPRESS_FQDN" ] && echo "skip wordpress deployment." && return || echo "deploy wordpress ---> yes"
         [ -f "/var/www/$WORDPRESS_FQDN/wp-config.php" ] && echo "seems like wordpress already installed." && return || echo "ready to deploy wordpress"
         cd /var/www/$WORDPRESS_FQDN/
-        wget https://wordpress.org/wordpress-6.1.1.tar.gz.md5
-        wget https://wordpress.org/wordpress-6.1.1.tar.gz
-        MD5SUM_IN_FILE="$(cat ./wordpress-6.1.1.tar.gz.md5)"
-        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./wordpress-6.1.1.tar.gz | cut -d " " -f 1)"
+	wget wget https://wordpress.org/wordpress-6.2.tar.gz.md5
+	wget https://wordpress.org/wordpress-6.2.tar.gz
+        wget https://wordpress.org/wordpress-6.2.tar.gz.md5
+        wget https://wordpress.org/wordpress-6.2.tar.gz
+        MD5SUM_IN_FILE="$(cat ./wordpress-6.2.tar.gz.md5)"
+        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./wordpress-6.2.tar.gz | cut -d " " -f 1)"
         [ "$MD5SUM_IN_FILE" != "$MD5SUM_COMPUTED" ] && echo "oops...md5 checksum doesnt match." && exit 2 || echo "md5 checksum matched."
-        tar zxvf ./wordpress-6.1.1.tar.gz
+        tar zxvf ./wordpress-6.2.tar.gz
 	mv ./wordpress/* /var/www/$WORDPRESS_FQDN/
-        rm -rf ./wordpress-6.1.1.tar.gz*
+        rm -rf ./wordpress-6.2.tar.gz*
 	rm -rf ./wordpress/
 # Hint: salt hash must the same at every backend nodes
         cat > wp-config.php << "EOF"
@@ -1377,23 +1379,20 @@ start_systemd_service() {
         if [ -L /usr/local/nginx ] && [ -d /usr/local/nginx ]; then
              rm -rf /usr/local/nginx
         fi
-        ln -s /usr/local/nginx-1.23.3 /usr/local/nginx
+        ln -s /usr/local/nginx-1.23.4 /usr/local/nginx
         systemctl enable nginx.service
         systemctl start nginx.service
         systemctl status nginx.service
 
         # start php-fpm and make it as autostart service
-	# if /usr/local/php is a symbolic link , delete it
-        if [ -L /usr/local/php ] && [ -d /usr/local/php ]; then
-             rm -rf /usr/local/php
-        fi
         OLD_PHPFPM_PROCESS_EXISTED="$(netstat -anp | grep php-fpm | wc -l)"
 	if [[ $OPENSSL_VERSION = 3* ]]
 	then
 	        if [ "$OLD_PHPFPM_PROCESS_EXISTED" -gt 0 ]; then
 			systemctl stop php8.2-fpm.service
 		fi
-	        ln -s /usr/local/php-8.2.3 /usr/local/php
+             	rm -rf /usr/local/php
+	        ln -s /usr/local/php-8.2.5 /usr/local/php
 		systemctl enable php8.2-fpm.service
 		systemctl start php8.2-fpm.service
 		systemctl status php8.2-fpm.service
@@ -1401,6 +1400,7 @@ start_systemd_service() {
 		if [ "$OLD_PHPFPM_PROCESS_EXISTED" -gt 0 ]; then	
 			systemctl stop php7.4-fpm.service
 	     	fi
+             	rm -rf /usr/local/php
 	        ln -s /usr/local/php-7.4.33 /usr/local/php
 		systemctl enable php7.4-fpm.service
 		systemctl start php7.4-fpm.service

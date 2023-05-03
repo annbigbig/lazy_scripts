@@ -14,6 +14,7 @@ SERVER_ID_MANUAL=""                                                  # server id
 # no need to setup below , script will know it and use them automatically for u
 WIRED_INTERFACE_NAME="$(ip link show | grep '2:' | cut -d ':' -f 2 | sed 's/^ *//g')"
 SERVER_ID_AUTO="$(/sbin/ifconfig $WIRED_INTERFACE_NAME | grep -v 'inet6' | grep 'inet' | tr -s ' ' | cut -d ' ' -f 3 | cut -d ':' -f 2 | cut -d '.' -f 4)"
+UBUNTU_CODENAME="$(cat /etc/lsb-release | grep -i codename | cut -d '=' -f 2)"
 #########################################################################################################################################
 # *** SPECIAL THANKS ***
 # install mariadb 10.3/10.4 on Ubuntu 20.04 LTS
@@ -73,7 +74,7 @@ install_mariadb_server() {
 	apt-get install -y libblockdev-crypto2 libblockdev-mdraid2
 	apt-get install -y software-properties-common dirmngr ca-certificates apt-transport-https curl
 	curl -o /etc/apt/trusted.gpg.d/mariadb_release_signing_key.asc 'https://mariadb.org/mariadb_release_signing_key.asc'
-	sh -c "echo 'deb https://tw1.mirror.blendbyte.net/mariadb/repo/10.9/ubuntu jammy main' >>/etc/apt/sources.list"
+	sh -c "echo 'deb https://tw1.mirror.blendbyte.net/mariadb/repo/10.9/ubuntu $UBUNTU_CODENAME main' >>/etc/apt/sources.list"
 	apt-get install -y mariadb-server mariadb-client
         echo -e "done"
 }
