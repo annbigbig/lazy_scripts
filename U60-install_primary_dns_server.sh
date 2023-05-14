@@ -12,7 +12,7 @@ THIRD_OCTET="251"
 #
 TRUSTED_LOCAL_SUBNET="192.168.251.0/24"
 TRUSTED_VPN_SUBNET="192.168.252.0/24"
-SECONDARY_DNS_IP_ADDRESS="203.77.68.56"
+SECONDARY_DNS_IP_ADDRESS="203.77.222.222"
 #
 # dont forget suffix dot . if you write a FQDN for NS/MX/A/PTR record
 # each column is seperated by space
@@ -22,20 +22,20 @@ NS sanzi.dq5rocks.com.
 MX mail.dq5rocks.com. 10
 CNAME ns1 tamsui
 CNAME ns2 sanzi
-A dq5rocks.com. 49.159.105.221
-A dq5rocks.com. 203.77.68.56
+A dq5rocks.com. 49.159.111.111
+A dq5rocks.com. 203.77.222.222
 A vhost91.dq5rocks.com. 192.168.251.91
 A vhost92.dq5rocks.com. 192.168.251.92
-A tamsui.dq5rocks.com. 49.159.105.221
-A sanzi.dq5rocks.com. 203.77.68.56
-A www.dq5rocks.com. 49.159.105.221
-A blog.dq5rocks.com. 49.159.105.221
+A tamsui.dq5rocks.com. 49.159.111.111
+A sanzi.dq5rocks.com. 203.77.222.222
+A www.dq5rocks.com. 49.159.111.111
+A blog.dq5rocks.com. 49.159.111.111
 A mysql.dq5rocks.com. 192.168.251.100
 A elastic.dq5rocks.com. 192.168.251.101
 A api.dq5rocks.com. 192.168.251.111
 A api.dq5rocks.com. 192.168.251.112
 A api.dq5rocks.com. 192.168.251.113
-A mail.dq5rocks.com. 49.159.105.221
+A mail.dq5rocks.com. 49.159.111.111
 PTR 100 mysql.dq5rocks.com.
 PTR 101 elastic.dq5rocks.com.
 PTR 111 api.dq5rocks.com.

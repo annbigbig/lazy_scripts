@@ -6,7 +6,8 @@
 ########################################################################################################
 OS_TYPE="Server"                        # only two values could work well 'Desktop' or 'Server'
 LAN="192.168.251.0/24"                  # The local network that you allow packets come in from there
-VPN="10.8.0.0/24"                       # The VPN network that you allow packets come in from there
+OPENVPN_NETWORK="10.8.0.0/24"           # The OpenVPN network that you allow packets come in from there
+IKEV2VPN_NETWORK="10.10.10.0/24"        # The IKEv2VPN network that you allow packets come in from there
 MY_TIMEZONE="Asia/Taipei"               # The timezone that you specify for this VPS node
 ADD_SWAP="yes"                          # Do u need swap space ? fill in 'yes' or 'YES' will add swap for u
 YOUR_VNC_PASSWORD="vnc"                 # set your vnc password here
@@ -158,23 +159,29 @@ iptables=/sbin/iptables
 loopback=127.0.0.1
 local="\$(/sbin/ip addr show $WIRED_INTERFACE_NAME | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
 if [ $OS_TYPE == "Server" ] || [ $OS_TYPE == "server" ] || [ $OS_TYPE == "SERVER" ] ; then
-	local="\$(/sbin/ip addr show eth0 | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
+	local="\$(/sbin/ip addr show $WIRED_INTERFACE_NAME | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
 fi
 #local=192.168.251.91
 lan=$LAN
-vpn=$VPN
+vpn1=$OPENVPN_NETWORK
+vpn2=$IKEV2VPN_NETWORK
 # =================================================================================================
 if [ -n \$local ] ; then
   \$iptables -t nat -F
-  \$iptables -t nat -A POSTROUTING -s \$vpn -o $WIRED_INTERFACE_NAME -j MASQUERADE
+  \$iptables -t nat -A POSTROUTING -s \$vpn1 -o $WIRED_INTERFACE_NAME -j MASQUERADE
+  \$iptables -t nat -A POSTROUTING -s \$vpn2 -o $WIRED_INTERFACE_NAME -m policy --pol ipsec --dir out -j ACCEPT
+  \$iptables -t nat -A POSTROUTING -s \$vpn2 -o $WIRED_INTERFACE_NAME -j MASQUERADE
   \$iptables -t filter -F
   \$iptables -t filter -A INPUT -i lo -s \$loopback -d \$loopback -p all -j ACCEPT
   \$iptables -t filter -A INPUT -s \$local -d \$local -p all -j ACCEPT
   \$iptables -t filter -A INPUT -s \$lan -d \$local -p all -j ACCEPT
-  \$iptables -t filter -A INPUT -s \$vpn -d \$local -p all -j ACCEPT
+  \$iptables -t filter -A INPUT -s \$vpn1 -d \$local -p all -j ACCEPT
+  \$iptables -t filter -A INPUT -s \$vpn2 -d \$local -p all -j ACCEPT
   \$iptables -t filter -A INPUT -p udp --dport 53 -j ACCEPT
   \$iptables -t filter -A INPUT -i tun0 -j ACCEPT
   \$iptables -t filter -A INPUT -i $WIRED_INTERFACE_NAME -p udp --dport 1194 -j ACCEPT
+  \$iptables -t filter -A INPUT -i $WIRED_INTERFACE_NAME -p udp --dport 500 -j ACCEPT
+  \$iptables -t filter -A INPUT -i $WIRED_INTERFACE_NAME -p udp --dport 4500 -j ACCEPT
   \$iptables -t filter -A INPUT -d \$local -p tcp --dport 36000 --syn -m state --state NEW -m limit --limit 10/s --limit-burst 5 -j ACCEPT
   \$iptables -t filter -A INPUT -d \$local -p tcp --dport 36000 --syn -m state --state NEW -j DROP
   \$iptables -t filter -A INPUT -d \$local -p tcp --dport 25 --syn -m state --state NEW -m limit --limit 20/s --limit-burst 10 -j ACCEPT
@@ -186,14 +193,20 @@ if [ -n \$local ] ; then
   \$iptables -t filter -A INPUT -d \$local -p tcp --dport 443 --syn -m state --state NEW -m limit --limit 300/s --limit-burst 10 -j ACCEPT
   \$iptables -t filter -A INPUT -d \$local -p tcp --dport 443 --syn -m state --state NEW -j DROP
   \$iptables -t filter -A INPUT -s \$lan -d \$local -p icmp -j ACCEPT
-  \$iptables -t filter -A INPUT -s \$vpn -d \$local -p icmp -j ACCEPT
+  \$iptables -t filter -A INPUT -s \$vpn1 -d \$local -p icmp -j ACCEPT
+  \$iptables -t filter -A INPUT -s \$vpn2 -d \$local -p icmp -j ACCEPT
   \$iptables -t filter -A INPUT -p icmp --icmp-type 8 -m limit --limit 10/s --limit-burst 5 -j ACCEPT
   \$iptables -t filter -A INPUT -p icmp --icmp-type 8 -j DROP
   \$iptables -t filter -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
   \$iptables -t filter -P INPUT DROP
   \$iptables -t filter -A FORWARD -i $WIRED_INTERFACE_NAME -o tun0 -j ACCEPT
   \$iptables -t filter -A FORWARD -i tun0 -o $WIRED_INTERFACE_NAME -j ACCEPT
+  \$iptables -t filter -A FORWARD --match policy --pol ipsec --dir in  --proto esp -s \$vpn2 -j ACCEPT
+  \$iptables -t filter -A FORWARD --match policy --pol ipsec --dir out  --proto esp -s \$vpn2 -j ACCEPT
+  \$iptables -t mangle -A FORWARD --match policy --pol ipsec --dir in -s \$vpn2 -o $WIRED_INTERFACE_NAME -p tcp -m tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1361:1536 -j TCPMSS --set-mss 1360
+  \$iptables -t nat -L -n --line-number
   \$iptables -t filter -L -n --line-number
+  \$iptables -t mangle -L -n --line-number
 fi
 # =================================================================================================
 EOF
