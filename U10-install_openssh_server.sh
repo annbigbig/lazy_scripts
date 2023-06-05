@@ -15,6 +15,21 @@ PUBLIC_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCeAV+ikReUS2tJtgTmCUYNm3pTxnBo
 #
 AUTHORIZED_USER="labasky"
 #
+# SFTP user list , username and password seperated by a space
+SFTP_GROUP="sftpusers"
+read -r -d '' USER_CREDENTIALS << EOV
+internal.user P@55w0rd12345679
+public.user P@55w0rd12345679
+tony.stark P@55w0rd12345679
+peter.parker P@55w0rd12345679
+bruce.banner P@55w0rd12345679
+stephen.strange P@55w0rd12345679
+EOV
+###############################################################################################
+# Useful Links:
+# https://www.golinuxcloud.com/sftp-chroot-restrict-user-specific-directory/
+# https://www.freecodecamp.org/news/linux-how-to-add-users-and-create-users-with-useradd/
+# https://www.systutorials.com/changing-linux-users-password-in-one-command-line/
 ###############################################################################################
 
 say_goodbye() {
@@ -81,10 +96,71 @@ append_public_key() {
 	fi
 }
 
+create_sftp_users() {
+	# create group for sftpusers
+	groupadd $SFTP_GROUP
+	
+	# configure /etc/ssh/sshd_config
+	SSHD_CONFIG="/etc/ssh/sshd_config"
+		cat >> $SSHD_CONFIG << EOF
+
+# sftp chroot jail settings for public.user
+Match Group public.user
+        ChrootDirectory /opt/sftp-jails
+        X11Forwarding no
+        AllowTcpForwarding no
+        PermitTunnel no
+        AllowAgentForwarding no
+        ForceCommand internal-sftp
+
+# sftp chroot jail settings for sftp group
+Match Group $SFTP_GROUP
+        ChrootDirectory /opt/sftp-jails
+        X11Forwarding no
+        AllowTcpForwarding no
+        PermitTunnel no
+        AllowAgentForwarding no
+        ForceCommand internal-sftp
+EOF
+	# create sftp users
+        while read -r line; do
+                _USERNAME="$(/bin/echo $line | cut -d ' ' -f 1)"
+                _PASSWORD="$(/bin/echo $line | cut -d ' ' -f 2)"
+		useradd -m -s /bin/false $_USERNAME
+		echo -e "$_PASSWORD\n$_PASSWORD" | passwd $_USERNAME
+		[ $_USERNAME != "public.user" ] && usermod -g $SFTP_GROUP $_USERNAME || echo "do nothing , dont let public.user add to $SFTP_GROUP"
+		sudo mkdir -p /opt/sftp-jails/$_USERNAME
+		if [ $_USERNAME == "internal.user" ] || [ $_USERNAME == "public.user" ] ; then
+			sudo chown $_USERNAME:$SFTP_GROUP /opt/sftp-jails/$_USERNAME
+			sudo chmod 770 /opt/sftp-jails/$_USERNAME
+		else
+		       	sudo chown $_USERNAME:root /opt/sftp-jails/$_USERNAME
+			sudo chmod 700 /opt/sftp-jails/$_USERNAME 
+		fi
+        done <<< "$USER_CREDENTIALS"
+
+	# restart ssh service
+	systemctl restart ssh
+	systemctl status ssh
+}
+
+clear_public_dir_everyday() {
+	# clear everything in dir /opt/sftp-jails/public.user everyday
+	CLEAR_SCRIPT_CRON_FILE="/etc/cron.daily/clear_public_dir.sh"
+	cat > $CLEAR_SCRIPT_CRON_FILE << EOF
+#!/bin/sh
+/usr/bin/rm -rf /opt/sftp-jails/public.user/*
+EOF
+	sudo chown root:root $CLEAR_SCRIPT_CRON_FILE
+	sudo chmod 755 $CLEAR_SCRIPT_CRON_FILE
+}	
+
 main() {
 	install_openssh_server
         change_sshd_settings
         append_public_key
+	create_sftp_users
+	clear_public_dir_everyday
 	echo -e "now you can connect to your SSH service .\n"
 	echo -e "with the following command:\n"
 	WIRED_INTERFACE_NAME="$(ip link show | grep '2:' | cut -d ':' -f 2 | sed 's/^ *//g')"

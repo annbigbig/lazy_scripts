@@ -23,6 +23,7 @@
 ├───U50-install_nginx_with_php_support.sh
 ├───U60-install_primary_dns_server.sh
 ├───U61-install_secondary_dns_server.sh
+├───U70-install_modoboa_mail_server.sh
 ├───U80-install_netdata.sh
 ├───U81-install_snort.sh
 ├───U91-openvpn_ca_operations.sh
@@ -38,7 +39,7 @@
 |  檔名 | 主線任務  | 優先等級 (數字愈小愈優先) | 必要性 |
 |--------|---------------|-------|-------|
 |  U00-optimize_ubuntu.sh | 優化剛安裝完成的Ubuntu系統，像是更新/安裝必要軟體/調整時區/防火牆設定/降級GCC編譯器...  | 0 | 是 |
-|  U10-install_openssh_server.sh | 安裝/配置SSH服務  | 10 | 是 |
+|  U10-install_openssh_server.sh | 安裝/配置SSH服務，SFTP chroot jail 環境配置  | 10 | 是 |
 |  U20-install_memcached_server.sh | 安裝/配置Memcached服務  | 20 | 否(可選) |
 |  U30-install_mariadb_server.sh | 安裝/配置Mariadb服務（單一節點或是Galera Cluster)  | 30 | 否(可選) |
 |  U35_install_mysql_server.sh | 安裝/配置MySQL服務（單一節點或是Galera Cluster)  | 35 | 否(可選) |
@@ -46,6 +47,7 @@
 |  U50-install_nginx_with_php_support.sh | 安裝/配置Nginx+PHPFPM服務  | 50 | 否(可選) |
 |  U60-install_primary_dns_server.sh | 安裝DNS服務，配置為DNS Master  | 60 | 否(可選) |
 |  U61-install_secondary_dns_server.sh | 安裝DNS服務，配置為DNS Slave  | 61 | 否(可選) |
+|  U70-install_modoboa_mail_server.sh | 安裝Modoboa (MailServer)  | 70 | 否(可選) |
 |  U80-install_netdata.sh | 安裝/配置Netdata服務  | 80 | 否(可選) |
 |  U81-install_snort.sh | 安裝/配置Snort3 (入侵檢測軟體)  | 81 | 否(可選) |
 |  U91-openvpn_ca_operations.sh | 安裝/配置OpenVPN Certificate Authority  | 91 | 否(可選) |

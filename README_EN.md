@@ -23,6 +23,7 @@ This project is a collection of many Shell Script files. Shell Script is also kn
 ├───U50-install_nginx_with_php_support.sh
 ├───U60-install_primary_dns_server.sh
 ├───U61-install_secondary_dns_server.sh
+├───U70-install_modoboa_mail_server.sh
 ├───U80-install_netdata.sh
 ├───U81-install_snort.sh
 ├───U91-openvpn_ca_operations.sh
@@ -38,7 +39,7 @@ Take the file U00-optimize_ubuntu.sh as an example. The beginning of U means tha
 | File name | Main task | Priority level (the smaller the number, the higher priority) | Necessity |
 |--------|---------------|-------|-------|
 |  U00-optimize_ubuntu.sh | Optimize the newly installed Ubuntu system, such as updating/installing necessary software/adjusting time zone/firewall settings/downgrading GCC compiler...  | 0 | yes |
-|  U10-install_openssh_server.sh | Install/configure SSH service  | 10 | yes |
+|  U10-install_openssh_server.sh | Install/configure SSH service , SFTP chroot jail | 10 | yes |
 |  U20-install_memcached_server.sh | Install/configure Memcached service  | 20 | no (optional) |
 |  U30-install_mariadb_server.sh | Install/configure Mariadb service (single node or Galera Cluster)  | 30 | no (optional) |
 |  U35_install_mysql_server.sh | Install/configure MySQL service (single node or Galera Cluster)  | 35 | no (optional) |
@@ -46,6 +47,7 @@ Take the file U00-optimize_ubuntu.sh as an example. The beginning of U means tha
 |  U50-install_nginx_with_php_support.sh | Install/configure Nginx+PHPFPM service  | 50 | no (optional) |
 |  U60-install_primary_dns_server.sh | Install the DNS service and configure it as DNS Master  | 60 | no (optional) |
 |  U61-install_secondary_dns_server.sh | Install DNS service and configure it as DNS Slave  | 61 | no (optional) |
+|  U70-install_modoboa_mail_server.sh | Install Modoboa (Mail Server) | 70 | no (optional) |
 |  U80-install_netdata.sh | Install/configure Netdata service  | 80 | no (optional) |
 |  U81-install_snort.sh | Install/Configure Snort3 (Intrusion Detection Software) | 81 | no (optional) |
 |  U91-openvpn_ca_operations.sh | Install/Configure OpenVPN Certificate Authority | 91 | no (optional) |
