@@ -11,13 +11,10 @@ IKEV2VPN_NETWORK="10.10.10.0/24"        # The IKEv2VPN network that you allow pa
 MY_TIMEZONE="Asia/Taipei"               # The timezone that you specify for this VPS node
 ADD_SWAP="yes"                          # Do u need swap space ? fill in 'yes' or 'YES' will add swap for u
 YOUR_VNC_PASSWORD="vnc"                 # set your vnc password here
-IP_PROTOCOL="dhcp"                      # possible values ('dhcp' or 'staic') ; how do u get ipv4 address?
-ADDRESS="192.168.251.91"                # fill in ipv4 address (such as 192.168.251.96) if u use static ip
-NETMASK="255.255.255.0"                 # fill in ipv4 netmask (such as 255.255.255.0) if u use static ip
-GATEWAY="192.168.251.1"                 # fill in ipv4 gateway (such as 192.168.251.1) if u use static ip
 ########################################################################################################
 # no need to setup below , script will know it and use it automatically for u 
-WIRED_INTERFACE_NAME="$(ip link show | grep '2:' | cut -d ':' -f 2 | sed 's/^ *//g')"
+WIRED_INTERFACE_NAME="$(ip link show | grep '2:' | cut -d ':' -f 2 | sed 's/^ *//g' | head -1)"
+OS_TYPE="$(echo $OS_TYPE | tr '[:lower:]' '[:upper:]')"
 ########################################################################################################
 # useful links: 
 # https://www.tecmint.com/set-permanent-dns-nameservers-in-ubuntu-debian/
@@ -26,7 +23,7 @@ WIRED_INTERFACE_NAME="$(ip link show | grep '2:' | cut -d ':' -f 2 | sed 's/^ */
 # https://linuxhint.com/update-resolv-conf-on-ubuntu/
 # https://bash.cyberciti.biz/security/linux-openvpn-firewall-etc-iptables-add-openvpn-rules-sh-shell-script/
 ########################################################################################################
-#                            <<Tested on Ubuntu Mate 22.04 Desktop Edition>>
+#                            <<Tested on Ubuntu Mate 22.04 DESKTOP Edition>>
 #                            <<Tested on Ubuntu 22.04 Server Edition>>
 ########################################################################################################
 
@@ -34,80 +31,11 @@ say_goodbye (){
 	echo "see you next time"
 }
 
-fix_network_interfaces_name(){
-	if [ $OS_TYPE == "Server" ] ; then
-            # change network interface name from ens3/ens7 to eth0/eth1 , and disable netplan
-            sed -i -- 's|GRUB_CMDLINE_LINUX=.*|GRUB_CMDLINE_LINUX="consoleblank=0 net.ifnames=0 biosdevname=0 netcfg/do_not_use_netplan=true"|g' /etc/default/grub
-            update-grub
-	fi
-}
-
-modify_network_config() {
-        NETWORK_CONFIG_FILE="/etc/network/interfaces"
-	if [ $OS_TYPE == "Server" ] ; then
-             rm -rf $NETWORK_CONFIG_FILE
-             cat >> $NETWORK_CONFIG_FILE << "EOF"
-# interfaces(5) file used by ifup(8) and ifdown(8)
-# Include files from /etc/network/interfaces.d:
-# source-directory /etc/network/interfaces.d
-auto lo
-iface lo inet loopback
-
-EOF
-
-# if u get ip from DHCP service
-		if [ $IP_PROTOCOL == "dhcp" ] ; then
-			cat >> $NETWORK_CONFIG_FILE << "EOF"
-auto eth0
-iface eth0 inet dhcp
-
-EOF
-		fi
-
-		if [ $IP_PROTOCOL == "static" ] ; then
-			cat >> $NETWORK_CONFIG_FILE << "EOF"
-# if u get ip from manual (static)
-auto eth0
-  iface eth0 inet static
-  address ADDRESS
-  netmask NETMASK
-  gateway GATEWAY
-  dns-nameservers 8.8.8.8 8.8.4.4 168.95.192.1 168.95.1.1
-EOF
-			sed -i -- "S|ADDRESS|$ADDRESS|g" $NETWORK_CONFIG_FILE
-			sed -i -- "S|NETWORK|$NETMASK|g" $NETWORK_CONFIG_FILE
-			sed -i -- "S|GATEWAY|$GATEWAY|g" $NETWORK_CONFIG_FILE
-		fi
-
-	        chown root:root $NETWORK_CONFIG_FILE
-        	chmod 644 $NETWORK_CONFIG_FILE
-
-	fi
-
-}
-
-enable_resolvconf_service() {
-	# i want to make sure some DNS servers were added as my DNS resolver
-	# such like (Google : 8.8.8.8 and 8.8.4.4) and (Hinet : 168.95.1.1 and 168.95.192.1)
-	# because /etc/resolv.conf its content may be overriden by other process
-	# so i have decided to install resolvconf then i can specify my preffered DNS Servers in 
-        # '/etc/resolvconf/resolv.conf.d/head'  file	
-	if [ $OS_TYPE == "Server" ] ; then
-             apt-get install resolvconf -y
-             cp /etc/resolvconf/resolv.conf.d/head /etc/resolvconf/resolv.conf.d/head.default
-             rm -rf /etc/resolvconf/resolv.conf.d/head
-             cat >> /etc/resolvconf/resolv.conf.d/head << "EOF"
-nameserver 8.8.8.8
-nameserver 8.8.4.4
-nameserver 168.95.1.1
-nameserver 168.95.192.1
-
-options single-request-reopen
-EOF
-        systemctl enable resolvconf.service
-        systemctl restart resolvconf.service
-        # cat /etc/resolv.conf u will know what it did for u
-	fi
+about_network_config(){
+	echo -e "network config is /etc/netplan/01-netcfg.yaml controled by netplan \n"
+	echo -e "for the stability of system,  do not change it , leave it as it is.\n"
+	echo -e "網路設定檔放在/etc/netplan/01-netcfg.yaml，由netplan控制 \n"
+	echo -e "為了系統穩定，請不要多事去修改它 \n"
 }
 
 disable_ipv6_entirely() {
@@ -142,7 +70,7 @@ EOF
 }
 
 fix_too_many_authentication_failures() {
-	if [ $OS_TYPE == "Desktop" ] ; then
+	if [ $OS_TYPE == "DESKTOP" ] ; then
         	sed -e '/pam_motd/ s/^#*/#/' -i /etc/pam.d/login
         	apt-get purge -y landscape-client landscape-common
 	fi
@@ -158,7 +86,7 @@ firewall_setting(){
 iptables=/sbin/iptables
 loopback=127.0.0.1
 local="\$(/sbin/ip addr show $WIRED_INTERFACE_NAME | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
-if [ $OS_TYPE == "Server" ] || [ $OS_TYPE == "server" ] || [ $OS_TYPE == "SERVER" ] ; then
+if [ $OS_TYPE == "SERVER" ] ; then
 	local="\$(/sbin/ip addr show $WIRED_INTERFACE_NAME | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
 fi
 #local=192.168.251.91
@@ -216,7 +144,7 @@ EOF
 }
 
 delete_route_to_169_254_0_0(){
-	if [ $OS_TYPE == "Desktop" ] ; then
+	if [ $OS_TYPE == "DESKTOP" ] ; then
              echo -e "delete route to 169.254.0.0/16 \n"
              FILE1="/etc/network/if-up.d/avahi-autoipd"
              sed -i -- "s|/bin/ip route add|#/bin/ip route add|g" $FILE1
@@ -257,7 +185,7 @@ remove_fcitx5(){
    # there is no so called 'fcitx5-table-boshiamy' package existed in apt repositories
    # so i have to REMOVE/UNINSTALL everything about fcitx5
    # and reinstall those fcitx version4 (OLD) packages later in order to use Chinese input method Boshiamy
-	if [ $OS_TYPE == "Desktop" ] ; then
+	if [ $OS_TYPE == "DESKTOP" ] ; then
    		apt list --installed | grep fcitx5
    		apt-get purge fcitx5* -y
    		apt-get purge libfcitx5* -y
@@ -267,12 +195,12 @@ remove_fcitx5(){
 
 install_softwares(){
         apt-get update
-	if [ $OS_TYPE == "Desktop" ] ; then
-	     string="build-essential:git:htop:memtester:vim:subversion:synaptic:vinagre:seahorse:fcitx:fcitx-table-boshiamy:fcitx-chewing:net-tools:unzip:cifs-utils:sshfs"
-	elif [ $OS_TYPE == "Server" ] ; then
-	     string="build-essential:git:htop:memtester:vim:net-tools:ifupdown:unzip:cifs-utils:sshfs"
+	if [ $OS_TYPE == "DESKTOP" ] ; then
+	     string="build-essential:git:htop:memtester:vim:subversion:synaptic:vinagre:seahorse:fcitx:fcitx-table-boshiamy:fcitx-chewing:net-tools:unzip:cifs-utils:sshfs:software-properties-common:tmux"
+	elif [ $OS_TYPE == "SERVER" ] ; then
+	     string="build-essential:git:htop:memtester:vim:net-tools:ifupdown:unzip:cifs-utils:sshfs:software-properties-common:tmux"
 	else
-	     string="build-essential:git:htop:memtester:vim:subversion:unzip:cifs-utils:sshfs"
+	     string="build-essential:git:htop:memtester:vim:subversion:unzip:cifs-utils:sshfs:software-properties-common:tmux"
 	fi
 	IFS=':' read -r -a array <<< "$string"
 	for index in "${!array[@]}"
@@ -289,7 +217,7 @@ install_softwares(){
 }
 
 install_chrome_browser() {
-	if [ $OS_TYPE == "Desktop" ] ; then
+	if [ $OS_TYPE == "DESKTOP" ] ; then
              wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
              sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'
              apt-get update
@@ -303,7 +231,7 @@ install_chrome_browser() {
 }
 
 remove_ugly_fonts() {
-	if [ $OS_TYPE == "Desktop" ] ; then
+	if [ $OS_TYPE == "DESKTOP" ] ; then
 
 		apt-get --purge remove fonts-arphic-ukai fonts-arphic-uming -y
 		apt autoremove -y
@@ -379,7 +307,7 @@ change_apport_settings() {
 
 install_x11vnc(){
 	
-  if [ -z "$(dpkg --get-selections | grep x11vnc)" ] && [ $OS_TYPE == "Desktop" ] ; then
+  if [ -z "$(dpkg --get-selections | grep x11vnc)" ] && [ $OS_TYPE == "DESKTOP" ] ; then
 	  echo -e "ready to install x11vnc ... ( it will run on 127.0.0.1:5900 ) \n"
       apt-get install -y x11vnc
       echo -e "done. \n"
@@ -420,9 +348,6 @@ main(){
         update_system
 	remove_fcitx5
 	install_softwares
-	fix_network_interfaces_name
-	enable_resolvconf_service
-	modify_network_config
 	disable_ipv6_entirely
 	disable_dnssec
 	sync_system_time
@@ -443,22 +368,19 @@ echo -e "This script will do the following tasks for your x64 machine, including
 echo -e "  1.unlock apt package manager \n"
 echo -e "  2.update packages to newest version \n"
 echo -e "  3.remove fcitx5 packages && install softwares you need \n"
-echo -e "  4.Fix network interfaces name (To conventional 'eth0' and 'wlan0') \n"
-echo -e "  5.Enable resolvconf service \n"
-echo -e "  6.modify network config /etc/network/interfaces \n"
-echo -e "  7.disable ipv6 entirely \n"
-echo -e "  8.disable DNSSEC for systemd-resolved.service \n"
-echo -e "  9.install ntpdate and sync system time \n"
-echo -e "  10.disable cloudinit messages that appear to foreground \n"
-echo -e "  11.fix too many authentication failures problem \n"
-echo -e "  12.Firewall rule setting (Write firewall rules in /etc/network/if-up.d/firewall) \n"
-echo -e "  13.delete route to 169.254.0.0 \n"
-echo -e "  14.add swap space with 4096MB \n"
-echo -e "  15.install chrome browser \n"
-echo -e "  16.remove ugly fonts \n"
-echo -e "  17.downgrade gcc/g++ version to 9.x \n"
-echo -e "  18.turn off apport problem report popup dialog \n"
-echo -e "  19.install x11vnc service (running on 127.0.0.1:5900) for u if your OS_TYPE is Desktop \n"
+echo -e "  4.disable ipv6 entirely \n"
+echo -e "  5.disable DNSSEC for systemd-resolved.service \n"
+echo -e "  6.install ntpdate and sync system time \n"
+echo -e "  7.disable cloudinit messages that appear to foreground \n"
+echo -e "  8.fix too many authentication failures problem \n"
+echo -e "  9.Firewall rule setting (Write firewall rules in /etc/network/if-up.d/firewall) \n"
+echo -e "  10.delete route to 169.254.0.0 \n"
+echo -e "  11.add swap space with 4096MB \n"
+echo -e "  12.install chrome browser \n"
+echo -e "  13.remove ugly fonts \n"
+echo -e "  14.downgrade gcc/g++ version to 9.x \n"
+echo -e "  15.turn off apport problem report popup dialog \n"
+echo -e "  16.install x11vnc service (running on 127.0.0.1:5900) for u if your OS_TYPE is DESKTOP \n"
 
 read -p "Are you sure (y/n)?" sure
 case $sure in

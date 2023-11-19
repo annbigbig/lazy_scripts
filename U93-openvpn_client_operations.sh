@@ -6,7 +6,7 @@
 CLIENT_OS_TYPE="Linux"                                 # possible values are 'Linux' / 'Windows' / 'Android' / 'iOS'
 SUDO_USER_SERVER="labasky"                             # The user who own sudo priviledge on openvpn server
 SUDO_USER_CLIENT="labasky"                             # The user who own sudo priviledge on openvpn client
-CLIENT_NAME="client1"                                  # what is your client name , this will be used as client's filename (.ovpn)
+CLIENT_NAME="client-contabo"                           # what is your client name , this will be used as client's filename (.ovpn)
 YOUR_SERVER_IP="111.234.56.78"                         # Write Public IP of your OpenVPN Server here
 SSH_CUSTOM_PORT_SERVER="36000"                         # The SSH Service port on OpenVPN Server
 PATH_TO_OPENVPN_LOG="/tmp/openvpn.log"                 # The path to (Client side's) openvpn log

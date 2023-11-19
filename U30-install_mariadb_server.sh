@@ -427,7 +427,7 @@ EOF
 
 # create users and database for cacti
         cd /tmp
-        wget https://www.cacti.net/downloads/cacti-1.2.24.tar.gz
+        wget --no-check-certificate https://www.cacti.net/downloads/cacti-1.2.24.tar.gz
         tar zxvf /tmp/cacti-1.2.24.tar.gz
 mysql -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 drop database if exists cacti_db;

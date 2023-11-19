@@ -4,7 +4,7 @@
 # 
 #######################################################################################################################################
 SUDOER_USER_MANUAL=""                                  # Write a sudoer username here , usually UID 1000 that user or leave it blank
-YOUR_SERVER_IP="49.159.111.111"                        # Write Public IP of your IKEv2 VPN Server here
+YOUR_SERVER_IP="5.104.81.230"                          # Write Public IP of your IKEv2 VPN Server here
 SSH_CUSTOM_PORT_SERVER="36000"                         # The SSH Service port on IKEv2 VPN Server
 IKEV2_USERNAME="tony"                                  # write username here
 IKEV2_PASSWORD="tony55667788"                          # write password here

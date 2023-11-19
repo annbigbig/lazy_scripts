@@ -6,17 +6,24 @@
 OS_TYPE="Server"              # only 'Server' or 'Desktop' are possible values                        #
 USER_MANUAL=""                # Install Eclipse EE in this users home directory if u r Desktop        #
 TOMCAT_VERSION_U_WANT="9"     # '8' will install version 8.5.x , '9' will install version 9.x.x       #
+TOMCAT8_VERSION_NUMBER="8.5.96"                                                                       #
+TOMCAT9_VERSION_NUMBER="9.0.83"                                                                       #
+MAVEN_VERSION_NUMBER="3.9.5"                                                                          #
+GRADLE_VERSION_NUMBER="8.4"                                                                           #
+SPRINGBOOT_VERSION_NUMBER="2.7.9"                                                                     #
+JMETER_VERSION_NUMBER="5.6.2"                                                                         #
 TOMCAT_ADMIN_USERNAME="admin"                                                                         #
 TOMCAT_ADMIN_PASSWORD="admin"                                                                         #
 TOMCAT_JNDI_RESOURCE_NAME="jdbc/DB_SPRING"                                                            #
 TOMCAT_JNDI_USERNAME="spring"                                                                         #
 TOMCAT_JNDI_PASSWORD="spring"                                                                         #
 TOMCAT_JNDI_DBNAME="db_spring"                                                                        #
-TOMCAT_JNDI_SQLSERVER="mariadb"                     # only 'mysql' or 'mariadb' are possible values   #
-#TOMCAT_JNDI_DRIVER_NAME="com.mysql.cj.jdbc.Driver" # 或是 org.mariadb.jdbc.Driver                    #
-TOMCAT_JNDI_DRIVER_NAME="org.mariadb.jdbc.Driver" # 或是 com.mysql.cj.jdbc.Driver                     #
+TOMCAT_JNDI_SQLSERVER="mysql"                       # only 'mysql' or 'mariadb' are possible values   #
+TOMCAT_JNDI_DRIVER_NAME="com.mysql.cj.jdbc.Driver" # 或是 org.mariadb.jdbc.Driver                     #
+#TOMCAT_JNDI_DRIVER_NAME="org.mariadb.jdbc.Driver" # 或是 com.mysql.cj.jdbc.Driver                    #
 TOMCAT_JNDI_URL="jdbc:$TOMCAT_JNDI_SQLSERVER://127.0.0.1:3306/$TOMCAT_JNDI_DBNAME"                    #
-TOMCAT_MEMCACHED_NODES="n1:192.168.251.91:11211,n2:192.168.251.92:11211"   # 多個節點用逗號隔開       #
+#TOMCAT_MEMCACHED_NODES="n1:192.168.251.91:11211,n2:192.168.251.92:11211"   # 多個節點用逗號隔開      #
+TOMCAT_MEMCACHED_NODES="n1:127.0.0.1:11211"   # 只使用本機的memcached服務(單節點)                     #
 TOMCAT_MINIMAL_HEAP_MEMORY_SIZE="1g"                                                                  #
 TOMCAT_MAXIMUM_HEAP_MEMORY_SIZE="1g"                                                                  #
 MINIMAL_HEAP_MEMORY_SIZE="2g"                                                                         #
@@ -42,17 +49,17 @@ install_jdk() {
         cd /usr/local/
 
 	if [ $UNAME_M == "x86_64" ]; then
-           wget https://download.java.net/java/GA/jdk20.0.1/b4887098932d415489976708ad6d1a4b/9/GPL/openjdk-20.0.1_linux-x64_bin.tar.gz -O openjdk-20.0.1_linux-x64_bin.tar.gz
+	   wget https://download.java.net/java/GA/jdk21.0.1/415e3f918a1f4062a0074a2794853d0d/12/GPL/openjdk-21.0.1_linux-x64_bin.tar.gz -O openjdk-21.0.1_linux-x64_bin.tar.gz
            # checksum could be found here
-           # https://download.java.net/java/GA/jdk20.0.1/b4887098932d415489976708ad6d1a4b/9/GPL/openjdk-20.0.1_linux-x64_bin.tar.gz.sha256
-           SHA256SUM_SHOULD_BE="4248a3af4602dbe2aefdb7010bc9086bf34a4155888e837649c90ff6d8e8cef9"
-           SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./openjdk-20.0.1_linux-x64_bin.tar.gz | cut -d ' ' -f 1)"
+	   # https://download.java.net/java/GA/jdk21.0.1/415e3f918a1f4062a0074a2794853d0d/12/GPL/openjdk-21.0.1_linux-x64_bin.tar.gz.sha256
+           SHA256SUM_SHOULD_BE="7e80146b2c3f719bf7f56992eb268ad466f8854d5d6ae11805784608e458343f"
+           SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./openjdk-21.0.1_linux-x64_bin.tar.gz | cut -d ' ' -f 1)"
           [ "$SHA256SUM_SHOULD_BE" == "$SHA256SUM_COMPUTED" ] && echo "jdk sha256sum matched." || exit 2
-           tar -zxvf ./openjdk-20.0.1_linux-x64_bin.tar.gz
-           chown -R root:root ./jdk-20.0.1
+           tar -zxvf ./openjdk-21.0.1_linux-x64_bin.tar.gz
+           chown -R root:root ./jdk-21.0.1
            rm -rf /usr/local/jdk
-           ln -s /usr/local/jdk-20.0.1 /usr/local/jdk
-           rm -rf ./openjdk-20.0.1_linux-x64_bin.tar.gz
+           ln -s /usr/local/jdk-21.0.1 /usr/local/jdk
+           rm -rf ./openjdk-21.0.1_linux-x64_bin.tar.gz
            echo -e "jdk ($UNAME_M) installation completed."
 	elif [ $UNAME_M == "armv7l" ]; then
            wget https://javadl.oracle.com/webapps/download/AutoDL?BundleId=248215_ce59cff5c23f4e2eaf4e778a117d4c5b -O jdk-8u371-linux-arm32-vfp-hflt.tar.gz
@@ -102,24 +109,24 @@ install_tomcat8() {
 	echo -e "ready to install tomcat 8 ... \n"
 	apt-get install -y build-essential
 	cd /usr/local
-	wget https://dlcdn.apache.org/tomcat/tomcat-8/v8.5.88/bin/apache-tomcat-8.5.88.tar.gz
-	wget https://dlcdn.apache.org/tomcat/tomcat-8/v8.5.88/bin/apache-tomcat-8.5.88.tar.gz.sha512
-	SHA512SUM_SHOULD_BE="$(/bin/cat ./apache-tomcat-8.5.88.tar.gz.sha512 | cut -d ' ' -f 1)"
-	SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./apache-tomcat-8.5.88.tar.gz | cut -d ' ' -f 1)"
+	wget https://dlcdn.apache.org/tomcat/tomcat-8/v$TOMCAT8_VERSION_NUMBER/bin/apache-tomcat-$TOMCAT8_VERSION_NUMBER.tar.gz
+	wget https://dlcdn.apache.org/tomcat/tomcat-8/v$TOMCAT8_VERSION_NUMBER/bin/apache-tomcat-$TOMCAT8_VERSION_NUMBER.tar.gz.sha512
+	SHA512SUM_SHOULD_BE="$(/bin/cat ./apache-tomcat-$TOMCAT8_VERSION_NUMBER.tar.gz.sha512 | cut -d ' ' -f 1)"
+	SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./apache-tomcat-$TOMCAT8_VERSION_NUMBER.tar.gz | cut -d ' ' -f 1)"
         [ "$SHA512SUM_SHOULD_BE" == "$SHA512SUM_COMPUTED" ] && echo "tomcat sha512sum matched." || exit 2
 
-	tar -zxvf ./apache-tomcat-8.5.88.tar.gz
-	chown -R root:root ./apache-tomcat-8.5.88
-	chmod -R a+r ./apache-tomcat-8.5.88
-        find /usr/local/apache-tomcat-8.5.88 -type d -exec chmod a+rx {} \;
+	tar -zxvf ./apache-tomcat-$TOMCAT8_VERSION_NUMBER.tar.gz
+	chown -R root:root ./apache-tomcat-$TOMCAT8_VERSION_NUMBER
+	chmod -R a+r ./apache-tomcat-$TOMCAT8_VERSION_NUMBER
+        find /usr/local/apache-tomcat-$TOMCAT8_VERSION_NUMBER -type d -exec chmod a+rx {} \;
 	rm -rf /usr/local/tomcat
-	ln -s /usr/local/apache-tomcat-8.5.88 /usr/local/tomcat
-	rm -rf ./apache-tomcat-8.5.88.tar.gz*
+	ln -s /usr/local/apache-tomcat-$TOMCAT8_VERSION_NUMBER /usr/local/tomcat
+	rm -rf ./apache-tomcat-$TOMCAT8_VERSION_NUMBER.tar.gz*
 
 	echo -e "build jsvc\n"
 	cd /usr/local/tomcat/bin
 	tar -zxvf ./commons-daemon-native.tar.gz
-	cd commons-daemon-1.3.3-native-src/unix
+	cd commons-daemon-1.3.4-native-src/unix
 	./configure --with-java=/usr/local/jdk
 	make
 	cp jsvc ../..
@@ -130,7 +137,7 @@ install_tomcat8() {
 	cd /usr/local/tomcat/conf/
         cp tomcat-users.xml tomcat-users.xml.default
         rm -rf tomcat-users.xml
-        cat > /usr/local/apache-tomcat-8.5.88/conf/tomcat-users.xml << "EOF"
+        cat > /usr/local/apache-tomcat-$TOMCAT8_VERSION_NUMBER/conf/tomcat-users.xml << "EOF"
 <?xml version="1.0" encoding="UTF-8"?>
 <tomcat-users xmlns="http://tomcat.apache.org/xml"
               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -144,14 +151,14 @@ install_tomcat8() {
 <user username="TOMCAT_ADMIN_USERNAME" password="TOMCAT_ADMIN_PASSWORD" roles="admin-gui,manager-script,manager-jmx,manager-gui,manager-status"/>
 </tomcat-users>
 EOF
-        sed -i -- "s|TOMCAT_ADMIN_USERNAME|$TOMCAT_ADMIN_USERNAME|g" /usr/local/apache-tomcat-8.5.88/conf/tomcat-users.xml
-        sed -i -- "s|TOMCAT_ADMIN_PASSWORD|$TOMCAT_ADMIN_PASSWORD|g" /usr/local/apache-tomcat-8.5.88/conf/tomcat-users.xml
+        sed -i -- "s|TOMCAT_ADMIN_USERNAME|$TOMCAT_ADMIN_USERNAME|g" /usr/local/apache-tomcat-$TOMCAT8_VERSION_NUMBER/conf/tomcat-users.xml
+        sed -i -- "s|TOMCAT_ADMIN_PASSWORD|$TOMCAT_ADMIN_PASSWORD|g" /usr/local/apache-tomcat-$TOMCAT8_VERSION_NUMBER/conf/tomcat-users.xml
 
         echo -e "configure JNDI DataSource"
         cd /usr/local/tomcat/conf/
         cp server.xml server.xml.default
         rm -rf server.xml
-        cat > /usr/local/apache-tomcat-8.5.88/conf/server.xml << "EOF"
+        cat > /usr/local/apache-tomcat-$TOMCAT8_VERSION_NUMBER/conf/server.xml << "EOF"
 <?xml version="1.0" encoding="UTF-8"?>
 <Server port="8005" shutdown="SHUTDOWN">
   <Listener className="org.apache.catalina.startup.VersionLoggerListener" />
@@ -215,16 +222,16 @@ EOF
   </Service>
 </Server>
 EOF
-        sed -i -- "s|TOMCAT_JNDI_RESOURCE_NAME|$TOMCAT_JNDI_RESOURCE_NAME|g" /usr/local/apache-tomcat-8.5.88/conf/server.xml
-        sed -i -- "s|TOMCAT_JNDI_USERNAME|$TOMCAT_JNDI_USERNAME|g" /usr/local/apache-tomcat-8.5.88/conf/server.xml
-        sed -i -- "s|TOMCAT_JNDI_PASSWORD|$TOMCAT_JNDI_PASSWORD|g" /usr/local/apache-tomcat-8.5.88/conf/server.xml
-        sed -i -- "s|TOMCAT_JNDI_URL|$TOMCAT_JNDI_URL|g" /usr/local/apache-tomcat-8.5.88/conf/server.xml
-        sed -i -- "s|TOMCAT_JNDI_DRIVER_NAME|$TOMCAT_JNDI_DRIVER_NAME|g" /usr/local/apache-tomcat-8.5.88/conf/server.xml
+        sed -i -- "s|TOMCAT_JNDI_RESOURCE_NAME|$TOMCAT_JNDI_RESOURCE_NAME|g" /usr/local/apache-tomcat-$TOMCAT8_VERSION_NUMBER/conf/server.xml
+        sed -i -- "s|TOMCAT_JNDI_USERNAME|$TOMCAT_JNDI_USERNAME|g" /usr/local/apache-tomcat-$TOMCAT8_VERSION_NUMBER/conf/server.xml
+        sed -i -- "s|TOMCAT_JNDI_PASSWORD|$TOMCAT_JNDI_PASSWORD|g" /usr/local/apache-tomcat-$TOMCAT8_VERSION_NUMBER/conf/server.xml
+        sed -i -- "s|TOMCAT_JNDI_URL|$TOMCAT_JNDI_URL|g" /usr/local/apache-tomcat-$TOMCAT8_VERSION_NUMBER/conf/server.xml
+        sed -i -- "s|TOMCAT_JNDI_DRIVER_NAME|$TOMCAT_JNDI_DRIVER_NAME|g" /usr/local/apache-tomcat-$TOMCAT8_VERSION_NUMBER/conf/server.xml
 
         cd /usr/local/tomcat/conf/
         cp context.xml context.xml.default
         rm context.xml
-        cat > /usr/local/apache-tomcat-8.5.88/conf/context.xml << "EOF"
+        cat > /usr/local/apache-tomcat-$TOMCAT8_VERSION_NUMBER/conf/context.xml << "EOF"
 <?xml version="1.0" encoding="UTF-8"?>
 <Context antiResourceLocking="true">
 
@@ -241,15 +248,15 @@ EOF
 
 </Context>
 EOF
-        sed -i -- "s|TOMCAT_JNDI_RESOURCE_NAME|$TOMCAT_JNDI_RESOURCE_NAME|g" /usr/local/apache-tomcat-8.5.88/conf/context.xml
-        sed -i -- "s|TOMCAT_MEMCACHED_NODES|$TOMCAT_MEMCACHED_NODES|g" /usr/local/apache-tomcat-8.5.88/conf/context.xml
+        sed -i -- "s|TOMCAT_JNDI_RESOURCE_NAME|$TOMCAT_JNDI_RESOURCE_NAME|g" /usr/local/apache-tomcat-$TOMCAT8_VERSION_NUMBER/conf/context.xml
+        sed -i -- "s|TOMCAT_MEMCACHED_NODES|$TOMCAT_MEMCACHED_NODES|g" /usr/local/apache-tomcat-$TOMCAT8_VERSION_NUMBER/conf/context.xml
 
 
         # unlock host-manager and manager that only be accessed by 127.0.0.1
-        rm -rf /usr/local/apache-tomcat-8.5.88/webapps/manager/META-INF/context.xml
-        rm -rf /usr/local/apache-tomcat-8.5.88/webapps/host-manager/MATA-INF/context.xml
+        rm -rf /usr/local/apache-tomcat-$TOMCAT8_VERSION_NUMBER/webapps/manager/META-INF/context.xml
+        rm -rf /usr/local/apache-tomcat-$TOMCAT8_VERSION_NUMBER/webapps/host-manager/MATA-INF/context.xml
 
-        cat > /usr/local/apache-tomcat-8.5.88/webapps/manager/META-INF/context.xml << "EOF"
+        cat > /usr/local/apache-tomcat-$TOMCAT8_VERSION_NUMBER/webapps/manager/META-INF/context.xml << "EOF"
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Licensed to the Apache Software Foundation (ASF) under one or more
@@ -273,9 +280,9 @@ EOF
   <Manager sessionAttributeValueClassNameFilter="java\.lang\.(?:Boolean|Integer|Long|Number|String)|org\.apache\.catalina\.filters\.CsrfPreventionFilter\$LruCache(?:\$1)?|java\.util\.(?:Linked)?HashMap"/>
 </Context>
 EOF
-        cp /usr/local/apache-tomcat-8.5.88/webapps/manager/META-INF/context.xml /usr/local/apache-tomcat-8.5.88/webapps/host-manager/META-INF/context.xml
-        chmod 644 /usr/local/apache-tomcat-8.5.88/webapps/manager/META-INF/context.xml
-        chmod 644 /usr/local/apache-tomcat-8.5.88/webapps/host-manager/META-INF/context.xml
+        cp /usr/local/apache-tomcat-$TOMCAT8_VERSION_NUMBER/webapps/manager/META-INF/context.xml /usr/local/apache-tomcat-$TOMCAT8_VERSION_NUMBER/webapps/host-manager/META-INF/context.xml
+        chmod 644 /usr/local/apache-tomcat-$TOMCAT8_VERSION_NUMBER/webapps/manager/META-INF/context.xml
+        chmod 644 /usr/local/apache-tomcat-$TOMCAT8_VERSION_NUMBER/webapps/host-manager/META-INF/context.xml
 	
 	echo -e "tomcat installation completed."
 }
@@ -284,24 +291,24 @@ install_tomcat9() {
         echo -e "ready to install tomcat \n"
         apt-get install -y build-essential
         cd /usr/local
-        wget https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.74/bin/apache-tomcat-9.0.74.tar.gz
-        wget https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.74/bin/apache-tomcat-9.0.74.tar.gz.sha512
-        SHA512SUM_SHOULD_BE="$(/bin/cat ./apache-tomcat-9.0.74.tar.gz.sha512 | cut -d ' ' -f 1)"
-        SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./apache-tomcat-9.0.74.tar.gz | cut -d ' ' -f 1)"
+        wget https://dlcdn.apache.org/tomcat/tomcat-9/v$TOMCAT9_VERSION_NUMBER/bin/apache-tomcat-$TOMCAT9_VERSION_NUMBER.tar.gz
+        wget https://dlcdn.apache.org/tomcat/tomcat-9/v$TOMCAT9_VERSION_NUMBER/bin/apache-tomcat-$TOMCAT9_VERSION_NUMBER.tar.gz.sha512
+        SHA512SUM_SHOULD_BE="$(/bin/cat ./apache-tomcat-$TOMCAT9_VERSION_NUMBER.tar.gz.sha512 | cut -d ' ' -f 1)"
+        SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./apache-tomcat-$TOMCAT9_VERSION_NUMBER.tar.gz | cut -d ' ' -f 1)"
         [ "$SHA512SUM_SHOULD_BE" == "$SHA512SUM_COMPUTED" ] && echo "tomcat sha512sum matched." || exit 2
 
-        tar -zxvf ./apache-tomcat-9.0.74.tar.gz
-        chown -R root:root ./apache-tomcat-9.0.74
-        chmod -R a+r ./apache-tomcat-9.0.74
-        find /usr/local/apache-tomcat-9.0.74 -type d -exec chmod a+rx {} \;
+        tar -zxvf ./apache-tomcat-$TOMCAT9_VERSION_NUMBER.tar.gz
+        chown -R root:root ./apache-tomcat-$TOMCAT9_VERSION_NUMBER
+        chmod -R a+r ./apache-tomcat-$TOMCAT9_VERSION_NUMBER
+        find /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER -type d -exec chmod a+rx {} \;
         rm -rf /usr/local/tomcat
-        ln -s /usr/local/apache-tomcat-9.0.74 /usr/local/tomcat
-        rm -rf ./apache-tomcat-9.0.74.tar.gz*
+        ln -s /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER /usr/local/tomcat
+        rm -rf ./apache-tomcat-$TOMCAT9_VERSION_NUMBER.tar.gz*
 
         echo -e "build jsvc\n"
         cd /usr/local/tomcat/bin
         tar -zxvf ./commons-daemon-native.tar.gz
-        cd commons-daemon-1.3.3-native-src/unix
+        cd commons-daemon-1.3.4-native-src/unix
         ./configure --with-java=/usr/local/jdk
         make
         cp jsvc ../..
@@ -312,7 +319,7 @@ install_tomcat9() {
         cd /usr/local/tomcat/conf/
         cp tomcat-users.xml tomcat-users.xml.default
         rm -rf tomcat-users.xml
-        cat > /usr/local/apache-tomcat-9.0.74/conf/tomcat-users.xml << "EOF"
+        cat > /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/conf/tomcat-users.xml << "EOF"
 <?xml version="1.0" encoding="UTF-8"?>
 <tomcat-users xmlns="http://tomcat.apache.org/xml"
               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -328,15 +335,15 @@ install_tomcat9() {
 </tomcat-users>
 EOF
 
-        sed -i -- "s|TOMCAT_ADMIN_USERNAME|$TOMCAT_ADMIN_USERNAME|g" /usr/local/apache-tomcat-9.0.74/conf/tomcat-users.xml
-        sed -i -- "s|TOMCAT_ADMIN_PASSWORD|$TOMCAT_ADMIN_PASSWORD|g" /usr/local/apache-tomcat-9.0.74/conf/tomcat-users.xml
+        sed -i -- "s|TOMCAT_ADMIN_USERNAME|$TOMCAT_ADMIN_USERNAME|g" /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/conf/tomcat-users.xml
+        sed -i -- "s|TOMCAT_ADMIN_PASSWORD|$TOMCAT_ADMIN_PASSWORD|g" /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/conf/tomcat-users.xml
 
         echo -e "configure JNDI DataSource"
         cd /usr/local/tomcat/conf/
         cp server.xml server.xml.default
         rm -rf server.xml
 
-        cat > /usr/local/apache-tomcat-9.0.74/conf/server.xml << "EOF"
+        cat > /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/conf/server.xml << "EOF"
 <?xml version="1.0" encoding="UTF-8"?>
 
 <Server port="8005" shutdown="SHUTDOWN">
@@ -401,16 +408,16 @@ EOF
   </Service>
 </Server>
 EOF
-        sed -i -- "s|TOMCAT_JNDI_RESOURCE_NAME|$TOMCAT_JNDI_RESOURCE_NAME|g" /usr/local/apache-tomcat-9.0.74/conf/server.xml
-        sed -i -- "s|TOMCAT_JNDI_USERNAME|$TOMCAT_JNDI_USERNAME|g" /usr/local/apache-tomcat-9.0.74/conf/server.xml
-        sed -i -- "s|TOMCAT_JNDI_PASSWORD|$TOMCAT_JNDI_PASSWORD|g" /usr/local/apache-tomcat-9.0.74/conf/server.xml
-        sed -i -- "s|TOMCAT_JNDI_DRIVER_NAME|$TOMCAT_JNDI_DRIVER_NAME|g" /usr/local/apache-tomcat-9.0.74/conf/server.xml
-        sed -i -- "s|TOMCAT_JNDI_URL|$TOMCAT_JNDI_URL|g" /usr/local/apache-tomcat-9.0.74/conf/server.xml
+        sed -i -- "s|TOMCAT_JNDI_RESOURCE_NAME|$TOMCAT_JNDI_RESOURCE_NAME|g" /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/conf/server.xml
+        sed -i -- "s|TOMCAT_JNDI_USERNAME|$TOMCAT_JNDI_USERNAME|g" /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/conf/server.xml
+        sed -i -- "s|TOMCAT_JNDI_PASSWORD|$TOMCAT_JNDI_PASSWORD|g" /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/conf/server.xml
+        sed -i -- "s|TOMCAT_JNDI_DRIVER_NAME|$TOMCAT_JNDI_DRIVER_NAME|g" /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/conf/server.xml
+        sed -i -- "s|TOMCAT_JNDI_URL|$TOMCAT_JNDI_URL|g" /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/conf/server.xml
 
         cd /usr/local/tomcat/conf/
         cp context.xml context.xml.default
         rm context.xml
-        cat > /usr/local/apache-tomcat-9.0.74/conf/context.xml << "EOF"
+        cat > /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/conf/context.xml << "EOF"
 <?xml version="1.0" encoding="UTF-8"?>
 
 <Context>
@@ -429,15 +436,15 @@ EOF
 
 </Context>
 EOF
-        sed -i -- "s|TOMCAT_JNDI_RESOURCE_NAME|$TOMCAT_JNDI_RESOURCE_NAME|g" /usr/local/apache-tomcat-9.0.74/conf/context.xml
-        sed -i -- "s|TOMCAT_MEMCACHED_NODES|$TOMCAT_MEMCACHED_NODES|g" /usr/local/apache-tomcat-9.0.74/conf/context.xml
+        sed -i -- "s|TOMCAT_JNDI_RESOURCE_NAME|$TOMCAT_JNDI_RESOURCE_NAME|g" /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/conf/context.xml
+        sed -i -- "s|TOMCAT_MEMCACHED_NODES|$TOMCAT_MEMCACHED_NODES|g" /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/conf/context.xml
 
 
         # unlock host-manager and manager that only be accessed by 127.0.0.1
-        rm -rf /usr/local/apache-tomcat-9.0.74/webapps/manager/META-INF/context.xml
-        rm -rf /usr/local/apache-tomcat-9.0.74/webapps/host-manager/MATA-INF/context.xml
+        rm -rf /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/webapps/manager/META-INF/context.xml
+        rm -rf /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/webapps/host-manager/MATA-INF/context.xml
 
-        cat > /usr/local/apache-tomcat-9.0.74/webapps/manager/META-INF/context.xml << "EOF"
+        cat > /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/webapps/manager/META-INF/context.xml << "EOF"
 <?xml version="1.0" encoding="UTF-8"?>
 
 <Context antiResourceLocking="false" privileged="true" >
@@ -449,9 +456,9 @@ EOF
 </Context>
 EOF
 
-        cp /usr/local/apache-tomcat-9.0.74/webapps/manager/META-INF/context.xml /usr/local/apache-tomcat-9.0.74/webapps/host-manager/META-INF/context.xml
-        chmod 644 /usr/local/apache-tomcat-9.0.74/webapps/manager/META-INF/context.xml
-        chmod 644 /usr/local/apache-tomcat-9.0.74/webapps/host-manager/META-INF/context.xml
+        cp /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/webapps/manager/META-INF/context.xml /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/webapps/host-manager/META-INF/context.xml
+        chmod 644 /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/webapps/manager/META-INF/context.xml
+        chmod 644 /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/webapps/host-manager/META-INF/context.xml
         
         echo -e "tomcat installation completed."
 }
@@ -533,62 +540,62 @@ EOF
 install_maven() {
         echo -e "ready to install maven\n"
         cd /usr/local
-	wget https://dlcdn.apache.org/maven/maven-3/3.9.1/binaries/apache-maven-3.9.1-bin.tar.gz
-	wget https://downloads.apache.org/maven/maven-3/3.9.1/binaries/apache-maven-3.9.1-bin.tar.gz.sha512
-        SHA512SUM_SHOULD_BE="$(/bin/cat ./apache-maven-3.9.1-bin.tar.gz.sha512 | cut -d ' ' -f 1)"
-        SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./apache-maven-3.9.1-bin.tar.gz | cut -d ' ' -f 1)"
+	wget https://dlcdn.apache.org/maven/maven-3/$MAVEN_VERSION_NUMBER/binaries/apache-maven-$MAVEN_VERSION_NUMBER-bin.tar.gz
+	wget https://downloads.apache.org/maven/maven-3/$MAVEN_VERSION_NUMBER/binaries/apache-maven-$MAVEN_VERSION_NUMBER-bin.tar.gz.sha512
+        SHA512SUM_SHOULD_BE="$(/bin/cat ./apache-maven-$MAVEN_VERSION_NUMBER-bin.tar.gz.sha512 | cut -d ' ' -f 1)"
+        SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./apache-maven-$MAVEN_VERSION_NUMBER-bin.tar.gz | cut -d ' ' -f 1)"
         [ "$SHA512SUM_SHOULD_BE" == "$SHA512SUM_COMPUTED" ] && echo "maven sha512sum matched." || exit 2
 
-        tar -zxvf ./apache-maven-3.9.1-bin.tar.gz
-        chown -R root:root ./apache-maven-3.9.1
+        tar -zxvf ./apache-maven-$MAVEN_VERSION_NUMBER-bin.tar.gz
+        chown -R root:root ./apache-maven-$MAVEN_VERSION_NUMBER
         rm -rf /usr/local/maven3
-        ln -s /usr/local/apache-maven-3.9.1 /usr/local/maven3
-        rm -rf ./apache-maven-3.9.1-bin.tar.gz*
+        ln -s /usr/local/apache-maven-$MAVEN_VERSION_NUMBER /usr/local/maven3
+        rm -rf ./apache-maven-$MAVEN_VERSION_NUMBER-bin.tar.gz*
 }
 
 install_gradle() {
 	echo -e "ready to install gradle\n"
 	cd /usr/local
-        wget https://services.gradle.org/distributions/gradle-8.1.1-all.zip
-        wget https://services.gradle.org/distributions/gradle-8.1.1-all.zip.sha256
-        SHA256SUM_SHOULD_BE="$(/bin/cat ./gradle-8.1.1-all.zip.sha256 | cut -d ' ' -f 1)"
-        SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./gradle-8.1.1-all.zip | cut -d ' ' -f 1)"
+        wget https://services.gradle.org/distributions/gradle-$GRADLE_VERSION_NUMBER-all.zip
+        wget https://services.gradle.org/distributions/gradle-$GRADLE_VERSION_NUMBER-all.zip.sha256
+        SHA256SUM_SHOULD_BE="$(/bin/cat ./gradle-$GRADLE_VERSION_NUMBER-all.zip.sha256 | cut -d ' ' -f 1)"
+        SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./gradle-$GRADLE_VERSION_NUMBER-all.zip | cut -d ' ' -f 1)"
         [ "$SHA256SUM_SHOULD_BE" == "$SHA256SUM_COMPUTED" ] && echo "gradle sha256sum matched." || exit 2
-	unzip ./gradle-8.1.1-all.zip
-	chown -R root:root ./gradle-8.1.1
+	unzip ./gradle-$GRADLE_VERSION_NUMBER-all.zip
+	chown -R root:root ./gradle-$GRADLE_VERSION_NUMBER
 	rm -rf /usr/local/gradle
-	ln -s /usr/local/gradle-8.1.1 /usr/local/gradle
-	rm -rf ./gradle-8.1.1-all.zip
-	rm -rf ./gradle-8.1.1-all.zip.sha256
+	ln -s /usr/local/gradle-$GRADLE_VERSION_NUMBER /usr/local/gradle
+	rm -rf ./gradle-$GRADLE_VERSION_NUMBER-all.zip
+	rm -rf ./gradle-$GRADLE_VERSION_NUMBER-all.zip.sha256
 }
 
 install_spring_boot_cli() {
 	echo -e "ready to install spring boot cli\n"
 	cd /usr/local
-	wget https://repo.spring.io/release/org/springframework/boot/spring-boot-cli/2.7.9/spring-boot-cli-2.7.9-bin.tar.gz
-	wget https://repo.spring.io/release/org/springframework/boot/spring-boot-cli/2.7.9/spring-boot-cli-2.7.9-bin.tar.gz.md5
-        MD5SUM_SHOULD_BE="$(/bin/cat ./spring-boot-cli-2.7.9-bin.tar.gz.md5 | cut -d ' ' -f 1)"
-        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./spring-boot-cli-2.7.9-bin.tar.gz | cut -d ' ' -f 1)"
+	wget https://repo.spring.io/release/org/springframework/boot/spring-boot-cli/$SPRINGBOOT_VERSION_NUMBER/spring-boot-cli-$SPRINGBOOT_VERSION_NUMBER-bin.tar.gz
+	wget https://repo.spring.io/release/org/springframework/boot/spring-boot-cli/$SPRINGBOOT_VERSION_NUMBER/spring-boot-cli-$SPRINGBOOT_VERSION_NUMBER-bin.tar.gz.md5
+        MD5SUM_SHOULD_BE="$(/bin/cat ./spring-boot-cli-$SPRINGBOOT_VERSION_NUMBER-bin.tar.gz.md5 | cut -d ' ' -f 1)"
+        MD5SUM_COMPUTED="$(/usr/bin/md5sum ./spring-boot-cli-$SPRINGBOOT_VERSION_NUMBER-bin.tar.gz | cut -d ' ' -f 1)"
         [ "$MD5SUM_SHOULD_BE" == "$MD5SUM_COMPUTED" ] && echo "spring-boot-cli md5sum matched." || exit 2
 
-        tar -zxvf ./spring-boot-cli-2.7.9-bin.tar.gz
-	chown -R root:root ./spring-2.7.9
+        tar -zxvf ./spring-boot-cli-$SPRINGBOOT_VERSION_NUMBER-bin.tar.gz
+	chown -R root:root ./spring-$SPRINGBOOT_VERSION_NUMBER
 	rm -rf /usr/local/spring-boot-cli
-	ln -s /usr/local/spring-2.7.9 /usr/local/spring-boot-cli
-	rm -rf ./spring-boot-cli-2.7.9-bin.tar.gz*
+	ln -s /usr/local/spring-$SPRINGBOOT_VERSION_NUMBER /usr/local/spring-boot-cli
+	rm -rf ./spring-boot-cli-$SPRINGBOOT_VERSION_NUMBER-bin.tar.gz*
 }
 
 install_jmeter(){
 	cd /usr/local/
-	wget https://dlcdn.apache.org//jmeter/binaries/apache-jmeter-5.5.tgz
-	wget https://dlcdn.apache.org//jmeter/binaries/apache-jmeter-5.5.tgz.sha512
-	SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./apache-jmeter-5.5.tgz | tr -s ' ' | cut -d ' ' -f 1)"
-	SHA512SUM_SHOULD_BE="$(/bin/cat ./apache-jmeter-5.5.tgz.sha512 | tr -s ' ' | cut -d ' ' -f 1)"
+	wget https://dlcdn.apache.org//jmeter/binaries/apache-jmeter-$JMETER_VERSION_NUMBER.tgz
+	wget https://dlcdn.apache.org//jmeter/binaries/apache-jmeter-$JMETER_VERSION_NUMBER.tgz.sha512
+	SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./apache-jmeter-$JMETER_VERSION_NUMBER.tgz | tr -s ' ' | cut -d ' ' -f 1)"
+	SHA512SUM_SHOULD_BE="$(/bin/cat ./apache-jmeter-$JMETER_VERSION_NUMBER.tgz.sha512 | tr -s ' ' | cut -d ' ' -f 1)"
 	[ $SHA512SUM_COMPUTED == $SHA512SUM_SHOULD_BE ] && (echo "yes sha512sum matched." && echo "yabi") || (echo "oops...not matched" && exit 2)
-	tar -xxvf ./apache-jmeter-5.5.tgz
-	chown -R root:root /usr/local/apache-jmeter-5.5
-	ln -s /usr/local/apache-jmeter-5.5 /usr/local/jmeter
-	rm -rf ./apache-jmeter-5.5.tgz*
+	tar -xxvf ./apache-jmeter-$JMETER_VERSION_NUMBER.tgz
+	chown -R root:root /usr/local/apache-jmeter-$JMETER_VERSION_NUMBER
+	ln -s /usr/local/apache-jmeter-$JMETER_VERSION_NUMBER /usr/local/jmeter
+	rm -rf ./apache-jmeter-$JMETER_VERSION_NUMBER.tgz*
 }
 
 set_environments_variables() {
@@ -640,9 +647,9 @@ register_tomcat_as_systemd_service() {
 
 	echo -e "change owner and group for \$CATALINA_HOME\n"
 		if [ $TOMCAT_VERSION_U_WANT == "8" ] ; then
-			chown -R tomcat:tomcat /usr/local/apache-tomcat-8.5.88
+			chown -R tomcat:tomcat /usr/local/apache-tomcat-$TOMCAT8_VERSION_NUMBER
 		elif [ $TOMCAT_VERSION_U_WANT == "9" ] ; then
-			chown -R tomcat:tomcat /usr/local/apache-tomcat-9.0.74
+			chown -R tomcat:tomcat /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER
 		fi	
 
 	echo -e "create a systemd service\n"
@@ -709,12 +716,12 @@ install_eclipse_ee() {
 	     cd /usr/local/
              rm -rf ./eclipse*
 	     if [ $UNAME_M == "x86_64" ]; then
-		wget https://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/2023-03/R/eclipse-jee-2023-03-R-linux-gtk-x86_64.tar.gz\&r=1 -O eclipse-jee-2023-03-R-linux-gtk-x86_64.tar.gz
-                SHA512SUM_SHOULD_BE="7ae753122dd0602f4cd0be915cc56fe0a62c4e336f78d111a2e9e12908bf7342c68089449221f705d746f45eb7003825468754f9e32990e145cd84d24f9fa267"
-                SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./eclipse-jee-2023-03-R-linux-gtk-x86_64.tar.gz | cut -d ' ' -f 1)"
-                [ "$SHA512SUM_SHOULD_BE" == "$SHA512SUM_COMPUTED" ] && echo "Eclipse EE sha512sum matched." || exit 2
-                tar -zxvf ./eclipse-jee-2023-03-R-linux-gtk-x86_64.tar.gz
-                rm -rf ./eclipse-jee-2023-03-R-linux-gtk-x86_64.tar.gz
+		wget https://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/2023-09/R/eclipse-jee-2023-09-R-linux-gtk-x86_64.tar.gz\&r=1 -O eclipse-jee-2023-09-R-linux-gtk-x86_64.tar.gz
+		SHA1SUM_SHOULD_BE="31fb579fb301efa2b36151eb6af78b69973d35a7"
+		SHA1SUM_COMPUTED="$(/usr/bin/sha1sum ./eclipse-jee-2023-09-R-linux-gtk-x86_64.tar.gz | cut -d ' ' -f 1)"
+                [ "$SHA1SUM_SHOULD_BE" == "$SHA1SUM_COMPUTED" ] && echo "Eclipse EE sha1sum matched." || exit 2
+                tar -zxvf ./eclipse-jee-2023-09-R-linux-gtk-x86_64.tar.gz
+                rm -rf ./eclipse-jee-2023-09-R-linux-gtk-x86_64.tar.gz
 	     #elif [ $UNAME_M == "aach64" ]; then
 
 	     fi

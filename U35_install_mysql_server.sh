@@ -2,7 +2,7 @@
 #
 # This script will install mysql-wsrep-server 8.0.xx && galera-4  cluster on Ubuntu 22.04 LTS Server Edition
 ######################################################################          <<Tested on Ubuntu 22.04 Server Edition>>
-INSTALL_MYSQL_AS_MULTIPLE_NODES_GALERA_CLUSTER="yes"                 # 'galera.cnf' would be generated only when its value is 'yes'
+INSTALL_MYSQL_AS_MULTIPLE_NODES_GALERA_CLUSTER="no"                  # 'galera.cnf' would be generated only when its value is 'yes'
 ######################################################################
 FIRST_NODE="yes"                                                     # if this node is first node of cluster, set this value to 'yes'
 MYSQL_ROOT_PASSWD="root"                                             # mysql root password you specify for first node
@@ -164,6 +164,7 @@ tmpdir                          = /tmp
 user                            = mysql
 
 # === utf8mb4 Settings ===
+collation_server = utf8mb4_unicode_ci
 character-set-server = utf8mb4
 character-set-client-handshake = FALSE
 
@@ -174,6 +175,7 @@ innodb_buffer_pool_size         = 2G
 innodb_file_per_table           = 1
 innodb_flush_log_at_trx_commit  = 0
 innodb_flush_method             = O_DIRECT
+innodb_flush_log_at_timeout	= 3
 innodb_log_buffer_size          = 16M
 innodb_log_file_size            = 1G
 innodb_sort_buffer_size         = 4M
@@ -181,6 +183,8 @@ innodb_stats_on_metadata        = 0
 innodb_read_io_threads          = 64
 innodb_write_io_threads         = 64
 innodb_autoinc_lock_mode        = 2
+innodb_io_capacity              = 5000
+innodb_io_capacity_max          = 10000
 
 # === MyISAM Settings ===
 key_buffer_size                 = 24M
@@ -259,6 +263,20 @@ EOF
        sed -i -- "s|first_ip,second_ip,third_ip|$WSREP_CLUSTER_ADDRESS|g" /etc/mysql/mysql.conf.d/galera.cnf
        sed -i -- "s|this_node_ip|$MY_IP|g" /etc/mysql/mysql.conf.d/galera.cnf
        sed -i -- "s|this_node_name|$HOSTNAME|g" /etc/mysql/mysql.conf.d/galera.cnf
+
+       # delete /etc/mysql/my.cnf , it was point to /etc/alternatives/my.cnf as a symbolic link
+       rm -rf /etc/mysql/my.cnf
+       touch /etc/mysql/my.cnf
+       cat > /etc/mysql/my.cnf << "EOF"
+[client-server]
+# Port or socket location where to connect
+# port = 3306
+socket = /var/run/mysqld/mysqld.sock
+
+# Import all .cnf files from configuration directory
+!includedir /etc/mysql/conf.d/
+!includedir /etc/mysql/mysql.conf.d/
+EOF
 
        echo "done."
 }
@@ -472,7 +490,7 @@ EOF
 
 # create users and database for cacti
         cd /tmp
-        wget https://www.cacti.net/downloads/cacti-1.2.24.tar.gz
+        wget --no-check-certificate https://www.cacti.net/downloads/cacti-1.2.24.tar.gz
         tar zxvf /tmp/cacti-1.2.24.tar.gz
 mysql -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 drop database if exists cacti_db;

@@ -4,6 +4,7 @@
 # before running this script, please set some parameters below:
 #
 ###########################################  <<Tested on Ubuntu Mate 20.04/22.04 Server Edition>>  ############
+BIND9_VERSION_NUMBER="9.18.20"
 #
 DOMAIN_NAME="dq5rocks.com"
 FIRST_OCTET="192"
@@ -12,7 +13,7 @@ THIRD_OCTET="251"
 #
 TRUSTED_LOCAL_SUBNET="192.168.251.0/24"
 TRUSTED_VPN_SUBNET="192.168.252.0/24"
-PRIMARY_DNS_IP_ADDRESS="49.159.105.221"
+PRIMARY_DNS_IP_ADDRESS="49.159.111.111"
 #
 ##########################################################################################################
 # *** Hint ***
@@ -74,22 +75,22 @@ install_dependencies() {
 
 install_bind_server() {
         cd /usr/local/src/
-        wget https://downloads.isc.org/isc/bind9/9.18.12/bind-9.18.12.tar.xz
-        wget https://downloads.isc.org/isc/bind9/9.18.12/bind-9.18.12.tar.xz.asc
+        wget https://downloads.isc.org/isc/bind9/$BIND9_VERSION_NUMBER/bind-$BIND9_VERSION_NUMBER.tar.xz
+        wget https://downloads.isc.org/isc/bind9/$BIND9_VERSION_NUMBER/bind-$BIND9_VERSION_NUMBER.tar.xz.asc
 
         # how to verify the integrity of downloaded tar.xz file ? see here:
         # https://kb.isc.org/docs/aa-01225
 
-        PUBLIC_KEY="$(gpg --verify ./bind-9.18.12.tar.xz.asc ./bind-9.18.12.tar.xz 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
-        IMPORT_KEY_RESULT="$(gpg --keyserver keyserver.ubuntu.com --recv $PUBLIC_KEY 2>&1 | grep 'michal@isc.org' | wc -l)"
-        VERIFY_SIGNATURE_RESULT="$(gpg --verify ./bind-9.18.12.tar.xz.asc ./bind-9.18.12.tar.xz 2>&1 | tr -s ' ' | grep 'michal@isc.org' | wc -l)"
+        PUBLIC_KEY="$(gpg --verify ./bind-$BIND9_VERSION_NUMBER.tar.xz.asc ./bind-$BIND9_VERSION_NUMBER.tar.xz 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
+        IMPORT_KEY_RESULT="$(gpg --keyserver keyserver.ubuntu.com --recv $PUBLIC_KEY 2>&1 | grep 'mnowak@isc.org' | wc -l)"
+        VERIFY_SIGNATURE_RESULT="$(gpg --verify ./bind-$BIND9_VERSION_NUMBER.tar.xz.asc ./bind-$BIND9_VERSION_NUMBER.tar.xz 2>&1 | tr -s ' ' | grep 'mnowak@isc.org' | wc -l)"
         [ "$IMPORT_KEY_RESULT" -gt 0 ] && echo "pubkey $PUBLIC_KEY imported successfuly" ||  exit 2
         [ "$VERIFY_SIGNATURE_RESULT" -gt 0 ] && echo "verify signature successfully" || exit 2
 
 
-        tar xvf ./bind-9.18.12.tar.xz
-        cd bind-9.18.12
-        ./configure --prefix=/usr/local/bind-9.18.12           \
+        tar xvf ./bind-$BIND9_VERSION_NUMBER.tar.xz
+        cd bind-$BIND9_VERSION_NUMBER
+        ./configure --prefix=/usr/local/bind-$BIND9_VERSION_NUMBER           \
                     --sysconfdir=/etc                         \
                     --localstatedir=/var                      \
                     --mandir=/usr/share/man                   \
@@ -100,11 +101,11 @@ install_bind_server() {
                     --with-randomdev=/dev/urandom
         make
         make install
-        ln -s /usr/local/bind-9.18.12 /usr/local/bind9
-        install -v -m755 -d /usr/share/doc/bind-9.18.12/{arm,misc}
-        install -v -m644 doc/misc/{options,rfc-compliance} /usr/share/doc/bind-9.18.12/misc
-	rm -rf /usr/local/src/bind-9.18.12.tar.xz
-        rm -rf /usr/local/src/bind-9.18.12.tar.xz.asc
+        ln -s /usr/local/bind-$BIND9_VERSION_NUMBER /usr/local/bind9
+        install -v -m755 -d /usr/share/doc/bind-$BIND9_VERSION_NUMBER/{arm,misc}
+        install -v -m644 doc/misc/{options,rfc-compliance} /usr/share/doc/bind-$BIND9_VERSION_NUMBER/misc
+	rm -rf /usr/local/src/bind-$BIND9_VERSION_NUMBER.tar.xz
+        rm -rf /usr/local/src/bind-$BIND9_VERSION_NUMBER.tar.xz.asc
 }
 
 
