@@ -2,7 +2,7 @@
 #
 # this script will install jdk 8 and tomcat and several tools for JavaEE developers
 # there are some parameters have to be confirmed before u run this script :
-############################  <<Tested on Ubuntu 20.04/22.04 Desktop/Server Edition>>  ################
+############################  <<Tested on Ubuntu 22.04/23.04 Desktop/Server Edition>>  ################
 OS_TYPE="Server"              # only 'Server' or 'Desktop' are possible values                        #
 USER_MANUAL=""                # Install Eclipse EE in this users home directory if u r Desktop        #
 TOMCAT_VERSION_U_WANT="9"     # '8' will install version 8.5.x , '9' will install version 9.x.x       #
@@ -10,7 +10,7 @@ TOMCAT8_VERSION_NUMBER="8.5.96"                                                 
 TOMCAT9_VERSION_NUMBER="9.0.83"                                                                       #
 MAVEN_VERSION_NUMBER="3.9.5"                                                                          #
 GRADLE_VERSION_NUMBER="8.4"                                                                           #
-SPRINGBOOT_VERSION_NUMBER="2.7.9"                                                                     #
+SPRINGBOOT_VERSION_NUMBER="3.2.1"                                                                     #
 JMETER_VERSION_NUMBER="5.6.2"                                                                         #
 TOMCAT_ADMIN_USERNAME="admin"                                                                         #
 TOMCAT_ADMIN_PASSWORD="admin"                                                                         #
@@ -338,6 +338,41 @@ EOF
         sed -i -- "s|TOMCAT_ADMIN_USERNAME|$TOMCAT_ADMIN_USERNAME|g" /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/conf/tomcat-users.xml
         sed -i -- "s|TOMCAT_ADMIN_PASSWORD|$TOMCAT_ADMIN_PASSWORD|g" /usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/conf/tomcat-users.xml
 
+	# https://stackoverflow.com/questions/38551166/403-access-denied-on-tomcat-8-manager-app-without-prompting-for-user-password#39462403
+	# backup original context.xml first
+	PATH_01="/usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/webapps/manager/META-INF/"
+	PATH_02="/usr/local/apache-tomcat-$TOMCAT9_VERSION_NUMBER/webapps/host-manager/META-INF/"
+	cp $PATH_01/context.xml $PATH_01/context.xml.default
+	cp $PATH_02/context.xml $PATH_02/context.xml.default
+	rm $PATH_01/context.xml $PATH_02/context.xml
+
+	cat > $PATH_01/context.xml << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Context antiResourceLocking="false" privileged="true" >
+  <CookieProcessor className="org.apache.tomcat.util.http.Rfc6265CookieProcessor"
+                   sameSiteCookies="strict" />
+  <!-- <Valve className="org.apache.catalina.valves.RemoteAddrValve"
+	  allow="\d+\.\d+\.\d+\.\d+" />
+  -->
+  <Manager sessionAttributeValueClassNameFilter="java\.lang\.(?:Boolean|Integer|Long|Number|String)|org\.apache\.catalina\.filters\.CsrfPreventionFilter\$LruCache(?:\$1)?|java\.util\.(?:Linked)?HashMap"/>
+</Context>
+
+EOF
+
+	cat > $PATH_02/context.xml << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Context antiResourceLocking="false" privileged="true" >
+  <CookieProcessor className="org.apache.tomcat.util.http.Rfc6265CookieProcessor"
+                   sameSiteCookies="strict" />
+  <!-- <Valve className="org.apache.catalina.valves.RemoteAddrValve"
+	  allow="\d+\.\d+\.\d+\.\d+" />
+  -->
+  <Manager sessionAttributeValueClassNameFilter="java\.lang\.(?:Boolean|Integer|Long|Number|String)|org\.apache\.catalina\.filters\.CsrfPreventionFilter\$LruCache(?:\$1)?|java\.util\.(?:Linked)?HashMap"/>
+</Context>
+EOF
+
         echo -e "configure JNDI DataSource"
         cd /usr/local/tomcat/conf/
         cp server.xml server.xml.default
@@ -572,8 +607,8 @@ install_gradle() {
 install_spring_boot_cli() {
 	echo -e "ready to install spring boot cli\n"
 	cd /usr/local
-	wget https://repo.spring.io/release/org/springframework/boot/spring-boot-cli/$SPRINGBOOT_VERSION_NUMBER/spring-boot-cli-$SPRINGBOOT_VERSION_NUMBER-bin.tar.gz
-	wget https://repo.spring.io/release/org/springframework/boot/spring-boot-cli/$SPRINGBOOT_VERSION_NUMBER/spring-boot-cli-$SPRINGBOOT_VERSION_NUMBER-bin.tar.gz.md5
+	wget https://repo.maven.apache.org/maven2/org/springframework/boot/spring-boot-cli/$SPRINGBOOT_VERSION_NUMBER/spring-boot-cli-$SPRINGBOOT_VERSION_NUMBER-bin.tar.gz
+	wget https://repo.maven.apache.org/maven2/org/springframework/boot/spring-boot-cli/$SPRINGBOOT_VERSION_NUMBER/spring-boot-cli-$SPRINGBOOT_VERSION_NUMBER-bin.tar.gz.md5
         MD5SUM_SHOULD_BE="$(/bin/cat ./spring-boot-cli-$SPRINGBOOT_VERSION_NUMBER-bin.tar.gz.md5 | cut -d ' ' -f 1)"
         MD5SUM_COMPUTED="$(/usr/bin/md5sum ./spring-boot-cli-$SPRINGBOOT_VERSION_NUMBER-bin.tar.gz | cut -d ' ' -f 1)"
         [ "$MD5SUM_SHOULD_BE" == "$MD5SUM_COMPUTED" ] && echo "spring-boot-cli md5sum matched." || exit 2

@@ -1,8 +1,8 @@
 #!/bin/bash
-######################## << Tested on Ubuntu Mate 22.04 Desktop Edition>> #####################
-######################## << Tested on Ubuntu 22.04 Server Edition >> ##########################
+######################## << Tested on Ubuntu Mate 24.04 Desktop Edition>> #####################
+######################## << Tested on Ubuntu 24.04 Server Edition >> ##########################
 #
-# This script will install openssh-server on Ubuntu 22.04 LTS
+# This script will install openssh-server on Ubuntu 24.04 LTS
 # it will change sshd port number from default 22 to the number you specified here
 # (range could be: 1024 to 65535)
 #
@@ -48,22 +48,25 @@ install_openssh_server() {
 
 change_sshd_settings() {
 	CONFIG_FILE_PATH="/etc/ssh/sshd_config"
+	SSH_SOCKET_FILE_PATH="/usr/lib/systemd/system/ssh.socket"
 	BACKUP_CONFIG_FILE_PATH="/etc/ssh/sshd_config.default"
+	INCLUDED_EXTRA_CONFIG_PATH="/etc/ssh/sshd_config.d/50-cloud-init.conf"
 	if [ ! -f $BACKUP_CONFIG_FILE_PATH ]; then
 		cp $CONFIG_FILE_PATH $BACKUP_CONFIG_FILE_PATH
 	fi
 
         # prevent password logins
         sed -i -- 's|#PasswordAuthentication yes|PasswordAuthentication no|g' $CONFIG_FILE_PATH
+        sed -i -- 's|#PasswordAuthentication yes|PasswordAuthentication no|g' $INCLUDED_EXTRA_CONFIG_PATH
         sed -i -- 's|#PermitEmptyPasswords no|PermitEmptyPasswords no|g' $CONFIG_FILE_PATH
 
 	# check dsa key existed or not , if not existed , delete all of the other keys and re-generate them
-        if [ ! -s /etc/ssh/ssh_host_dsa_key -a ! -s /etc/ssh/ssh_host_dsa_key.pub ]; then
+        if [ ! -s /etc/ssh/ssh_host_ecdsa_key -a ! -s /etc/ssh/ssh_host_ecdsa_key.pub ]; then
                 rm -rf /etc/ssh/ssh_host_*
                 ssh-keygen -A
                 chown root:root /etc/ssh/ssh_host_*
                 chmod 600 /etc/ssh/ssh_host_*
-                chmod 644 /etc/ssh/ssh_host_dsa_*.pub
+                chmod 644 /etc/ssh/ssh_host_ecdsa_*.pub
         fi
 
 	# check /var/run/sshd existed or not, if not , create it , this is also a weird bug
@@ -77,9 +80,11 @@ change_sshd_settings() {
 		echo -e "modify $CONFIG_FILE_PATH \n replace 'Port 22' with 'Port $SSHD_LISTENING_PORT' \n"
 		sed -i -- "s|#Port 22|Port 22|g" $CONFIG_FILE_PATH
 		sed -i -- "s|Port 22|Port $SSHD_LISTENING_PORT|g" $CONFIG_FILE_PATH
+		sed -i -- "s|ListenStream=22|ListenStream=$SSHD_LISTENING_PORT|g" $SSH_SOCKET_FILE_PATH
 		echo -e "done. \n"
-		systemctl restart ssh
-		systemctl status ssh
+		systemctl daemon-reload
+		systemctl restart ssh.service
+		systemctl status ssh.service
 	fi
 }
 
@@ -185,6 +190,7 @@ echo -e "This script will do the following tasks for you, including: \n"
 echo -e "  1.install openssh-server on this computer \n"
 echo -e "  2.change sshd service port from default 22 to custom $SSHD_LISTENING_PORT then restart sshd service \n"
 echo -e "  3.append public key you specified in this script to /home/$AUTHORIZED_USER/.ssh/authorized_keys \n"
+echo -e "  4.create sftpusers group and some sftp users\n"
 read -p "Are you sure (y/n)?" sure
 case $sure in
 	[Yy]*)

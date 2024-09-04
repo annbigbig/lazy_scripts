@@ -1,9 +1,9 @@
 #!/bin/bash
 #
-#####################################################  <<Tested on Ubuntu 22.04 Server Edition>>  ###############
+#####################################################  <<Tested on Ubuntu 24.04 Server Edition>>  ###############
 #
-MEMCACHED_RUNNING_IP_ADDRESS="0.0.0.0"       # 0.0.0.0 for running on all network interfaces or just Private IP
-MEMCACHED_RAM_SIZE="256"                       # how many RAM size that u wanna to allocate to memcached service
+MEMCACHED_RUNNING_IP_ADDRESS="0.0.0.0"        # 0.0.0.0 for running on all network interfaces or just Private IP
+MEMCACHED_RAM_SIZE="256"                      # how many RAM size that u wanna to allocate to memcached service
 #
 #################################################################################################################
 
@@ -12,12 +12,15 @@ say_goodbye() {
 }
 
 install_memcached_server() {
-	      MEMCACHED_HAS_BEEN_INSTALL="$(dpkg --get-selections | grep memcached | wc -l)"
+	MEMCACHED_CONFIG_FILE="/etc/memcached.conf"
+	MEMCACHED_HAS_BEEN_INSTALL="$(dpkg --get-selections | grep memcached | wc -l)"
+
         if [ $MEMCACHED_HAS_BEEN_INSTALL -eq 0 ] ; then
 		apt-get update
-		apt-get install -y memcached
-		sed -i -- "s|-l 127.0.0.1|-l $MEMCACHED_RUNNING_IP_ADDRESS|g" /etc/memcached.conf
-		sed -i -- "s|-m 64|-m $MEMCACHED_RAM_SIZE|g" /etc/memcached.conf
+		apt-get install -y memcached libmemcached-tools
+		sed -i -- "s|-l ::1|#-l ::1|g" $MEMCACHED_CONFIG_FILE
+		sed -i -- "s|-l 127.0.0.1|-l $MEMCACHED_RUNNING_IP_ADDRESS|g" $MEMCACHED_CONFIG_FILE
+		sed -i -- "s|-m 64|-m $MEMCACHED_RAM_SIZE|g" $MEMCACHED_CONFIG_FILE
 		systemctl enable memcached
 		systemctl restart memcached
 		systemctl status memcached

@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script will perform lots of work for optimizing Ubuntu 22.04 LTS you've just installed
+# This script will perform lots of work for optimizing Ubuntu 24.04 LTS you've just installed
 # before you run this script , please specify some parameters here ;
 # these parameters will be used in firewall rules or system settings :
 # 
@@ -23,8 +23,8 @@ OS_TYPE="$(echo $OS_TYPE | tr '[:lower:]' '[:upper:]')"
 # https://linuxhint.com/update-resolv-conf-on-ubuntu/
 # https://bash.cyberciti.biz/security/linux-openvpn-firewall-etc-iptables-add-openvpn-rules-sh-shell-script/
 ########################################################################################################
-#                            <<Tested on Ubuntu Mate 22.04 DESKTOP Edition>>
-#                            <<Tested on Ubuntu 22.04 Server Edition>>
+#                            <<Tested on Ubuntu Mate 24.04 DESKTOP Edition>>
+#                            <<Tested on Ubuntu 24.04 Server Edition>>
 ########################################################################################################
 
 say_goodbye (){
@@ -32,9 +32,9 @@ say_goodbye (){
 }
 
 about_network_config(){
-	echo -e "network config is /etc/netplan/01-netcfg.yaml controled by netplan \n"
+	echo -e "network config is /etc/netplan/50-cloud-init.yaml controled by netplan \n"
 	echo -e "for the stability of system,  do not change it , leave it as it is.\n"
-	echo -e "網路設定檔放在/etc/netplan/01-netcfg.yaml，由netplan控制 \n"
+	echo -e "網路設定檔放在/etc/netplan/50-cloud-init.yaml，由netplan控制 \n"
 	echo -e "為了系統穩定，請不要多事去修改它 \n"
 }
 
@@ -89,7 +89,7 @@ local="\$(/sbin/ip addr show $WIRED_INTERFACE_NAME | grep 'inet' | grep -v 'inet
 if [ $OS_TYPE == "SERVER" ] ; then
 	local="\$(/sbin/ip addr show $WIRED_INTERFACE_NAME | grep 'inet' | grep -v 'inet6' | tr -s ' ' | cut -d ' ' -f 3 | cut -d '/' -f 1)"
 fi
-#local=192.168.251.91
+#local=192.168.251.248
 lan=$LAN
 vpn1=$OPENVPN_NETWORK
 vpn2=$IKEV2VPN_NETWORK
@@ -247,18 +247,18 @@ remove_ugly_fonts() {
 }
 
 downgrade_gcc_version() {
-	# this command will list gcc version now installed on your system (default gcc version on Ubuntu 22.04 are 11 and 12)
+	# this command will list gcc version now installed on your system (default gcc version on Ubuntu 24.04 are 13 and 14)
 	apt list --installed | grep gcc
 
-	# this command will list available packages for installation (older version is 9 and 10)
+	# this command will list available packages for installation (older version is 10 and 11)
 	apt-cache search gcc
 
-	# install gcc/g++ version 9 and 10 , and set default gcc/g++ version to use 9
-        apt-get install -y gcc-9 g++-9
+	# install gcc/g++ version 10 and 11 , and set default gcc/g++ version to use 10
         apt-get install -y gcc-10 g++-10
-        update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90 --slave /usr/bin/g++ g++ /usr/bin/g++-9
+        apt-get install -y gcc-11 g++-11
         update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10
-	update-alternatives --set gcc /usr/bin/gcc-9
+        update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 110 --slave /usr/bin/g++ g++ /usr/bin/g++-11
+	update-alternatives --set gcc /usr/bin/gcc-10
 	gcc -v && g++ -v
 
 	# if u wanna switch to another version again , use this command below :
@@ -378,7 +378,7 @@ echo -e "  10.delete route to 169.254.0.0 \n"
 echo -e "  11.add swap space with 4096MB \n"
 echo -e "  12.install chrome browser \n"
 echo -e "  13.remove ugly fonts \n"
-echo -e "  14.downgrade gcc/g++ version to 9.x \n"
+echo -e "  14.downgrade gcc/g++ version to 10.x \n"
 echo -e "  15.turn off apport problem report popup dialog \n"
 echo -e "  16.install x11vnc service (running on 127.0.0.1:5900) for u if your OS_TYPE is DESKTOP \n"
 
