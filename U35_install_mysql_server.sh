@@ -1,13 +1,13 @@
 #!/bin/bash
 #
-# This script will install mysql-wsrep-server 8.0.xx && galera-4  cluster on Ubuntu 22.04 LTS Server Edition
-######################################################################          <<Tested on Ubuntu 22.04 Server Edition>>
+# This script will install mysql-wsrep-server 8.0.xx && galera-4  cluster on Ubuntu 24.04 LTS Server Edition
+######################################################################          <<Tested on Ubuntu 24.04 Server Edition>>
 INSTALL_MYSQL_AS_MULTIPLE_NODES_GALERA_CLUSTER="no"                  # 'galera.cnf' would be generated only when its value is 'yes'
 ######################################################################
 FIRST_NODE="yes"                                                     # if this node is first node of cluster, set this value to 'yes'
 MYSQL_ROOT_PASSWD="root"                                             # mysql root password you specify for first node
 WSREP_CLUSTER_NAME="kashu_cluster"                                   # name of galera cluster you preffered
-WSREP_CLUSTER_ADDRESS="192.168.251.91,192.168.251.92"                # IP addresses list seperated by comma of all cluster nodes
+WSREP_CLUSTER_ADDRESS="192.168.251.248,192.168.251.249"              # IP addresses list seperated by comma of all cluster nodes
 #########################################################################################################################################
 # no need to setup below , script will know it and use them automatically for u
 WIRED_INTERFACE_NAME="$(ip link show | grep '2:' | cut -d ':' -f 2 | sed 's/^ *//g')"
@@ -22,6 +22,7 @@ UBUNTU_CODENAME="$(cat /etc/lsb-release | grep -i codename | cut -d '=' -f 2)"
 #
 # galera cluster for mysql 8
 # https://www.jianshu.com/p/615adddc77d7
+# https://galeracluster.com/library/documentation/install-mysql.html
 #
 # How to install MySQL server on Ubuntu 22.04 LTS Linux
 # https://www.cyberciti.biz/faq/installing-mysql-server-on-ubuntu-22-04-lts-linux/
@@ -73,7 +74,7 @@ remove_mariadb_if_it_exists() {
 	if [ -n "$MARIADB_SERVER_INSTALLED" ] || [ -n "$MARIADB_CLIENT_INSTALLED" ]; then
 		systemctl stop mariadb.service > /dev/null 2>&1
 		systemctl disable mariadb.service > /dev/null 2>&1
-		apt-get remove --purge -y mariadb-server mariadb-client
+		apt-get remove --purge -y mariadb-server mariadb-client libmariadb*
 		apt-get autoremove -y
 		apt-get autoclean -y
 		rm -rf /var/lib/mysql/
@@ -89,6 +90,7 @@ install_mysql_server() {
 			REPO_INFO_FILE="/etc/apt/sources.list.d/galera.list"
 			rm -rf $REPO_INFO_FILE
 			cat > $REPO_INFO_FILE << EOF
+# Codership Repository (Galera Cluster for MySQL)
 deb https://releases.galeracluster.com/galera-4/ubuntu UBUNTU_CODENAME main
 deb https://releases.galeracluster.com/mysql-wsrep-8.0/ubuntu UBUNTU_CODENAME main
 EOF
@@ -105,17 +107,14 @@ EOF
 			sed -i -- "s|UBUNTU_CODENAME|$UBUNTU_CODENAME|g" $REPO_INFO_FILE
 
 			# import public key
-			apt-key adv --keyserver keyserver.ubuntu.com --recv-keys D669017EBC19DDBA
+			apt-key adv --keyserver keyserver.ubuntu.com --recv 8DA84635
 			apt-get update
-			#apt-get install -y mysql-common
-			#apt-get install -y mysql-client-core-8.0 mysql-client-8.0
-                        apt-get install -y mysql-wsrep-server mysql-wsrep-8.0 galera-4
+			apt-get install -y software-properties-common
+			apt-get install -y galera-4 galera-arbitrator-4 mysql-wsrep-8.0
 		fi
 	else
 		if [ -z "$MYSQL_SERVER_HAS_BEEN_INSTALLED" ] ; then
 			apt-get update
-			#apt-get install -y mysql-common
-			#apt-get install -y mysql-client-core-8.0 mysql-client-8.0
 			apt-get install -y mysql-server-8.0
 		fi
 	fi
@@ -128,10 +127,10 @@ generate_config_file() {
 
 	# backup default(original) config first
 	echo -e "backup default config /etc/mysql/conf.d/mysql.cnf\n"
-	cp /etc/mysql/conf.d/mysql.cnf /etc/mysql/conf.d/mysql.default
+	cp /etc/mysql/conf.d/mysql.cnf /etc/mysql/conf.d/mysql.cnf.default
 	rm -rf /etc/mysql/conf.d/mysql.cnf
 	echo -e "backup default config /etc/mysql/mysql.conf.d/mysqld.cnf\n"
-	cp /etc/mysql/mysql.conf.d/mysqld.cnf /etc/mysql/mysql.conf.d/mysqld.default
+	cp /etc/mysql/mysql.conf.d/mysqld.cnf /etc/mysql/mysql.conf.d/mysqld.cnf.default
 	rm -rf /etc/mysql/mysql.conf.d/mysqld.cnf
 
 	# generate mysql.cnf
@@ -401,7 +400,7 @@ restart_mysql_service() {
 
 set_mysql_root_passwd() {
         if [ "$FIRST_NODE" == "yes" ] || [ "$INSTALL_MYSQL_AS_MULTIPLE_NODES_GALERA_CLUSTER" != "yes" ]; then
-	    # no need to do mysql_secure_installation anymore after mariadb 10.4
+	    # no need to do mysql_secure_installation anymore
             # just change root password on first-node
             cat > /tmp/set_mysql_root_passwd.sql << "EOF"
 ALTER USER 'root'@'localhost' IDENTIFIED BY 'MYSQL_ROOT_PASSWD';
@@ -490,8 +489,8 @@ EOF
 
 # create users and database for cacti
         cd /tmp
-        wget --no-check-certificate https://www.cacti.net/downloads/cacti-1.2.24.tar.gz
-        tar zxvf /tmp/cacti-1.2.24.tar.gz
+        wget --no-check-certificate https://files.cacti.net/cacti/linux/cacti-1.2.27.tar.gz
+        tar zxvf /tmp/cacti-1.2.27.tar.gz
 mysql -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 drop database if exists cacti_db;
 create database cacti_db;
@@ -503,7 +502,7 @@ grant select on mysql.time_zone_name to 'cactiuser'@'localhost';
 grant select on mysql.time_zone_name to 'cactiuser'@'127.0.0.1';
 flush privileges;
 use cacti_db;
-source /tmp/cacti-1.2.24/cacti.sql;
+source /tmp/cacti-1.2.27/cacti.sql;
 EOF
         # populate timezone data from /usr/share/zoneinfo to mysql time_zone_name table
         /usr/bin/mysql_tzinfo_to_sql /usr/share/zoneinfo/ | mysql -u root -p$MYSQL_ROOT_PASSWD mysql
