@@ -4,17 +4,18 @@
 # and deploy phpmyadmin/wordpress/cacti on this web server 
 # before u run this script please confirm these parameters :
 #
-###########################################  <<Tested on Ubuntu Mate 22.04 Server Edition>>  ################
+###########################################  <<Tested on Ubuntu Mate 24.04 Server Edition>>  ################
 #
-NGINX_VERSION_NUMBER="1.25.3"
-OPENSSL_VERSION_NUMBER="3.0.12"
-ZLIB_VERSION_NUMBER="1.3"
+NGINX_VERSION_NUMBER="1.26.2"
+OPENSSL_VERSION_NUMBER="3.3.2"
+ZLIB_VERSION_NUMBER="1.3.1"
 PCRE_VERSION_NUMBER="8.45"
+PCRE2_VERSION_NUMBER="10.44"
 PHP7_VERSION_NUMBER="7.4.33"
-PHP8_VERSION_NUMBER="8.2.12"
+PHP8_VERSION_NUMBER="8.3.11"
 PHPMYADMIN_VERSION_NUMBER="5.2.1"
-WORDPRESS_VERSION_NUMBER="6.4.1"
-CACTI_VERSION_NUMBER="1.2.25"
+WORDPRESS_VERSION_NUMBER="6.6.1"
+CACTI_VERSION_NUMBER="1.2.27"
 #
 SERVER_FQDN="www.dq5rocks.com"
 ENABLE_HTTPS="yes"
@@ -422,7 +423,7 @@ remove_previous_install() {
              systemctl stop apache2.service
              # try to remove binary package
              apt-get purge -y apache2* libaprutil*
-             apt-get purge -y libapache2* libmcrypt* php8.2* php8* php7.4* php7* php*
+             apt-get purge -y libapache2* libmcrypt* php8* php7* php*
              apt autoremove -y
              rm -rf /var/lib/apache2/
              rm -rf /var/lib/php/
@@ -436,13 +437,13 @@ remove_previous_install() {
              # stop/disable service
              systemctl disable php7.4-fpm.service
              systemctl stop php7.4-fpm.service
-        elif [ -f /lib/systemd/system/php8.2-fpm.service ]; then
+        elif [ -f /lib/systemd/system/php8.3-fpm.service ]; then
              # stop/disable service
-             systemctl disable php8.2-fpm.service
-             systemctl stop php8.2-fpm.service
+             systemctl disable php8.3-fpm.service
+             systemctl stop php8.3-fpm.service
 	fi
              # try to remove binary package
-	     apt-get purge -y php8.2* php8* php7.4* php7* php*
+	     apt-get purge -y php8* php7* php*
              apt autoremove -y
              rm -rf /etc/php/
              rm -rf /var/lib/php/
@@ -478,21 +479,21 @@ install_prerequisite() {
         apt-get install -y libldap2-dev libtool-bin libzip-dev lbzip2 libxml2 libxml2-dev re2c libreadline-dev libpcre3 libpcre3-dev
         apt-get install -y libbz2-dev libjpeg-dev libxpm-dev libgmp-dev libgmp3-dev libpspell-dev librecode-dev
         apt-get install -y libcurl4 libcurl4-openssl-dev pkg-config libssl-dev libgdbm-dev libpng-dev libmcrypt-dev
-        apt-get install -y libpam0g-dev libkrb5-dev curl libdb-dev libdb++-dev libdb5.3++-dev libpng-dev 
+        apt-get install -y libpam0g-dev libkrb5-dev curl libdb-dev libdb5.3-dev libdb5.3++-dev libpng-dev 
 	apt-get install -y sqlite3 libsqlite3-dev libonig-dev
 	#
-	apt-get install -y libcurl3-gnutls
-	apt-get install -y libmariadb-dev* libdb-dev libdb5.3
+	apt-get install -y libcurl3t64-gnutls
+	apt-get install -y libmariadb-dev* libdb-dev libdb5.3t64
 	# for php --with-imap
         apt-get install -y libc-client2007e libc-client2007e-dev
-        apt-get install -y libglib2.0-dev libfcgi-dev libfcgi0ldbl libjpeg62 libjpeg62-dev
-	# php 8.2.x require this
+        apt-get install -y libglib2.0-dev libfcgi-dev libfcgi0t64 libjpeg62 libjpeg62-dev
+	# php 8.3.x require this
 	apt-get install -y libsystemd0 libsystemd-dev
         # php-memcached require these
         apt-get install -y git pkg-config build-essential autoconf
-	apt-get install -y libmemcached-dev libmemcached11
+	apt-get install -y libmemcached-dev libmemcached11t64
 	# imap-2007 may require this for compile it from source , package libssl1.1 is not existed in Ubuntu 22.04 apt repo
-	apt-get install -y libssl1.1 libssl-dev
+	##apt-get install -y libssl1.1 libssl-dev
         # php snmp module require these
         apt-get install -y libsnmp-base libsnmp-dev
         if [ "$DEPLOY_CACTI" == "yes" ] ; then
@@ -556,31 +557,44 @@ install_nginx() {
         # remove previously downloaded tar.gz and their extracted folders
         rm -rf ./nginx-*
         rm -rf ./openssl-*
-        rm -rf ./pcre-*
+        rm -rf ./pcre2-*
         rm -rf ./zlib-*
 
         # download the source tar.gz then verify their integrity
         wget http://nginx.org/download/nginx-$NGINX_VERSION_NUMBER.tar.gz
         wget http://nginx.org/download/nginx-$NGINX_VERSION_NUMBER.tar.gz.asc
         PUBLIC_KEY_1="$(gpg nginx-$NGINX_VERSION_NUMBER.tar.gz.asc 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
-        IMPORT_KEY_RESULT_1="$(gpg --keyserver keyserver.ubuntu.com --recv-key $PUBLIC_KEY_1 2>&1 | grep 'thresh@nginx.com' | wc -l)"
-        VERIFY_SIGNATURE_RESULT_1="$(gpg ./nginx-$NGINX_VERSION_NUMBER.tar.gz.asc 2>&1 | tr -s ' ' | grep '13C8 2A63 B603 5761 56E3 0A4E A0EA 981B 66B0 D967' | wc -l)"
+        IMPORT_KEY_RESULT_1="$(gpg --keyserver keyserver.ubuntu.com --recv-key $PUBLIC_KEY_1 2>&1 | grep 's.kandaurov@f5.com' | wc -l)"
+        VERIFY_SIGNATURE_RESULT_1="$(gpg ./nginx-$NGINX_VERSION_NUMBER.tar.gz.asc 2>&1 | tr -s ' ')"
         [ "$IMPORT_KEY_RESULT_1" -gt 0 ] && echo "pubkey $PUBLIC_KEY_1 imported successfuly" ||  exit 2
-        [ "$VERIFY_SIGNATURE_RESULT_1" -gt 0 ] && echo "verify signature successfully" || exit 2
+	if [[ $VERIFY_SIGNATURE_RESULT_1 =~ "D678 6CE3 03D9 A902 2998 DC6C C846 4D54 9AF7 5C0A" ]]; then
+	    echo "verify signature successfully"
+        else
+            exit 2
+        fi
 
-        wget https://www.openssl.org/source/openssl-$OPENSSL_VERSION_NUMBER.tar.gz
-        wget https://www.openssl.org/source/openssl-$OPENSSL_VERSION_NUMBER.tar.gz.sha256
-        SHA256SUM="$(cat ./openssl-$OPENSSL_VERSION_NUMBER.tar.gz.sha256 | tr -d ' ')"
-        SHA256SUM_COMPUTE="$(sha256sum ./openssl-$OPENSSL_VERSION_NUMBER.tar.gz | cut -d ' ' -f 1)"
-        [ "$SHA256SUM" == "$SHA256SUM_COMPUTE" ] && echo "openssl sha256sum matched." || exit 2
+	# download openssl libraries
+	wget https://github.com/openssl/openssl/releases/download/openssl-$OPENSSL_VERSION_NUMBER/openssl-$OPENSSL_VERSION_NUMBER.tar.gz
+	wget https://github.com/openssl/openssl/releases/download/openssl-$OPENSSL_VERSION_NUMBER/openssl-$OPENSSL_VERSION_NUMBER.tar.gz.sha256
+        SHA256SUM_SHOULD_BE="$(cat ./openssl-$OPENSSL_VERSION_NUMBER.tar.gz.sha256 | tr -d ' ')"
+        SHA256SUM_COMPUTED="$(sha256sum ./openssl-$OPENSSL_VERSION_NUMBER.tar.gz | cut -d ' ' -f 1)"
+        [ "$SHA256SUM_SHOULD_BE" == "$SHA256SUM_COMPUTED" ] && echo "openssl sha256sum matched." || exit 2
 
-	wget https://sourceforge.net/projects/pcre/files/pcre/$PCRE_VERSION_NUMBER/pcre-$PCRE_VERSION_NUMBER.tar.gz
-	wget https://sourceforge.net/projects/pcre/files/pcre/$PCRE_VERSION_NUMBER/pcre-$PCRE_VERSION_NUMBER.tar.gz.sig
-        PUBLIC_KEY_2="$(gpg ./pcre-$PCRE_VERSION_NUMBER.tar.gz.sig 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
-	IMPORT_KEY_RESULT_2="$(gpg --keyserver keyserver.ubuntu.com --recv-key $PUBLIC_KEY_2 2>&1 | grep 'Philip.Hazel@gmail.com' | wc -l)"
-        VERIFY_SIGNATURE_RESULT_2="$(gpg ./pcre-$PCRE_VERSION_NUMBER.tar.gz.sig 2>&1 | tr -s ' ' | grep '45F6 8D54 BBE2 3FB3 039B 46E5 9766 E084 FB0F 43D8' | wc -l)"
-        [ "$IMPORT_KEY_RESULT_2" -gt 0 ] && echo "pubkey $PUBLIC_KEY_2 imported successfuly" || exit 2
-        [ "$VERIFY_SIGNATURE_RESULT_2" -gt 0 ] && echo "verify signature successfully" || exit 2
+	# old PCRE library , should be deprecated ...
+	#wget https://sourceforge.net/projects/pcre/files/pcre/$PCRE_VERSION_NUMBER/pcre-$PCRE_VERSION_NUMBER.tar.gz
+	#wget https://sourceforge.net/projects/pcre/files/pcre/$PCRE_VERSION_NUMBER/pcre-$PCRE_VERSION_NUMBER.tar.gz.sig
+        #PUBLIC_KEY_2="$(gpg ./pcre-$PCRE_VERSION_NUMBER.tar.gz.sig 2>&1 | grep -E -i 'rsa|dsa' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
+	#IMPORT_KEY_RESULT_2="$(gpg --keyserver keyserver.ubuntu.com --recv-key $PUBLIC_KEY_2 2>&1 | grep 'Philip.Hazel@gmail.com' | wc -l)"
+        #VERIFY_SIGNATURE_RESULT_2="$(gpg ./pcre-$PCRE_VERSION_NUMBER.tar.gz.sig 2>&1 | tr -s ' ' | grep '45F6 8D54 BBE2 3FB3 039B 46E5 9766 E084 FB0F 43D8' | wc -l)"
+        #[ "$IMPORT_KEY_RESULT_2" -gt 0 ] && echo "pubkey $PUBLIC_KEY_2 imported successfuly" || exit 2
+        #[ "$VERIFY_SIGNATURE_RESULT_2" -gt 0 ] && echo "verify signature successfully" || exit 2
+	#
+	
+	# PCRE2 library
+	wget https://github.com/PCRE2Project/pcre2/releases/download/pcre2-$PCRE2_VERSION_NUMBER/pcre2-$PCRE2_VERSION_NUMBER.tar.gz
+	SHA256SUM_SHOULD_BE="86b9cb0aa3bcb7994faa88018292bc704cdbb708e785f7c74352ff6ea7d3175b"
+	SHA256SUM_COMPUTED="$(sha256sum ./pcre2-$PCRE2_VERSION_NUMBER.tar.gz | cut -d ' ' -f 1)"
+        [ "$SHA256SUM_SHOULD_BE" == "$SHA256SUM_COMPUTED" ] && echo "openssl sha256sum matched." || exit 2
 
         wget http://zlib.net/zlib-$ZLIB_VERSION_NUMBER.tar.gz
         wget http://zlib.net/zlib-$ZLIB_VERSION_NUMBER.tar.gz.asc
@@ -593,14 +607,14 @@ install_nginx() {
         # extract all of tar.gz files and configure nginx
         tar -zxvf ./nginx-$NGINX_VERSION_NUMBER.tar.gz
         tar -zxvf ./openssl-$OPENSSL_VERSION_NUMBER.tar.gz
-        tar -zxvf ./pcre-$PCRE_VERSION_NUMBER.tar.gz
+        tar -zxvf ./pcre2-$PCRE2_VERSION_NUMBER.tar.gz
         tar -zxvf ./zlib-$ZLIB_VERSION_NUMBER.tar.gz
         rm -rf *.tar.gz*
 
         # change directories owner and group
         chown -R root:root ./nginx-$NGINX_VERSION_NUMBER
         chown -R root:root ./openssl-$OPENSSL_VERSION_NUMBER
-        chown -R root:root ./pcre-$PCRE_VERSION_NUMBER
+        chown -R root:root ./pcre2-$PCRE2_VERSION_NUMBER
         chown -R root:root ./zlib-$ZLIB_VERSION_NUMBER
 
         # configure then make then install
@@ -610,7 +624,7 @@ install_nginx() {
                     --group=nginx \
                     --with-http_v2_module \
                     --with-http_ssl_module \
-                    --with-pcre=/usr/local/src/pcre-$PCRE_VERSION_NUMBER \
+                    --with-pcre=/usr/local/src/pcre2-$PCRE2_VERSION_NUMBER \
                     --with-zlib=/usr/local/src/zlib-$ZLIB_VERSION_NUMBER \
                     --with-openssl=/usr/local/src/openssl-$OPENSSL_VERSION_NUMBER \
                     --with-http_stub_status_module
@@ -622,7 +636,7 @@ install_nginx() {
 	cd /usr/local/src
         rm -rf ./nginx-*
         rm -rf ./openssl-*
-        rm -rf ./pcre-*
+        rm -rf ./pcre2-*
         rm -rf ./zlib-*
 
         # backup default nginx.conf
@@ -821,8 +835,8 @@ install_phpfpm() {
 	#blah 
 	if [[ $OPENSSL_VERSION = 3* ]]
 	then
-		echo -e "OpenSSL Version starts with 3 , probably Ubuntu 22.04 \n"
-		install_phpfpm82
+		echo -e "OpenSSL Version starts with 3 , probably Ubuntu 22.04/24.04 \n"
+		install_phpfpm83
 	else
 		echo -e "OpenSSL Version not starts with 3 , probably Ubuntu 20.04 \n"
 		install_phpfpm74
@@ -977,7 +991,7 @@ EOF
 	# update-alternatives --config php
 }
 
-install_phpfpm82() {
+install_phpfpm83() {
         # for linking kerberos libraries
         mkdir -p /usr/kerberos
         ln -s /usr/lib/$LIB_SUBPATH/ /usr/kerberos/lib
@@ -993,7 +1007,7 @@ install_phpfpm82() {
 
         # download the source tar.gz, extract it then configure it
         wget -O php-$PHP8_VERSION_NUMBER.tar.gz https://www.php.net/distributions/php-$PHP8_VERSION_NUMBER.tar.gz
-        SHA256SUM_SHOULD_BE="b2b74a91f5fac14ce10ece0ac210f6f5d72f4367a3cb638e80d117d183750a21"
+        SHA256SUM_SHOULD_BE="b93a69af83a1302543789408194bd1ae9829e116e784d578778200f20f1b72d4"
         SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./php-$PHP8_VERSION_NUMBER.tar.gz | cut -d " " -f 1)"
         [ "$SHA256SUM_SHOULD_BE" != "$SHA256SUM_COMPUTED" ] && echo "oops...sha256 checksum doesnt match." && exit 2 || echo "sha256 checksum matched."
         tar zxvf ./php-$PHP8_VERSION_NUMBER.tar.gz
@@ -1054,7 +1068,9 @@ install_phpfpm82() {
         cp /usr/local/php-$PHP8_VERSION_NUMBER/etc/php-fpm.conf.default /usr/local/php-$PHP8_VERSION_NUMBER/etc/php-fpm.conf
 
         # php.ini setting
-        sed -i -- "/\[opcache\]/a zend_extension=/usr/local/php-$PHP8_VERSION_NUMBER/lib/php/extensions/no-debug-non-zts-20220829/opcache.so" /usr/local/php-$PHP8_VERSION_NUMBER/lib/php.ini
+	cd /usr/local/php-$PHP8_VERSION_NUMBER/lib/php/extensions/
+	ZTS_DIR_PATH="$(ls -al | grep zts | awk '{print $NF}' | tr -s ' ')"
+        sed -i -- "/\[opcache\]/a zend_extension=/usr/local/php-$PHP8_VERSION_NUMBER/lib/php/extensions/$ZTS_DIR_PATH/opcache.so" /usr/local/php-$PHP8_VERSION_NUMBER/lib/php.ini
         sed -i -- "s|;opcache.enable=1|opcache.enable=1|g" /usr/local/php-$PHP8_VERSION_NUMBER/lib/php.ini
         sed -i -- "s|;opcache.enable_cli=0|opcache.enable_cli=1|g" /usr/local/php-$PHP8_VERSION_NUMBER/lib/php.ini
         sed -i -- "s|;opcache.memory_consumption=128|opcache.memory_consumption=128|g" /usr/local/php-$PHP8_VERSION_NUMBER/lib/php.ini
@@ -1100,7 +1116,7 @@ cat > /etc/logrotate.d/php-fpm << EOF
 EOF
 
         # create systemd unit file
-        cat > /lib/systemd/system/php8.2-fpm.service << "EOF"
+        cat > /lib/systemd/system/php8.3-fpm.service << "EOF"
 [Unit]
 Description=PHP FastCGI process manager
 After=local-fs.target network.target nginx.service
@@ -1117,8 +1133,8 @@ EOF
         chown -R nginx:nginx /usr/local/php-$PHP8_VERSION_NUMBER
         chown root:root /etc/logrotate.d/php-fpm
         chmod 644 /etc/logrotate.d/php-fpm
-        chown root:root /lib/systemd/system/php8.2-fpm.service
-        chmod 644 /lib/systemd/system/php8.2-fpm.service
+        chown root:root /lib/systemd/system/php8.3-fpm.service
+        chmod 644 /lib/systemd/system/php8.3-fpm.service
 
 	# change multiple php binaries priority
 	update-alternatives --install /usr/bin/php php /usr/local/php-$PHP8_VERSION_NUMBER/bin/php 99
@@ -1128,6 +1144,10 @@ EOF
 }
 
 install_php-memcached() {
+	
+	# get ZTS_DIR_PATH first
+	cd /usr/local/php-$PHP8_VERSION_NUMBER/lib/php/extensions/
+	ZTS_DIR_PATH="$(ls -al | grep zts | awk '{print $NF}' | tr -s ' ')"
 
 	cd /usr/local/src
         git clone https://github.com/php-memcached-dev/php-memcached.git
@@ -1138,12 +1158,12 @@ install_php-memcached() {
 
 	if [[ $OPENSSL_VERSION = 3* ]]
 	then
-        	echo -e "OpenSSL Verison Start with 3 , maybe Ubuntu 22.04 LTS \n"
+        	echo -e "OpenSSL Verison Start with 3 , maybe Ubuntu 22.04/24.04 LTS \n"
         	/usr/local/php-$PHP8_VERSION_NUMBER/bin/phpize
         	./configure --disable-memcached-sasl --with-php-config=/usr/local/php-$PHP8_VERSION_NUMBER/bin/php-config
         	make && make install
-        	chown nginx:nginx /usr/local/php-$PHP8_VERSION_NUMBER/lib/php/extensions/no-debug-non-zts-20220829/memcached.so
-        	echo "extension=/usr/local/php-$PHP8_VERSION_NUMBER/lib/php/extensions/no-debug-non-zts-20220829/memcached.so" >> /usr/local/php-$PHP8_VERSION_NUMBER/lib/php.ini
+        	chown nginx:nginx /usr/local/php-$PHP8_VERSION_NUMBER/lib/php/extensions/$ZTS_DIR_PATH/memcached.so
+        	echo "extension=/usr/local/php-$PHP8_VERSION_NUMBER/lib/php/extensions/$ZTS_DIR_PATH/memcached.so" >> /usr/local/php-$PHP8_VERSION_NUMBER/lib/php.ini
         	sed -i -- 's|session.save_handler = files|session.save_handler = memcached|g' /usr/local/php-$PHP8_VERSION_NUMBER/lib/php.ini
         	sed -i -- "s|;session.save_path = \"/tmp\"|session.save_path = \"$SESSION_SAVE_PATH\"|g" /usr/local/php-$PHP8_VERSION_NUMBER/lib/php.ini
 	else
@@ -1196,9 +1216,9 @@ EOF
 	echo -e "#  HOW to connect to phpMyAdmin that runs on remote host's 127.0.0.1 port 80 ?                            # \n"
 	echo -e "#  Assume this remote host has a SSH service running on port 36000 just like my situation,                # \n"
 	echo -e "#  You could fire this command :                                                                          # \n"
-	echo -e "#     ssh -p36000 -L 8888:127.0.0.1:80 -N -f username@192.168.21.231                                      # \n"
-	echo -e "#  replace <username> and <192.168.21.231> with your real username (like bobson, mary...) and IP address  # \n"
-	echo -e "#  it will bind 192.168.21.231 its 127.0.0.1:80 to your local (client) machine                            # \n"
+	echo -e "#     ssh -p36000 -L 8888:127.0.0.1:80 -N -f username@$MY_IP                                              # \n"
+	echo -e "#  replace <username> and <$MY_IP> with your real username (like bobson, mary...) and IP address          # \n"
+	echo -e "#  it will bind $MY_IP its 127.0.0.1:80 to your local (client) machine                                    # \n"
 	echo -e "#  so you could open browser then go to http://127.0.0.1:8888/phpmyadmin/                                 # \n"
 	echo -e "#  then you will see phpMyAdmin Login page , that's all                                                   # \n"
 	echo -e "########################################################################################################### \n"
@@ -1264,12 +1284,12 @@ EOF
 	### README parts ####
 	echo -e "########################################################################################################### \n"
 	echo -e "#  HOW to see the contents of https://blog.dq5rocks.com                   ? ? ?                           # \n"
-	echo -e "#  if there is no any DNS Server to resolve 'blog.dq5rocks.com' is just your 192.168.21.231 machine       # \n"
-	echo -e "#  You won't see WordPress that u just installed on it (192.168.21.231)                                   # \n"
+	echo -e "#  if there is no any DNS Server to resolve 'blog.dq5rocks.com' is just your $MY_IP machine               # \n"
+	echo -e "#  You won't see WordPress that u just installed on it ($MY_IP)                                           # \n"
 	echo -e "#  so Try to edit  /etc/hosts  file on the client machine                                                 # \n"
-        echo -e "# 	( not 192.168.21.231 , i mean your client machine that u will use browser on it later )            # \n"
+        echo -e "# 	( not $MY_IP , i mean your client machine that u will use browser on it later )                    # \n"
 	echo -e "#  then put this line in it                                                                               # \n"
-	echo -e "#      192.168.21.231  blog.dq5rocks.com                                                                  # \n"
+	echo -e "#      $MY_IP  blog.dq5rocks.com                                                                          # \n"
 	echo -e "#  after that save the file and leave the text editor                                                     # \n"
 	echo -e "#  then you go back to client machine , open browser , then go to https://blog.dq5rocks.com               # \n"
 	echo -e "#  u will see WordPress Installation page , that's all                                                    # \n"
@@ -1280,7 +1300,7 @@ deploy_cacti() {
         [ "$DEPLOY_CACTI" != "yes" ] && echo "skip cacti deployment." && return || echo "deploy cacti ---> yes"
         [ -d "/var/www/localhost/cacti/" ] && echo "seems like cacti already existed." && return || echo "ready to deploy cacti"
         cd /var/www/localhost/
-        wget --no-check-certificate https://www.cacti.net/downloads/cacti-$CACTI_VERSION_NUMBER.tar.gz
+	wget --no-check-certificate https://files.cacti.net/cacti/linux/cacti-$CACTI_VERSION_NUMBER.tar.gz
         tar zxvf ./cacti-$CACTI_VERSION_NUMBER.tar.gz
         rm -rf ./cacti-$CACTI_VERSION_NUMBER.tar.gz*
         cd ./cacti-$CACTI_VERSION_NUMBER/
@@ -1397,13 +1417,13 @@ start_systemd_service() {
 	if [[ $OPENSSL_VERSION = 3* ]]
 	then
 	        if [ "$OLD_PHPFPM_PROCESS_EXISTED" -gt 0 ]; then
-			systemctl stop php8.2-fpm.service
+			systemctl stop php8.3-fpm.service
 		fi
              	rm -rf /usr/local/php
 	        ln -s /usr/local/php-$PHP8_VERSION_NUMBER /usr/local/php
-		systemctl enable php8.2-fpm.service
-		systemctl start php8.2-fpm.service
-		systemctl status php8.2-fpm.service
+		systemctl enable php8.3-fpm.service
+		systemctl start php8.3-fpm.service
+		systemctl status php8.3-fpm.service
 	else
 		if [ "$OLD_PHPFPM_PROCESS_EXISTED" -gt 0 ]; then	
 			systemctl stop php7.4-fpm.service
