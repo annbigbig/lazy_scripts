@@ -2,43 +2,47 @@
 #
 # this script will install jdk 8 and tomcat and several tools for JavaEE developers
 # there are some parameters have to be confirmed before u run this script :
-############################  <<Tested on Ubuntu 22.04/23.04 Desktop/Server Edition>>  ################
-OS_TYPE="Server"              # only 'Server' or 'Desktop' are possible values                        #
-USER_MANUAL=""                # Install Eclipse EE in this users home directory if u r Desktop        #
-TOMCAT_VERSION_U_WANT="9"     # '8' will install version 8.5.x , '9' will install version 9.x.x       #
-TOMCAT8_VERSION_NUMBER="8.5.96"                                                                       #
-TOMCAT9_VERSION_NUMBER="9.0.83"                                                                       #
-MAVEN_VERSION_NUMBER="3.9.5"                                                                          #
-GRADLE_VERSION_NUMBER="8.4"                                                                           #
-SPRINGBOOT_VERSION_NUMBER="3.2.1"                                                                     #
-JMETER_VERSION_NUMBER="5.6.2"                                                                         #
-TOMCAT_ADMIN_USERNAME="admin"                                                                         #
-TOMCAT_ADMIN_PASSWORD="admin"                                                                         #
-TOMCAT_JNDI_RESOURCE_NAME="jdbc/DB_SPRING"                                                            #
-TOMCAT_JNDI_USERNAME="spring"                                                                         #
-TOMCAT_JNDI_PASSWORD="spring"                                                                         #
-TOMCAT_JNDI_DBNAME="db_spring"                                                                        #
-TOMCAT_JNDI_SQLSERVER="mysql"                       # only 'mysql' or 'mariadb' are possible values   #
-TOMCAT_JNDI_DRIVER_NAME="com.mysql.cj.jdbc.Driver" # 或是 org.mariadb.jdbc.Driver                     #
-#TOMCAT_JNDI_DRIVER_NAME="org.mariadb.jdbc.Driver" # 或是 com.mysql.cj.jdbc.Driver                    #
-TOMCAT_JNDI_URL="jdbc:$TOMCAT_JNDI_SQLSERVER://127.0.0.1:3306/$TOMCAT_JNDI_DBNAME"                    #
-#TOMCAT_MEMCACHED_NODES="n1:192.168.251.91:11211,n2:192.168.251.92:11211"   # 多個節點用逗號隔開      #
-TOMCAT_MEMCACHED_NODES="n1:127.0.0.1:11211"   # 只使用本機的memcached服務(單節點)                     #
-TOMCAT_MINIMAL_HEAP_MEMORY_SIZE="1g"                                                                  #
-TOMCAT_MAXIMUM_HEAP_MEMORY_SIZE="1g"                                                                  #
-MINIMAL_HEAP_MEMORY_SIZE="2g"                                                                         #
-MAXIMUM_HEAP_MEMORY_SIZE="2g"                                                                         #
-#######################################################################################################
-# Script will get parameters below , no need to configure                                             #
-#                                                                                                     #
-NETWORK_INTERFACE="$(ip link show | grep '2:' | cut -d ':' -f 2 | sed 's/^ *//g')"                    #
-USER_AUTO="$(/usr/bin/cat /etc/passwd | grep 1000 | cut -d ":" -f 1)"                                 #
-UNAME_M="$(/usr/bin/uname -m)"                                                                        #
-#                                                                                                     #
-#######################################################################################################
-# Useful Links:                                                                                       #
-# https://gist.github.com/wavezhang/ba8425f24a968ec9b2a8619d7c2d86a6                                  #
-#######################################################################################################
+############################  <<Tested on Ubuntu 24.04 Desktop/Server Edition>>  ###########################
+OS_TYPE="Server"              # only 'Server' or 'Desktop' are possible values                             #
+USER_MANUAL=""                # Install Eclipse EE in this users home directory if u r Desktop             #
+TOMCAT_VERSION_U_WANT="9"     # '8' will install version 8.5.x , '9' will install version 9.x.x            #
+TOMCAT8_VERSION_NUMBER="8.5.100"                                                                           #
+TOMCAT9_VERSION_NUMBER="9.0.93"                                                                            #
+MAVEN_VERSION_NUMBER="3.9.9"                                                                               #
+GRADLE_VERSION_NUMBER="8.10"                                                                               #
+SPRINGBOOT_VERSION_NUMBER="3.3.3"                                                                          #
+JMETER_VERSION_NUMBER="5.6.3"                                                                              #
+TOMCAT_ADMIN_USERNAME="admin"                                                                              #
+TOMCAT_ADMIN_PASSWORD="admin"                                                                              #
+TOMCAT_JNDI_RESOURCE_NAME="jdbc/DB_SPRING"                                                                 #
+TOMCAT_JNDI_USERNAME="spring"                                                                              #
+TOMCAT_JNDI_PASSWORD="spring"                                                                              #
+TOMCAT_JNDI_DBNAME="db_spring"                                                                             #
+TOMCAT_JNDI_SQLSERVER="mysql"                       # only 'mysql' or 'mariadb' are possible values        #
+TOMCAT_JNDI_DRIVER_NAME="com.mysql.cj.jdbc.Driver" # 或是 org.mariadb.jdbc.Driver                          #
+#TOMCAT_JNDI_DRIVER_NAME="org.mariadb.jdbc.Driver" # 或是 com.mysql.cj.jdbc.Driver                         #
+TOMCAT_JNDI_URL="jdbc:$TOMCAT_JNDI_SQLSERVER://127.0.0.1:3306/$TOMCAT_JNDI_DBNAME"                         #
+#TOMCAT_MEMCACHED_NODES="n1:192.168.251.91:11211,n2:192.168.251.92:11211"   # 多個節點用逗號隔開           #
+TOMCAT_MEMCACHED_NODES="n1:127.0.0.1:11211"   # 只使用本機的memcached服務(單節點)                          #
+TOMCAT_MINIMAL_HEAP_MEMORY_SIZE="1g"                                                                       #
+TOMCAT_MAXIMUM_HEAP_MEMORY_SIZE="1g"                                                                       #
+MINIMAL_HEAP_MEMORY_SIZE="2g"                                                                              #
+MAXIMUM_HEAP_MEMORY_SIZE="2g"                                                                              #
+############################################################################################################
+# Script will get parameters below , no need to configure                                                  #
+#                                                                                                          #
+NETWORK_INTERFACE="$(ip link show | grep '2:' | cut -d ':' -f 2 | sed 's/^ *//g')"                         #
+USER_AUTO="$(/usr/bin/cat /etc/passwd | grep 1000 | cut -d ":" -f 1)"                                      #
+UNAME_M="$(/usr/bin/uname -m)"                                                                             #
+#                                                                                                          #
+############################################################################################################
+# Useful Links:                                                                                            #
+# https://gist.github.com/wavezhang/ba8425f24a968ec9b2a8619d7c2d86a6                                       #
+#                                                                                                          # 
+# For ARM devices such like Raspberry Pi                                                                   #
+# https://www.pi4j.com/documentation/java-installation/                                                    #
+# https://www.azul.com/downloads/?version=java-11-lts&os=linux&architecture=arm-32-bit-hf&package=jdk#zulu #
+############################################################################################################
 
 say_goodbye() {
         echo "see you next time"
@@ -49,17 +53,17 @@ install_jdk() {
         cd /usr/local/
 
 	if [ $UNAME_M == "x86_64" ]; then
-	   wget https://download.java.net/java/GA/jdk21.0.1/415e3f918a1f4062a0074a2794853d0d/12/GPL/openjdk-21.0.1_linux-x64_bin.tar.gz -O openjdk-21.0.1_linux-x64_bin.tar.gz
+	   wget https://download.java.net/java/GA/jdk22.0.2/c9ecb94cd31b495da20a27d4581645e8/9/GPL/openjdk-22.0.2_linux-x64_bin.tar.gz -O openjdk-22.0.2_linux-x64_bin.tar.gz
            # checksum could be found here
-	   # https://download.java.net/java/GA/jdk21.0.1/415e3f918a1f4062a0074a2794853d0d/12/GPL/openjdk-21.0.1_linux-x64_bin.tar.gz.sha256
-           SHA256SUM_SHOULD_BE="7e80146b2c3f719bf7f56992eb268ad466f8854d5d6ae11805784608e458343f"
-           SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./openjdk-21.0.1_linux-x64_bin.tar.gz | cut -d ' ' -f 1)"
+	   # https://download.java.net/java/GA/jdk22.0.2/c9ecb94cd31b495da20a27d4581645e8/9/GPL/openjdk-22.0.2_linux-x64_bin.tar.gz.sha256
+           SHA256SUM_SHOULD_BE="41536f115668308ecf4eba92aaf6acaeb0936225828b741efd83b6173ba82963"
+           SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./openjdk-22.0.2_linux-x64_bin.tar.gz | cut -d ' ' -f 1)"
           [ "$SHA256SUM_SHOULD_BE" == "$SHA256SUM_COMPUTED" ] && echo "jdk sha256sum matched." || exit 2
-           tar -zxvf ./openjdk-21.0.1_linux-x64_bin.tar.gz
-           chown -R root:root ./jdk-21.0.1
+           tar -zxvf ./openjdk-22.0.2_linux-x64_bin.tar.gz
+           chown -R root:root ./jdk-22.0.2
            rm -rf /usr/local/jdk
-           ln -s /usr/local/jdk-21.0.1 /usr/local/jdk
-           rm -rf ./openjdk-21.0.1_linux-x64_bin.tar.gz
+           ln -s /usr/local/jdk-22.0.2 /usr/local/jdk
+           rm -rf ./openjdk-22.0.2_linux-x64_bin.tar.gz
            echo -e "jdk ($UNAME_M) installation completed."
 	elif [ $UNAME_M == "armv7l" ]; then
            wget https://javadl.oracle.com/webapps/download/AutoDL?BundleId=248215_ce59cff5c23f4e2eaf4e778a117d4c5b -O jdk-8u371-linux-arm32-vfp-hflt.tar.gz
@@ -126,7 +130,8 @@ install_tomcat8() {
 	echo -e "build jsvc\n"
 	cd /usr/local/tomcat/bin
 	tar -zxvf ./commons-daemon-native.tar.gz
-	cd commons-daemon-1.3.4-native-src/unix
+	COMMONS_DAEMON_DIR_NAME="$(ls -al | grep 'commons-daemon-1' | awk '{print $NF}')"
+        cd $COMMONS_DAEMON_DIR_NAME/unix
 	./configure --with-java=/usr/local/jdk
 	make
 	cp jsvc ../..
@@ -308,7 +313,8 @@ install_tomcat9() {
         echo -e "build jsvc\n"
         cd /usr/local/tomcat/bin
         tar -zxvf ./commons-daemon-native.tar.gz
-        cd commons-daemon-1.3.4-native-src/unix
+	COMMONS_DAEMON_DIR_NAME="$(ls -al | grep 'commons-daemon-1' | awk '{print $NF}')"
+        cd $COMMONS_DAEMON_DIR_NAME/unix
         ./configure --with-java=/usr/local/jdk
         make
         cp jsvc ../..
@@ -751,12 +757,12 @@ install_eclipse_ee() {
 	     cd /usr/local/
              rm -rf ./eclipse*
 	     if [ $UNAME_M == "x86_64" ]; then
-		wget https://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/2023-09/R/eclipse-jee-2023-09-R-linux-gtk-x86_64.tar.gz\&r=1 -O eclipse-jee-2023-09-R-linux-gtk-x86_64.tar.gz
-		SHA1SUM_SHOULD_BE="31fb579fb301efa2b36151eb6af78b69973d35a7"
-		SHA1SUM_COMPUTED="$(/usr/bin/sha1sum ./eclipse-jee-2023-09-R-linux-gtk-x86_64.tar.gz | cut -d ' ' -f 1)"
-                [ "$SHA1SUM_SHOULD_BE" == "$SHA1SUM_COMPUTED" ] && echo "Eclipse EE sha1sum matched." || exit 2
-                tar -zxvf ./eclipse-jee-2023-09-R-linux-gtk-x86_64.tar.gz
-                rm -rf ./eclipse-jee-2023-09-R-linux-gtk-x86_64.tar.gz
+		wget https://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/2024-06/R/eclipse-jee-2024-06-R-linux-gtk-x86_64.tar.gz\&r=1 -O eclipse-jee-2024-06-R-linux-gtk-x86_64.tar.gz
+		SHA512SUM_SHOULD_BE="02c1c43326e8e38dd2611268123c6cab2fd918b41d6707cef8bbf81f8f445249e6aae91817b9ff4446c937b3371caf9eb2647b32612997a4fb102cc8d76c4569"
+		SHA512SUM_COMPUTED="$(/usr/bin/sha512sum ./eclipse-jee-2024-06-R-linux-gtk-x86_64.tar.gz | cut -d ' ' -f 1)"
+                [ "$SHA512SUM_SHOULD_BE" == "$SHA512SUM_COMPUTED" ] && echo "Eclipse EE sha512sum matched." || exit 2
+                tar -zxvf ./eclipse-jee-2024-06-R-linux-gtk-x86_64.tar.gz
+                rm -rf ./eclipse-jee-2024-06-R-linux-gtk-x86_64.tar.gz
 	     #elif [ $UNAME_M == "aach64" ]; then
 
 	     fi

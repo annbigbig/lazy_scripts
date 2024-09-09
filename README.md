@@ -70,7 +70,7 @@ $ vi U00-optimize_ubuntu.sh
 
 ```bash
 #!/bin/bash
-# This script will perform lots of work for optimizing Ubuntu 22.04 LTS you've just installed
+# This script will perform lots of work for optimizing Ubuntu 24.04 LTS you've just installed
 # before you run this script , please specify some parameters here ;
 # these parameters will be used in firewall rules or system settings :
 # 

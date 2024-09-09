@@ -21,9 +21,10 @@ install_memcached_server() {
 		sed -i -- "s|-l ::1|#-l ::1|g" $MEMCACHED_CONFIG_FILE
 		sed -i -- "s|-l 127.0.0.1|-l $MEMCACHED_RUNNING_IP_ADDRESS|g" $MEMCACHED_CONFIG_FILE
 		sed -i -- "s|-m 64|-m $MEMCACHED_RAM_SIZE|g" $MEMCACHED_CONFIG_FILE
-		systemctl enable memcached
-		systemctl restart memcached
-		systemctl status memcached
+		systemctl enable memcached.service
+		systemctl stop memcached.service
+		systemctl start memcached.service
+		systemctl status memcached.service
    	fi
 }
 
