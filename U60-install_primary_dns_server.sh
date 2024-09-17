@@ -3,8 +3,8 @@
 # This script will configure a Bind9 server as primary DNS server with chroot environment
 # before running this script, please set some parameters below:
 #
-################################  <<Tested on Ubuntu 20.04/22.04 Server Edition>>  #############
-BIND9_VERSION_NUMBER="9.18.20"
+################################  <<Tested on Ubuntu 24.04 Server Edition>>  #############
+BIND9_VERSION_NUMBER="9.18.29"
 #
 DOMAIN_NAME="dq5rocks.com"
 FIRST_OCTET="192"
@@ -13,7 +13,7 @@ THIRD_OCTET="251"
 #
 TRUSTED_LOCAL_SUBNET="192.168.251.0/24"
 TRUSTED_VPN_SUBNET="192.168.252.0/24"
-SECONDARY_DNS_IP_ADDRESS="203.77.222.222"
+SECONDARY_DNS_IP_ADDRESS="192.168.251.249"
 #
 # dont forget suffix dot . if you write a FQDN for NS/MX/A/PTR record
 # each column is seperated by space
@@ -23,20 +23,20 @@ NS sanzi.dq5rocks.com.
 MX mail.dq5rocks.com. 10
 CNAME ns1 tamsui
 CNAME ns2 sanzi
-A dq5rocks.com. 49.159.111.111
+A dq5rocks.com. 122.100.111.111
 A dq5rocks.com. 203.77.222.222
 A vhost91.dq5rocks.com. 192.168.251.91
 A vhost92.dq5rocks.com. 192.168.251.92
-A tamsui.dq5rocks.com. 49.159.111.111
+A tamsui.dq5rocks.com. 122.100.111.111
 A sanzi.dq5rocks.com. 203.77.222.222
-A www.dq5rocks.com. 49.159.111.111
-A blog.dq5rocks.com. 49.159.111.111
+A www.dq5rocks.com. 122.100.111.111
+A blog.dq5rocks.com. 122.100.111.111
 A mysql.dq5rocks.com. 192.168.251.100
 A elastic.dq5rocks.com. 192.168.251.101
 A api.dq5rocks.com. 192.168.251.111
 A api.dq5rocks.com. 192.168.251.112
 A api.dq5rocks.com. 192.168.251.113
-A mail.dq5rocks.com. 49.159.111.111
+A mail.dq5rocks.com. 122.100.111.111
 PTR 100 mysql.dq5rocks.com.
 PTR 101 elastic.dq5rocks.com.
 PTR 111 api.dq5rocks.com.
@@ -64,6 +64,9 @@ EOV
 # http://www.unixwiz.net/techtips/bind9-chroot.html
 # https://blog.apnic.net/2019/05/23/how-to-deploying-dnssec-with-bind-and-ubuntu-server/
 # https://tecadmin.net/configure-rndc-for-bind9/
+#
+# Root Servers list
+# https://www.iana.org/domains/root/servers
 ##########################################################################################################
 
 say_goodbye() {
@@ -96,6 +99,7 @@ remove_previous_version() {
 }
 
 install_dependencies() {
+	apt-get update
 	apt-get install -y libcap-dev libxml2 libkrb5-dev libssl-dev pkg-config
 	apt-get install -y libuv1 libuv1-dev python3 python3-all python3-ply python3-plyvel
 	apt-get install -y libnghttp2-14 libnghttp2-dev libnghttp2-doc
@@ -347,8 +351,8 @@ EOF
 .                       6D  IN      NS      M.ROOT-SERVERS.NET.
 A.ROOT-SERVERS.NET.     6D  IN      A       198.41.0.4
 A.ROOT-SERVERS.NET.     6D  IN      AAAA    2001:503:ba3e::2:30
-B.ROOT-SERVERS.NET.     6D  IN      A       192.228.79.201
-B.ROOT-SERVERS.NET.     6D  IN      AAAA    2001:500:84::b
+B.ROOT-SERVERS.NET.     6D  IN      A       170.247.170.2
+B.ROOT-SERVERS.NET.     6D  IN      AAAA    2801:1b8:10::b
 C.ROOT-SERVERS.NET.     6D  IN      A       192.33.4.12
 C.ROOT-SERVERS.NET.     6D  IN      AAAA    2001:500:2::c
 D.ROOT-SERVERS.NET.     6D  IN      A       199.7.91.13
@@ -358,6 +362,7 @@ E.ROOT-SERVERS.NET.     6D  IN      AAAA    2001:500:a8::e
 F.ROOT-SERVERS.NET.     6D  IN      A       192.5.5.241
 F.ROOT-SERVERS.NET.     6D  IN      AAAA    2001:500:2f::f
 G.ROOT-SERVERS.NET.     6D  IN      A       192.112.36.4
+G.ROOT-SERVERS.NET.     6D  IN      AAAA    2001:500:12::d0d
 H.ROOT-SERVERS.NET.     6D  IN      A       198.97.190.53
 H.ROOT-SERVERS.NET.     6D  IN      AAAA    2001:500:1::53
 I.ROOT-SERVERS.NET.     6D  IN      A       192.36.148.17
