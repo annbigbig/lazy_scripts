@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script will install Netdata on your Ubuntu 22.04 machine
+# This script will install Netdata on your Ubuntu 24.04 machine
 # 
 #######################################################################################################################################
 # no need to setup below , script will know it and use it automatically for u 
@@ -17,7 +17,7 @@ NETDATA_INSTALLED="$(apt list --installed 2>/dev/null | grep netdata | wc -l)"
 # https://answers.launchpad.net/ubuntu/+source/netdata/+question/701962
 # https://itsfoss.com/debian-vs-ubuntu/
 #######################################################################################################################################
-#                            <<Tested on Ubuntu 22.04 Server Edition>>
+#                            <<Tested on Ubuntu 24.04 Server Edition>>
 # Hint : Netdata uses /usr/lib/netdata/python.d/nginx.chart.py to get metric data
 #######################################################################################################################################
 

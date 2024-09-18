@@ -1,7 +1,7 @@
 #!/bin/bash
-# This script will install Snort3 on your Ubuntu 22.04 machine
+# This script will install Snort3 on your Ubuntu 24.04 machine
 # setup these parameters below carefully :
-HOME_NET="192.168.251.92/32"
+HOME_NET="192.168.251.248/32"
 #######################################################################################################################################
 # no need to setup below , script will know it and use it automatically for u 
 WIRED_INTERFACE_NAME="$(ip link show | grep '2:' | cut -d ':' -f 2 | sed 's/^ *//g')"
@@ -27,23 +27,34 @@ YOUR_SERVER_IP="$(/sbin/ip addr show $WIRED_INTERFACE_NAME | grep 'inet' | grep 
 # https://bugs.launchpad.net/ubuntu/+source/libunwind/+bug/2004039
 # https://snort-org-site.s3.amazonaws.com/production/document_files/files/000/003/977/original/Snort_3_GA_on_CentOS_8_Stream.pdf
 # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=932499
+# https://0xzx.com/zh-tw/2022101723502745239.html
+# https://github.com/snort3/snort3/issues/285
 #######################################################################################################################################
-#                            <<Tested on Ubuntu 22.04 Server Edition>>
+#                            <<Tested on Ubuntu 24.04 Server Edition>>
 #######################################################################################################################################
 
 say_goodbye() {
         echo "see you next time"
 }
 
-install_snort3 (){
+install_prerequisite() {
 	apt-get update
 	apt-get upgrade -y
-	apt install build-essential libpcap-dev libpcre3-dev \
-		libnet1-dev zlib1g-dev luajit hwloc libdnet-dev \
+	apt-get install cmake build-essential pkg-config dh-autoreconf -y
+	apt-get install libpcap-dev libpcre3-dev \
+		libnet1-dev zlib1g-dev luajit hwloc \
 		libdumbnet-dev bison flex liblzma-dev openssl libssl-dev \
-		pkg-config libhwloc-dev cmake cpputest libsqlite3-dev uuid-dev \
+		pkg-config libhwloc-dev cpputest libsqlite3-dev uuid-dev \
 		libcmocka-dev libnetfilter-queue-dev libmnl-dev autotools-dev \
 		libluajit-5.1-dev libunwind-dev libfl-dev -y
+	apt-get install libdumbnet-dev libdumbnet1 flex libhwloc15 libhwloc-dev -y
+	#apt-get install luajit libluajit-5.1-dev -y
+	apt-get install luajit2 libluajit2-5.1-dev -y
+	apt-get install libssl-dev libpcap-dev libpcre3 libpcre3-dev -y
+	apt-get install zlib1g zlib1g-dev lzma lzma-dev liblzma5 liblzma-dev -y
+}
+
+install_snort3() {
 	
 	# install libdaq
 	cd /usr/local/src
@@ -56,18 +67,18 @@ install_snort3 (){
 
 	# install gperftools
 	cd /usr/local/src
-	wget https://github.com/gperftools/gperftools/releases/download/gperftools-2.10/gperftools-2.10.tar.gz
-	tar zxvf ./gperftools-2.10.tar.gz
-	cd gperftools-2.10
+	wget https://github.com/gperftools/gperftools/releases/download/gperftools-2.15/gperftools-2.15.tar.gz
+	tar zxvf ./gperftools-2.15.tar.gz
+	cd gperftools-2.15
 	./configure
 	make
 	make install
 
 	# install snort3
 	cd /usr/local/src
-	wget https://github.com/snort3/snort3/archive/refs/tags/3.1.58.0.tar.gz
-	tar zxvf ./3.1.58.0.tar.gz
-	cd snort3-3.1.58.0
+	wget https://github.com/snort3/snort3/archive/refs/tags/3.1.84.0.tar.gz
+	tar zxvf ./3.1.84.0.tar.gz
+	cd snort3-3.1.84.0
 	./configure_cmake.sh --prefix=/usr/local --enable-tcmalloc
 	cd build
 	make
@@ -150,6 +161,7 @@ EOF
 
 install_openappid() {
 	cd /usr/local/src
+	# cannot get OpenAppId-26425.tgz anymore , this file was gone and i cannot find it on the internet ???
 	wget https://www.snort.org/downloads/openappid/26425 -O OpenAppId-26425.tgz
 	tar -xzvf OpenAppId-26425.tgz
 	cp -R odp /usr/local/lib/
@@ -183,6 +195,7 @@ EOF
 	sed -i -- "s|_WIRED_INTERFACE_NAME_|$WIRED_INTERFACE_NAME|g" $SYSTEMD_UNIT_FILE
 	chown root:root $SYSTEMD_UNIT_FILE
 	chmod 644 $SYSTEMD_UNIT_FILE
+	mkdir -p /var/log/snort
 	chmod -R 5775 /var/log/snort
 	chown -R snort:snort /var/log/snort
 	systemctl daemon-reload
@@ -192,10 +205,11 @@ EOF
 }
 
 main(){
+	install_prerequisite
 	install_snort3
 	change_nic_behavior
 	install_rulesets
-	install_openappid
+	###install_openappid
 	enable_snort_as_service
 }
 
