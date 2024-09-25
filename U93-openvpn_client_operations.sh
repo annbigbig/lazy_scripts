@@ -1,12 +1,12 @@
 #!/bin/bash
-# This script will do some operations on your Ubuntu 22.04 machine (Used as OpenVPN Client) 
+# This script will do some operations on your Ubuntu 24.04 machine (Used as OpenVPN Client) 
 # before you run this script , please specify some parameters here ;
 # 
 #######################################################################################################################################
 CLIENT_OS_TYPE="Linux"                                 # possible values are 'Linux' / 'Windows' / 'Android' / 'iOS'
 SUDO_USER_SERVER="labasky"                             # The user who own sudo priviledge on openvpn server
 SUDO_USER_CLIENT="labasky"                             # The user who own sudo priviledge on openvpn client
-CLIENT_NAME="client-contabo"                           # what is your client name , this will be used as client's filename (.ovpn)
+CLIENT_NAME="client01"                                 # what is your client name , this will be used as client's filename (.ovpn)
 YOUR_SERVER_IP="111.234.56.78"                         # Write Public IP of your OpenVPN Server here
 SSH_CUSTOM_PORT_SERVER="36000"                         # The SSH Service port on OpenVPN Server
 PATH_TO_OPENVPN_LOG="/tmp/openvpn.log"                 # The path to (Client side's) openvpn log
@@ -92,7 +92,7 @@ stop_openvpn_client() {
 	fi
 }	
 
-echo -e "This script will do some operations on your Ubuntu 22.04 machine (used as OpenVPN Client)\n"
+echo -e "This script will do some operations on your Ubuntu 24.04 machine (used as OpenVPN Client)\n"
 echo -e "[0] Do nothing and Exit \n"
 echo -e "[1] Copy client .ovpn file (From OpenVPN Server) to local computer \n"
 echo -e "[2] Install openvpn client \n"

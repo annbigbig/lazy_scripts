@@ -1,15 +1,15 @@
 #!/bin/bash
-# This script will do some operations on your Ubuntu 22.04 machine (Used as OpenVPN Server)
+# This script will do some operations on your Ubuntu 24.04 machine (Used as OpenVPN Server)
 # before you run this script , please specify some parameters here ;
 # 
 #######################################################################################################################################
 SUDO_USER="labasky"                                    # The user who own sudo priviledge on this (CA) server
-COMMON_NAME="server"                                   # Common Name (CN) of OpenVPN Server , could be anything u like
+COMMON_NAME="server01"                                 # Common Name (CN) of OpenVPN Server , could be anything u like
 EASYRSA_CERT_EXPIRE="36500"                            # server.crt valid for 100 years
 PATH_TO_SERVER_REQ="/tmp/$COMMON_NAME.req"             # where is resulting server.req should be placed ?
 PATH_TO_SERVER_CRT="/tmp/$COMMON_NAME.crt"             # where is signed server.crt to be import ?
 PATH_TO_CA_CRT="/tmp/ca.crt"                           # where is ca.crt to be import ?
-CLIENT_NAME="client1"                                  # what is your client name , this will be used as client's filename (key/cert)
+CLIENT_NAME="client01"                                 # what is your client name , this will be used as client's filename (key/cert)
 PATH_TO_CLIENT_REQ="/tmp/$CLIENT_NAME.req"             # where is resulting clientXX.req should be placed ?
 PATH_TO_CLIENT_CRT="/tmp/$CLIENT_NAME.crt"             # where is clientXX.crt to be import ?
 LISTENING_PORT="1194"                                  # UDP port that OpenVPN service is running
@@ -27,7 +27,7 @@ EASYRSA_INSTALLED="$(apt list --installed 2>/dev/null | grep easy-rsa | wc -l)"
 # https://www.cyberciti.biz/open-source/command-line-hacks/linux-run-command-as-different-user/
 # https://bash.cyberciti.biz/security/linux-openvpn-firewall-etc-iptables-add-openvpn-rules-sh-shell-script/
 #######################################################################################################################################
-#                            <<Tested on Ubuntu 22.04 Server Edition>>
+#                            <<Tested on Ubuntu 24.04 Server Edition>>
 #######################################################################################################################################
 
 say_goodbye() {
@@ -236,7 +236,7 @@ cat ${BASE_CONFIG} \
 	echo -e "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * \n"
 }
 
-echo -e "This script will do some operations on your Ubuntu 22.04 machine (used as OpenVPN Server) \n"
+echo -e "This script will do some operations on your Ubuntu 24.04 machine (used as OpenVPN Server) \n"
 echo -e "[0] Do nothing and Exit \n"
 echo -e "[1] Install OpenVPN Server \n"
 echo -e "[2] Generate Server Certificate Request (.req) and Private Key (.key) \n"

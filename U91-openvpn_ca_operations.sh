@@ -1,10 +1,10 @@
 #!/bin/bash
-# This script will do some operations on your Ubuntu 22.04 machine (Used as Certificate Authority)
+# This script will do some operations on your Ubuntu 24.04 machine (Used as Certificate Authority)
 # before you run this script , please specify some parameters here ;
 # 
 ############################################################################################################
 SUDO_USER="labasky"                     # The user who own sudo priviledge on this (CA) server
-COMMON_NAME="server-contabo"            # Common Name (CN) of OpenVPN Server , could be anything u like
+COMMON_NAME="server01"                  # Common Name (CN) of OpenVPN Server , could be anything u like
 ############################################################################################################
 EASYRSA_REQ_COUNTRY="TW"                # These parameters for building CA
 EASYRSA_REQ_PROVINCE="Taiwan"           # change it to suit your situation
@@ -20,8 +20,7 @@ EASYRSA_CERT_EXPIRE="36500"             # server.crt valid for 100 years
 PATH_TO_SERVER_REQ="/tmp/$COMMON_NAME.req"         # where is server.req file to be sign ? 
 PATH_TO_SERVER_CRT="/tmp/$COMMON_NAME.crt"         # where is resulting server.crt should be placed ?
 PATH_TO_CA_CRT="/tmp/ca.crt"                       # where is ca.crt should be placed ?
-#CLIENT_NAME="client1"                             # what is your client name ? 
-CLIENT_NAME="client-contabo"                       # what is your client name ? 
+CLIENT_NAME="client01"                             # what is your client name ? 
 PATH_TO_CLIENT_REQ="/tmp/$CLIENT_NAME.req"         # where is clientXX.req file to be sign ? 
 PATH_TO_CLIENT_CRT="/tmp/$CLIENT_NAME.crt"         # where is resulting clientXX.crt file to be placed ? 
 ############################################################################################################
@@ -33,7 +32,7 @@ WIRED_INTERFACE_NAME="$(ip link show | grep '2:' | cut -d ':' -f 2 | sed 's/^ */
 # https://www.digitalocean.com/community/tutorials/how-to-set-up-and-configure-an-openvpn-server-on-ubuntu-22-04
 # https://www.cyberciti.biz/open-source/command-line-hacks/linux-run-command-as-different-user/
 ############################################################################################################
-#                            <<Tested on Ubuntu 22.04 Server Edition>>
+#                            <<Tested on Ubuntu 24.04 Server Edition>>
 ############################################################################################################
 
 say_goodbye() {
@@ -124,7 +123,7 @@ signing_client_certificate_request() {
 	echo -e "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * \n"
 }
 
-echo -e "This script will do some operations on your Ubuntu 22.04 machine (used as certificate authority) \n"
+echo -e "This script will do some operations on your Ubuntu 24.04 machine (used as certificate authority) \n"
 echo -e "[0] Do nothing and Exit \n"
 echo -e "[1] Setup Certificate Authority \n"
 echo -e "[2] Signing server certificate request (turn serverXX.req to serverXX.crt) \n"

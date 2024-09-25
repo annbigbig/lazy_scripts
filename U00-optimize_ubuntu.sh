@@ -180,27 +180,14 @@ add_swap_space(){
 
 }
 
-remove_fcitx5(){
-   # for some reason i don't know
-   # there is no so called 'fcitx5-table-boshiamy' package existed in apt repositories
-   # so i have to REMOVE/UNINSTALL everything about fcitx5
-   # and reinstall those fcitx version4 (OLD) packages later in order to use Chinese input method Boshiamy
-	if [ $OS_TYPE == "DESKTOP" ] ; then
-   		apt list --installed | grep fcitx5
-   		apt-get purge fcitx5* -y
-   		apt-get purge libfcitx5* -y
-   		apt autoremove -y
-   	fi
-}
-
 install_softwares(){
         apt-get update
 	if [ $OS_TYPE == "DESKTOP" ] ; then
-	     string="build-essential:git:htop:memtester:vim:subversion:synaptic:vinagre:seahorse:fcitx:fcitx-table-boshiamy:fcitx-chewing:net-tools:unzip:cifs-utils:sshfs:software-properties-common:tmux"
+	     string="build-essential:cmake:git:htop:memtester:vim:subversion:synaptic:vinagre:seahorse:fcitx5:fcitx5-table-boshiamy:fcitx5-chewing:net-tools:unzip:cifs-utils:sshfs:software-properties-common:tmux:curl:wget"
 	elif [ $OS_TYPE == "SERVER" ] ; then
-	     string="build-essential:git:htop:memtester:vim:net-tools:ifupdown:unzip:cifs-utils:sshfs:software-properties-common:tmux"
+	     string="build-essential:cmake:git:htop:memtester:vim:net-tools:ifupdown:unzip:cifs-utils:sshfs:software-properties-common:tmux:curl:wget"
 	else
-	     string="build-essential:git:htop:memtester:vim:subversion:unzip:cifs-utils:sshfs:software-properties-common:tmux"
+	     string="build-essential:cmake:git:htop:memtester:vim:subversion:unzip:cifs-utils:sshfs:software-properties-common:tmux:curl:wget"
 	fi
 	IFS=':' read -r -a array <<< "$string"
 	for index in "${!array[@]}"
@@ -346,7 +333,6 @@ EOF
 main(){
         unlock_apt_bala_bala
         update_system
-	remove_fcitx5
 	install_softwares
 	disable_ipv6_entirely
 	disable_dnssec
@@ -367,20 +353,19 @@ main(){
 echo -e "This script will do the following tasks for your x64 machine, including: \n"
 echo -e "  1.unlock apt package manager \n"
 echo -e "  2.update packages to newest version \n"
-echo -e "  3.remove fcitx5 packages && install softwares you need \n"
-echo -e "  4.disable ipv6 entirely \n"
-echo -e "  5.disable DNSSEC for systemd-resolved.service \n"
-echo -e "  6.install ntpdate and sync system time \n"
-echo -e "  7.disable cloudinit messages that appear to foreground \n"
-echo -e "  8.fix too many authentication failures problem \n"
-echo -e "  9.Firewall rule setting (Write firewall rules in /etc/network/if-up.d/firewall) \n"
-echo -e "  10.delete route to 169.254.0.0 \n"
-echo -e "  11.add swap space with 4096MB \n"
-echo -e "  12.install chrome browser \n"
-echo -e "  13.remove ugly fonts \n"
-echo -e "  14.downgrade gcc/g++ version to 10.x \n"
-echo -e "  15.turn off apport problem report popup dialog \n"
-echo -e "  16.install x11vnc service (running on 127.0.0.1:5900) for u if your OS_TYPE is DESKTOP \n"
+echo -e "  3.disable ipv6 entirely \n"
+echo -e "  4.disable DNSSEC for systemd-resolved.service \n"
+echo -e "  5.install ntpdate and sync system time \n"
+echo -e "  6.disable cloudinit messages that appear to foreground \n"
+echo -e "  7.fix too many authentication failures problem \n"
+echo -e "  8.Firewall rule setting (Write firewall rules in /etc/network/if-up.d/firewall) \n"
+echo -e "  9.delete route to 169.254.0.0 \n"
+echo -e "  10.add swap space with 4096MB \n"
+echo -e "  11.install chrome browser \n"
+echo -e "  12.remove ugly fonts \n"
+echo -e "  13.downgrade gcc/g++ version to 10.x \n"
+echo -e "  14.turn off apport problem report popup dialog \n"
+echo -e "  15.install x11vnc service (running on 127.0.0.1:5900) for u if your OS_TYPE is DESKTOP \n"
 
 read -p "Are you sure (y/n)?" sure
 case $sure in
