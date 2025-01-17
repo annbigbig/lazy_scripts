@@ -420,6 +420,7 @@ EOF
 # create users and database for phpmyadmin
 mysql -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 drop database if exists phpmyadmin;
+create database phpmyadmin;
 create user 'pmauser'@'localhost' identified by 'pmapassword';
 create user 'pmauser'@'127.0.0.1' identified by 'pmapassword';
 create user 'pmauser'@'192.168.251.%' identified by 'pmapassword';

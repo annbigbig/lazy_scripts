@@ -7,15 +7,15 @@
 ###########################################  <<Tested on Ubuntu Mate 24.04 Server Edition>>  ################
 #
 NGINX_VERSION_NUMBER="1.26.2"
-OPENSSL_VERSION_NUMBER="3.3.2"
+OPENSSL_VERSION_NUMBER="3.4.0"
 ZLIB_VERSION_NUMBER="1.3.1"
 PCRE_VERSION_NUMBER="8.45"
 PCRE2_VERSION_NUMBER="10.44"
 PHP7_VERSION_NUMBER="7.4.33"
-PHP8_VERSION_NUMBER="8.3.11"
+PHP8_VERSION_NUMBER="8.4.3"
 PHPMYADMIN_VERSION_NUMBER="5.2.1"
-WORDPRESS_VERSION_NUMBER="6.6.1"
-CACTI_VERSION_NUMBER="1.2.27"
+WORDPRESS_VERSION_NUMBER="6.7.1"
+CACTI_VERSION_NUMBER="1.2.28"
 #
 SERVER_FQDN="www.dq5rocks.com"
 ENABLE_HTTPS="yes"
@@ -437,10 +437,10 @@ remove_previous_install() {
              # stop/disable service
              systemctl disable php7.4-fpm.service
              systemctl stop php7.4-fpm.service
-        elif [ -f /lib/systemd/system/php8.3-fpm.service ]; then
+        elif [ -f /lib/systemd/system/php8.4-fpm.service ]; then
              # stop/disable service
-             systemctl disable php8.3-fpm.service
-             systemctl stop php8.3-fpm.service
+             systemctl disable php8.4-fpm.service
+             systemctl stop php8.4-fpm.service
 	fi
              # try to remove binary package
 	     apt-get purge -y php8* php7* php*
@@ -576,8 +576,8 @@ install_nginx() {
 	# download openssl libraries
 	wget https://github.com/openssl/openssl/releases/download/openssl-$OPENSSL_VERSION_NUMBER/openssl-$OPENSSL_VERSION_NUMBER.tar.gz
 	wget https://github.com/openssl/openssl/releases/download/openssl-$OPENSSL_VERSION_NUMBER/openssl-$OPENSSL_VERSION_NUMBER.tar.gz.sha256
-        SHA256SUM_SHOULD_BE="$(cat ./openssl-$OPENSSL_VERSION_NUMBER.tar.gz.sha256 | tr -d ' ')"
-        SHA256SUM_COMPUTED="$(sha256sum ./openssl-$OPENSSL_VERSION_NUMBER.tar.gz | cut -d ' ' -f 1)"
+        SHA256SUM_SHOULD_BE="$(cat ./openssl-$OPENSSL_VERSION_NUMBER.tar.gz.sha256 | cut -d ' ' -f 1 | tr -d ' ')"
+        SHA256SUM_COMPUTED="$(sha256sum ./openssl-$OPENSSL_VERSION_NUMBER.tar.gz | cut -d ' ' -f 1 | tr -d ' ')"
         [ "$SHA256SUM_SHOULD_BE" == "$SHA256SUM_COMPUTED" ] && echo "openssl sha256sum matched." || exit 2
 
 	# old PCRE library , should be deprecated ...
@@ -836,7 +836,7 @@ install_phpfpm() {
 	if [[ $OPENSSL_VERSION = 3* ]]
 	then
 		echo -e "OpenSSL Version starts with 3 , probably Ubuntu 22.04/24.04 \n"
-		install_phpfpm83
+		install_phpfpm84
 	else
 		echo -e "OpenSSL Version not starts with 3 , probably Ubuntu 20.04 \n"
 		install_phpfpm74
@@ -991,7 +991,7 @@ EOF
 	# update-alternatives --config php
 }
 
-install_phpfpm83() {
+install_phpfpm84() {
         # for linking kerberos libraries
         mkdir -p /usr/kerberos
         ln -s /usr/lib/$LIB_SUBPATH/ /usr/kerberos/lib
@@ -1007,7 +1007,7 @@ install_phpfpm83() {
 
         # download the source tar.gz, extract it then configure it
         wget -O php-$PHP8_VERSION_NUMBER.tar.gz https://www.php.net/distributions/php-$PHP8_VERSION_NUMBER.tar.gz
-        SHA256SUM_SHOULD_BE="b93a69af83a1302543789408194bd1ae9829e116e784d578778200f20f1b72d4"
+        SHA256SUM_SHOULD_BE="45b88555b31487401b42c8bd36f2c45d84992bc93ae4c1a23d93bb3347984ecb"
         SHA256SUM_COMPUTED="$(/usr/bin/sha256sum ./php-$PHP8_VERSION_NUMBER.tar.gz | cut -d " " -f 1)"
         [ "$SHA256SUM_SHOULD_BE" != "$SHA256SUM_COMPUTED" ] && echo "oops...sha256 checksum doesnt match." && exit 2 || echo "sha256 checksum matched."
         tar zxvf ./php-$PHP8_VERSION_NUMBER.tar.gz
@@ -1116,7 +1116,7 @@ cat > /etc/logrotate.d/php-fpm << EOF
 EOF
 
         # create systemd unit file
-        cat > /lib/systemd/system/php8.3-fpm.service << "EOF"
+        cat > /lib/systemd/system/php8.4-fpm.service << "EOF"
 [Unit]
 Description=PHP FastCGI process manager
 After=local-fs.target network.target nginx.service
@@ -1133,8 +1133,8 @@ EOF
         chown -R nginx:nginx /usr/local/php-$PHP8_VERSION_NUMBER
         chown root:root /etc/logrotate.d/php-fpm
         chmod 644 /etc/logrotate.d/php-fpm
-        chown root:root /lib/systemd/system/php8.3-fpm.service
-        chmod 644 /lib/systemd/system/php8.3-fpm.service
+        chown root:root /lib/systemd/system/php8.4-fpm.service
+        chmod 644 /lib/systemd/system/php8.4-fpm.service
 
 	# change multiple php binaries priority
 	update-alternatives --install /usr/bin/php php /usr/local/php-$PHP8_VERSION_NUMBER/bin/php 99
@@ -1417,13 +1417,13 @@ start_systemd_service() {
 	if [[ $OPENSSL_VERSION = 3* ]]
 	then
 	        if [ "$OLD_PHPFPM_PROCESS_EXISTED" -gt 0 ]; then
-			systemctl stop php8.3-fpm.service
+			systemctl stop php8.4-fpm.service
 		fi
              	rm -rf /usr/local/php
 	        ln -s /usr/local/php-$PHP8_VERSION_NUMBER /usr/local/php
-		systemctl enable php8.3-fpm.service
-		systemctl start php8.3-fpm.service
-		systemctl status php8.3-fpm.service
+		systemctl enable php8.4-fpm.service
+		systemctl start php8.4-fpm.service
+		systemctl status php8.4-fpm.service
 	else
 		if [ "$OLD_PHPFPM_PROCESS_EXISTED" -gt 0 ]; then	
 			systemctl stop php7.4-fpm.service

@@ -7,7 +7,7 @@ INSTALL_MYSQL_AS_MULTIPLE_NODES_GALERA_CLUSTER="no"                  # 'galera.c
 FIRST_NODE="yes"                                                     # if this node is first node of cluster, set this value to 'yes'
 MYSQL_ROOT_PASSWD="root"                                             # mysql root password you specify for first node
 WSREP_CLUSTER_NAME="kashu_cluster"                                   # name of galera cluster you preffered
-WSREP_CLUSTER_ADDRESS="192.168.251.248,192.168.251.249"              # IP addresses list seperated by comma of all cluster nodes
+WSREP_CLUSTER_ADDRESS="192.168.252.240,192.168.252.241"              # IP addresses list seperated by comma of all cluster nodes
 #########################################################################################################################################
 # no need to setup below , script will know it and use them automatically for u
 WIRED_INTERFACE_NAME="$(ip link show | grep '2:' | cut -d ':' -f 2 | sed 's/^ *//g')"
@@ -461,6 +461,7 @@ EOF
 # create users and database for phpmyadmin
 mysql -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 drop database if exists phpmyadmin;
+create database phpmyadmin;
 create user 'pmauser'@'localhost' identified by 'pmapassword';
 create user 'pmauser'@'127.0.0.1' identified by 'pmapassword';
 create user 'pmauser'@'192.168.251.%' identified by 'pmapassword';
@@ -489,8 +490,8 @@ EOF
 
 # create users and database for cacti
         cd /tmp
-        wget --no-check-certificate https://files.cacti.net/cacti/linux/cacti-1.2.27.tar.gz
-        tar zxvf /tmp/cacti-1.2.27.tar.gz
+        wget --no-check-certificate https://files.cacti.net/cacti/linux/cacti-1.2.28.tar.gz
+        tar zxvf /tmp/cacti-1.2.28.tar.gz
 mysql -u root -p$MYSQL_ROOT_PASSWD << "EOF"
 drop database if exists cacti_db;
 create database cacti_db;
@@ -502,7 +503,7 @@ grant select on mysql.time_zone_name to 'cactiuser'@'localhost';
 grant select on mysql.time_zone_name to 'cactiuser'@'127.0.0.1';
 flush privileges;
 use cacti_db;
-source /tmp/cacti-1.2.27/cacti.sql;
+source /tmp/cacti-1.2.28/cacti.sql;
 EOF
         # populate timezone data from /usr/share/zoneinfo to mysql time_zone_name table
         /usr/bin/mysql_tzinfo_to_sql /usr/share/zoneinfo/ | mysql -u root -p$MYSQL_ROOT_PASSWD mysql

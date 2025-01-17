@@ -110,6 +110,12 @@ if [ -n \$local ] ; then
   \$iptables -t filter -A INPUT -i $WIRED_INTERFACE_NAME -p udp --dport 1194 -j ACCEPT
   \$iptables -t filter -A INPUT -i $WIRED_INTERFACE_NAME -p udp --dport 500 -j ACCEPT
   \$iptables -t filter -A INPUT -i $WIRED_INTERFACE_NAME -p udp --dport 4500 -j ACCEPT
+  \$iptables -t filter -A INPUT -i $WIRED_INTERFACE_NAME -p tcp --dport 3333 -j ACCEPT
+  \$iptables -t filter -A INPUT -i $WIRED_INTERFACE_NAME -p tcp --dport 4444 -j ACCEPT
+  \$iptables -t filter -A INPUT -i $WIRED_INTERFACE_NAME -p tcp --dport 5555 -j ACCEPT
+  \$iptables -t filter -A INPUT -i $WIRED_INTERFACE_NAME -p tcp --dport 6666 -j ACCEPT
+  \$iptables -t filter -A INPUT -i $WIRED_INTERFACE_NAME -p tcp --dport 7777 -j ACCEPT
+  \$iptables -t filter -A INPUT -i $WIRED_INTERFACE_NAME -p tcp --dport 8888 -j ACCEPT
   \$iptables -t filter -A INPUT -d \$local -p tcp --dport 36000 --syn -m state --state NEW -m limit --limit 10/s --limit-burst 5 -j ACCEPT
   \$iptables -t filter -A INPUT -d \$local -p tcp --dport 36000 --syn -m state --state NEW -j DROP
   \$iptables -t filter -A INPUT -d \$local -p tcp --dport 25 --syn -m state --state NEW -m limit --limit 20/s --limit-burst 10 -j ACCEPT

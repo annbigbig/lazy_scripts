@@ -57,7 +57,7 @@ change_sshd_settings() {
 
         # prevent password logins
         sed -i -- 's|#PasswordAuthentication yes|PasswordAuthentication no|g' $CONFIG_FILE_PATH
-        sed -i -- 's|#PasswordAuthentication yes|PasswordAuthentication no|g' $INCLUDED_EXTRA_CONFIG_PATH
+        sed -i -- 's|PasswordAuthentication yes|PasswordAuthentication no|g' $INCLUDED_EXTRA_CONFIG_PATH
         sed -i -- 's|#PermitEmptyPasswords no|PermitEmptyPasswords no|g' $CONFIG_FILE_PATH
 
 	# check dsa key existed or not , if not existed , delete all of the other keys and re-generate them
